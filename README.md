@@ -1,0 +1,4 @@
+scripts
+=======
+
+automate some analysis
