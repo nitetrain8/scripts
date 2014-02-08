@@ -49,7 +49,7 @@ class Recipe():
 
 
 # noinspection PyDocstring
-def make_recipe(pgain, itime, dtime):
+def make_auto2auto(pgain, itime, dtime):
 
     recipe = Recipe()
     recipe.set("TempHeatDutyControl.PGain(min)", pgain)
@@ -64,6 +64,26 @@ def make_recipe(pgain, itime, dtime):
     return recipe
 
 
+def make_full_test(pgain: float, itime: float, dtime: float, sp: float) -> str:
+
+    recipe = Recipe()
+    recipe.set("TempHeatDutyControl.PGain(min)", pgain)
+    recipe.set("TempHeatDutyControl.ITime(min)", itime)
+    recipe.set("TempHeatDutyControl.DTime(min)", dtime)
+    recipe.set("TempSP(C)", sp)
+    recipe.wait(5)
+    recipe.set("TempModeUser", "Auto")
+    recipe.waituntil('TempPV(C)', ">=", sp)
+    recipe.wait(3600)
+    recipe.set("TempSP(C)", sp + 2)
+    recipe.wait(5)
+    recipe.waituntil("TempPV(C)", ">=", sp + 2)
+    recipe.wait(3600)
+    recipe.set("TempModeUser", "Off")
+    recipe.waituntil("TempPV(C)", "<=", 28)
+    return str(recipe)
+
+
 def make_long_recipe(settings: list) -> str:
     """
     @param settings: iterable of tuples of (p, i, d) settings.
@@ -71,10 +91,18 @@ def make_long_recipe(settings: list) -> str:
     """
     recipes = []
     for p, i, d in settings:
-        recipe = make_recipe(p, i, d)
+        recipe = make_full_test(p, i, d, 37)
         recipes.append(str(recipe))
 
-    return ''.join(recipes)
+    long_recipe = ''.join(recipes)
+    start = Recipe()
+    start.set("TempModeUser", "Off")
+    start.wait(5)
+    start.waituntil("TempPV(C)", "<=", 28)
+
+    long_recipe = str(start) + long_recipe
+
+    return long_recipe
 
 
 def test_d_settings():
@@ -88,18 +116,18 @@ def test_d_settings():
     return settings
 
 
-def test_ratio_no_d():
+def test_ratio_no_d() -> list:
     """
     @return: list of settings with constant
              ratio.
     """
     ps = [5 * i for i in range(1, 10)]
     settings = ((p, p / 10, 0) for p in ps)
-    return settings
+    return list(settings)
 
 if __name__ == '__main__':
-    settings = test_d_settings()
-    recipe = make_long_recipe(settings)
+    # settings = test_d_settings()
+    # recipe = make_long_recipe(settings)
 
     settings = test_ratio_no_d()
     recipe = make_long_recipe(settings)
