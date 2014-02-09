@@ -9,14 +9,20 @@ Created in: PyCharm Community Edition
 __author__ = 'Nathan Starkweather'
 
 
-class MyClass():
+from PyQt5.QtGui import QKeyEvent
+from PyQt5.QtWidgets import QMainWindow
+from PyQt5.Qt import *
+from sys import path as sys_path
+sys_path.append("C:/Users/Administrator/Documents/Programming/python/pysrc")
+from snippets import printdir
+from sys import argv
+app = QApplication(argv)
+window = QMainWindow()
+window.show()
 
-    def __init__(self, iterable):
-        self._list = list(iterable)
+env = QProcessEnvironment.systemEnvironment()
+printdir(env)
+list_ = env.toStringList()
+for s in sorted(list_):
+    print(s)
 
-    def __iter__(self):
-        for val in self._list:
-            yield val
-
-
-m = MyClass(range(100))
