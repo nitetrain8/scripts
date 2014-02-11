@@ -7,22 +7,31 @@ Created in: PyCharm Community Edition
 
 """
 __author__ = 'Nathan Starkweather'
+mylist = [
+"_settings",
 
+"_temp_times",
+"_temp_pvs",
 
-from PyQt5.QtGui import QKeyEvent
-from PyQt5.QtWidgets import QMainWindow
-from PyQt5.Qt import *
-from sys import path as sys_path
-sys_path.append("C:/Users/Administrator/Documents/Programming/python/pysrc")
-from snippets import printdir
-from sys import argv
-app = QApplication(argv)
-window = QMainWindow()
-window.show()
+"_heat_times",
+"_heat_pvs",
 
-env = QProcessEnvironment.systemEnvironment()
-printdir(env)
-list_ = env.toStringList()
-for s in sorted(list_):
-    print(s)
+"_top_left_address",
+"_top_left_coords",
+"_linear_start_cell",
+"_linear_end_cell",
+        ]
+import re
 
+magic_re = r"[_](\w)"
+mynewlist = []
+for i in mylist:
+    spots = i.split('_')
+    for i, s in enumerate(spots):
+        try:
+            spots[i] = s[0].upper() + s[1:]
+        except:
+            pass
+    mynewlist.append(''.join(spots))
+
+print(mynewlist)

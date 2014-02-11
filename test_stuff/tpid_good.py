@@ -1,13 +1,13 @@
-'''
+"""
 Created on Jan 23, 2014
 
 @Company: PBS Biotech
 @Author: Nathan Starkweather
 
-Methods related to performing analysis for 
+Methods related to performing analysis for
 temperature-PID tuning.
 
-'''
+"""
 from officelib.pbslib.proxies import BatchFile  # @UnresolvedImport
 from officelib.pbslib.batchutil import FilterIndexRange  # @UnresolvedImport
 from itertools import zip_longest
@@ -20,21 +20,21 @@ from officelib.xllib.xladdress import cellRangeStr, cellStr  # @UnusedImport @Un
 
 class TestHandler():
     
-    ''' This class represents an entire series of tests 
+    """ This class represents an entire series of tests
     in a single worksheet.
-    
+
     TestHandler.Register(PIDTest) -> Register a test with
-    the testhandler.  
-    
-    '''
+    the testhandler.
+
+    """
     
     def __init__(self, wb, SaveAsName=None):
-        ''' Initialize the test with the 
-        excel workbook wb, naming the file 
-        SaveAsName. If SaveAsName is None, 
+        """ Initialize the test with the
+        excel workbook wb, naming the file
+        SaveAsName. If SaveAsName is None,
         the workbook's existing name is used
-         
-        ''' 
+
+        """
         
         self.xl = wb.Application
         self.wb = wb
@@ -58,11 +58,11 @@ class TestHandler():
         self.create_control_data()
         
     def Register(self, test):
-        ''' Register a test with the handler.
+        """ Register a test with the handler.
         The data will be added to the worksheet
         later.
-        
-        '''
+
+        """
         self._tests.append(test)
         
     def RegisterFromFilename(self, filename):
@@ -76,10 +76,10 @@ class TestHandler():
             self._tests.append(test)
         
     def create_control_header(self):
-        ''' Create the control header in the first three columns of the
+        """ Create the control header in the first three columns of the
         worksheet.
-        
-        '''
+
+        """
         
         control_header = (
                           ("Control", None, None),
@@ -102,13 +102,13 @@ class TestHandler():
         self.cell_range(header_range).Value = control_header
         
     def create_control_data(self):
-        ''' Create the set of control data at the
+        """ Create the set of control data at the
         beginning of the test.
-        
-        If class is extended, magic numbers may need to be 
+
+        If class is extended, magic numbers may need to be
         updated.
-        
-        '''
+
+        """
         
         # Cell coordinates in form of cellStr() args
         ave_m_cell = (5, 1, 0, 1)
@@ -135,10 +135,10 @@ class TestHandler():
     @staticmethod
     def count_worksheet_tests(ws):
     
-        ''' Count the number of tests present in the worksheet,
-        based on the number of headers counted. 
-        
-        ''' 
+        """ Count the number of tests present in the worksheet,
+        based on the number of headers counted.
+
+        """
         
         results = set()
         cells = ws.Cells
@@ -216,28 +216,28 @@ class TestHandler():
         
     
 class PIDTest():
-    ''' This class represents the test context itself,
-    after raw file processing. 
-    
+    """ This class represents the test context itself,
+    after raw file processing.
+
     PIDTest(filename) -> data to be pasted into
     a spreadsheet containing information about the test
-    (name, gain settings, etc), and the processed 
-    information.  
-    
+    (name, gain settings, etc), and the processed
+    information.
+
     Each PIDTest is bound to a single test file.
-    
-    '''
+
+    """
     
     def __init__(self, filename):
         
-        ''' Declare and initialize instance variables, to be filled in 
-        by appropriate functions at the appropriate times. 
-        
+        """ Declare and initialize instance variables, to be filled in
+        by appropriate functions at the appropriate times.
+
         heat duty and temp pv are stored as properties, to prevent
         accidentally overriding them. The attributes are accessed
-        simply by using an underscore before the name. 
-        
-        ''' 
+        simply by using an underscore before the name.
+
+        """
         
         # These settings variables are public so that they 
         # can be changed easily if data pulled from the batch
@@ -275,15 +275,15 @@ class PIDTest():
     
     def process_file(self, filename):
         
-        ''' Open the file for processing, extract
-        settings and data. This function is called 
-        automatically by __init__ if when passed a 
-        filename. 
-        
+        """ Open the file for processing, extract
+        settings and data. This function is called
+        automatically by __init__ if when passed a
+        filename.
+
         Pass around batch file as a parameter,
-        then discard it to save data space. 
-        
-        '''
+        then discard it to save data space.
+
+        """
         self._filename = filename
         batch = BatchFile(filename)
         self._build_settings(batch)
@@ -301,20 +301,20 @@ class PIDTest():
         
     def _extract_data(self, batch):
         
-        ''' Extract the relevant data from the batch file
-        and assign relevant parameters to self. 
-        
-        '''
+        """ Extract the relevant data from the batch file
+        and assign relevant parameters to self.
+
+        """
         
         self._TempPV = batch['TempPV(C)']
         self._HeatDuty = batch['TempHeatDutyActual(%)']
         
     def _calculate_linear_range(self):
         
-        ''' Get the index of linear data range.
+        """ Get the index of linear data range.
         This is useful to have calculated and lying around.
-        
-        '''
+
+        """
         
         linear_range = lambda temp: self.LinearStartTemp < temp < self.LinearEndTemp
         linear_start, linear_end = FilterIndexRange(self._TempPV.Values, linear_range)
@@ -324,10 +324,10 @@ class PIDTest():
         
     def _build_settings(self, batch):
         
-        ''' Assign settings for the test from
-        the BatchFile object passed. 
-        
-        '''
+        """ Assign settings for the test from
+        the BatchFile object passed.
+
+        """
         
         # Because some non-critical information might not be
         # available in the batch file, set default values
@@ -385,12 +385,12 @@ class PIDTest():
         return self._header_rows + max(len(self._TempPV), len(self._HeatDuty))
         
     def RawHeader(self):
-        ''' Build the raw header for the test as a tuple of tuples
+        """ Build the raw header for the test as a tuple of tuples
         (inner tuples are rows).
-        
+
         This format allows the header to be set directly into
         a worksheet by calculating rows=len(tuple), cols = len(tuple[0])
-        '''
+        """
         
         filename = path_split(self._filename)[1]
         
@@ -406,11 +406,11 @@ class PIDTest():
         return header
         
     def RawData(self):
-        ''' Build the raw data block as a tuple of tuples.
+        """ Build the raw data block as a tuple of tuples.
         this version does not build the formulas used to calculate
-        elapsed time or normalized time, and leaves those columns empty. 
-        Thus, it is location-agnostic.         
-        '''
+        elapsed time or normalized time, and leaves those columns empty.
+        Thus, it is location-agnostic.
+        """
         
         temp = self._TempPV
         heat = self._HeatDuty
@@ -444,7 +444,6 @@ if __name__ == '__main__':
     t = TestHandler(wb)
     t.RegisterFromDir(testdir)
     t.PlotAll()
-        
         
         
         
