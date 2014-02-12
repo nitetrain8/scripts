@@ -1,8 +1,8 @@
-'''
+"""
 Created on Oct 28, 2013
 
 @author: PBS Biotech
-'''
+"""
 from officelib import *
 from tkinter.filedialog import askopenfilenames
 debug_files = [
@@ -21,8 +21,8 @@ debug_file = debug_files[0]
 
 
 def smooth_data(time_data):
-    '''smooth out time data so that there are no 
-    issues with multiple timestamps having exact same time'''
+    """smooth out time data so that there are no
+    issues with multiple timestamps having exact same time"""
     
     i = 0
     while i < len(time_data):
@@ -50,8 +50,8 @@ def smooth_data(time_data):
     
 
 def build_deriv_list(times,values):
-    '''I could have 1-lined this with an elaborate 
-    list comprehension but this is more readable'''
+    """I could have 1-lined this with an elaborate
+    list comprehension but this is more readable"""
     
     def diff(slice):
         return (slice[-1] - slice[0])

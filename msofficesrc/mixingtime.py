@@ -1,8 +1,8 @@
-'''
+"""
 Created on Nov 7, 2013
 
 @author: PBS Biotech
-'''
+"""
 
 from officelib import xllib
 from officelib.pbslib.proxies import BatchFile  # @UnresolvedImport
@@ -13,11 +13,11 @@ class InvalidTestError(Exception):
 
 
 def run_mixing_analysis(wb, batch_file):
-    '''main function for all analysis stuff
-    
+    """main function for all analysis stuff
+
     Todo: "index" and "i" variables are vague and should be
     renamed to something useful
-    '''
+    """
     
     #this will be what the function returns
     #will contain all important results from 
@@ -172,15 +172,15 @@ def run_mixing_analysis(wb, batch_file):
 
 def guess_mixing_col_header(data, *, g1='pHARaw', g2='pHBRaw'):
     
-    '''guess which column is used to collect conductivity
+    """guess which column is used to collect conductivity
     values for mixing time test. Last time, we used pHBRaw,
-    but I set logger to record both pHA and pHB, and I knew 
+    but I set logger to record both pHA and pHB, and I knew
     what was set. This program doesn't, so it must guess.
-    
+
     Current logic- correct column is either phbraw or pharaw.
     Correct column is also the one with the biggest difference
-    between the first and last raw value recorded for that column. 
-    ''' 
+    between the first and last raw value recorded for that column.
+    """
 
     g1dat = data[g1]['PV']
     g2dat = data[g2]['PV']

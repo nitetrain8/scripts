@@ -1,8 +1,8 @@
-'''
+"""
 Created on Dec 12, 2013
 
 @author: PBS Biotech
-'''
+"""
 import tkinter as tk
 import tkinter.ttk as ttk
 from os import makedirs
@@ -26,44 +26,44 @@ FUNC_TEST_FOLDER = "C:\\Users\\Public\Documents\\PBSSS\\Functional Testing"
 
 class CalibrationPrompt(): 
     
-    '''Class for handling easy creation of multi point
+    """Class for handling easy creation of multi point
     calibrations. Should be easy to extend to different
     types of calibrations just depending on how it is called.
     Not sure how easy it is to subclass, since all of the tkinter
     widget setup is done in __init__
-    
+
     Usage:
         m = CalibrationPrompt(test type, x_axis_label, y_axis_label)
-        all 3 args are strings, and will appear in dialog as 
+        all 3 args are strings, and will appear in dialog as
         well as the resulting excel sheet.
-    
+
     Note: variable names might be legacy from initial creation
     for use in RTD temp cal, where RAW = x_axis, TC = y axis for everything.
     I think I refactored everything by now.
-    
-    To extend, start by moving initialization code into private 
-    subroutines which allow easier navigation and organization. 
+
+    To extend, start by moving initialization code into private
+    subroutines which allow easier navigation and organization.
     As is, much of the __init__ code order is due to a) the order
-    that I thought of it in, and b) the order of creation that 
-    creates a logical tab stop order. a) Presents no obstacles 
-    for code reuse, while b) either requires some research, or 
-    some really annoying re-creation of buttons. 
-    
-    #Todo: 
+    that I thought of it in, and b) the order of creation that
+    creates a logical tab stop order. a) Presents no obstacles
+    for code reuse, while b) either requires some research, or
+    some really annoying re-creation of buttons.
+
+    #Todo:
         -Lock root window size.
         -Control tab stop order.
         -Make add button not right above "_finish" button.
-        -Leave more space by default so that window doesn't have to 
+        -Leave more space by default so that window doesn't have to
             resize every time non-default entries are added/removed.
-        -Make prettier.   
+        -Make prettier.
         -Add checkbox for printout
             eventually might need to expand to options menu
-            but no plans to expand that far. 
-        -Wrap 
-    '''
+            but no plans to expand that far.
+        -Wrap
+    """
     
     def __init__(self, Type, yLabel, xLabel='Raw Measure'):
-        '''Set up all tkinter widgets and settings'''
+        """Set up all tkinter widgets and settings"""
         
         #store arg copies for later export
         self.test_type = Type
@@ -157,7 +157,7 @@ class CalibrationPrompt():
         self._complete = False
     
     def _add_temp_pt(self):
-        '''Add Temp Cal Point'''
+        """Add Temp Cal Point"""
         frame = self.frame
         
         new_xdat_e = ttk.Entry(frame)
@@ -243,15 +243,15 @@ class CalibrationPrompt():
     
 class MultiCalPrompter():
     
-    '''This is the prompt that gets user info
+    """This is the prompt that gets user info
     for what type of calibration user wants to perform.
-    
+
     This functionality should (probably) be wrapped into
     CalibrationPrompt class itself, and name changed to be more descriptive.
-    
+
     For now, it is functional, though doesn't natively interface
-    with CalibrationPrompt class- user has to call CalibrationPrompt with info from this 
-    prompt.'''
+    with CalibrationPrompt class- user has to call CalibrationPrompt with info from this
+    prompt."""
     
     _complete = False
     __info = None
@@ -288,7 +288,7 @@ class MultiCalPrompter():
         self.root.destroy()
         
     def EndInfoPrompt(self):
-        '''get info and destroy root'''
+        """get info and destroy root"""
         
         errors = []
         
@@ -324,12 +324,12 @@ class MultiCalPrompter():
         return self.__info
 
     def GridNavWidgets(self):
-        '''Run and CloseDialog buttons'''
+        """Run and CloseDialog buttons"""
         self.run_btn.grid(column=1, row=2)
         self.cancel_btn.grid(column=0, row=2)
         
     def GridInfoWidgets(self):
-        '''Entry and Label widgets'''
+        """Entry and Label widgets"""
         self.cal_type_entry.grid(column=0, row=1)
         self.cal_type_label.grid(column=0, row=0)
         
@@ -340,7 +340,7 @@ class MultiCalPrompter():
         self.y_label.grid(column=2, row=0)
         
     def GridFrameWidgets(self):
-        '''Any Parent Widgets'''
+        """Any Parent Widgets"""
         self.frame.grid() 
         
     def Execute(self):
@@ -370,9 +370,9 @@ class MultiCalPrompter():
    
 def setup_cal_template(range_obj, data_range, reactor_name, test_type, xlabel='', ylabel=''):
     
-    '''Logic to set up the excel template page
-        pass range_obj param to more easily set up 
-        multiple templates/worksheets if needed.'''
+    """Logic to set up the excel template page
+        pass range_obj param to more easily set up
+        multiple templates/worksheets if needed."""
     cs = xllib.cellStr
     
     range_obj(2,2).Value = 'Reactor:'
@@ -387,8 +387,8 @@ def setup_cal_template(range_obj, data_range, reactor_name, test_type, xlabel=''
 
 def PlotData(data):
 
-    '''Take _data from input _data, 
-    do the actual work of plotting in excel'''
+    """Take _data from input _data,
+    do the actual work of plotting in excel"""
     
     global xl, wb, ws, cells 
 

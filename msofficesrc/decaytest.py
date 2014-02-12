@@ -1,8 +1,8 @@
-'''
+"""
 Created on Oct 23, 2013
 
 @author: PBS Biotech
-'''
+"""
 
 from officelib import *
 from tkinter.filedialog import askopenfilenames

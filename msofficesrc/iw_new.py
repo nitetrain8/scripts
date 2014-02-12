@@ -1,8 +1,8 @@
-'''
+"""
 Created on Dec 2, 2013
 
 @author: PBS Biotech
-'''
+"""
 
 
 import tkinter as tk
@@ -24,9 +24,9 @@ class DialogIncompleteError(Exception):
 @nsdbg.TkViewCoords('__frame1')
 class Importer(metaclass=nsdbg.dbgPrintEmptyMeta):
     
-    '''Importer class for providing a simple user form to 
+    """Importer class for providing a simple user form to
     import and analyze batch files, and output the analyzed
-    files as excel spreadsheets.'''
+    files as excel spreadsheets."""
     
     
     analysis_types = ['kla', 'mixing time', 'pressure decay']
@@ -204,7 +204,6 @@ if __name__ == '__main__':
         main()
     except:
         raise
-        
         
         
         

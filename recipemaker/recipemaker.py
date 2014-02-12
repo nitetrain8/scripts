@@ -80,6 +80,7 @@ def make_full_test(pgain: float, itime: float, dtime: float, sp: float) -> str:
     recipe.waituntil("TempPV(C)", ">=", sp + 2)
     recipe.wait(3600)
     recipe.set("TempModeUser", "Off")
+    recipe.wait(5)
     recipe.waituntil("TempPV(C)", "<=", 28)
     return str(recipe)
 
@@ -132,4 +133,5 @@ if __name__ == '__main__':
     settings = test_ratio_no_d()
     recipe = make_long_recipe(settings)
     outfile = "C:\\Users\\Public\\Documents\\PBSSS\\Functional Testing\\tpid.txt"
-    print(recipe, file=open(outfile, 'w'))
+    # print(recipe, file=open(outfile, 'w'))
+    print(recipe)

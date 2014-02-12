@@ -1,8 +1,8 @@
-'''
+"""
 Created on Dec 12, 2013
 
 @author: PBS Biotech
-'''
+"""
 import tkinter as tk
 import tkinter.ttk as ttk
 from os import makedirs, name as os_name
@@ -23,13 +23,13 @@ class DialogIncomplete(Exception):
     
     
 class SimplePrompt():
-    ''' Simple helper class to open a window
+    """ Simple helper class to open a window
     with two buttons (ok and cancel), and a text entry
-    
-    @param display_text : the text to display on the labelframe.            
+
+    @param display_text : the text to display on the labelframe.
     @return: string entered by user, if dialog completed.
-    
-    '''
+
+    """
     
     def reset(self):
         for item in self.__dict__:
@@ -93,14 +93,14 @@ class SimplePrompt():
         
         
 class SimpleCheckBox(ttk.Checkbutton):
-    '''Simple helper class to make working with a checkbox easier.
-    
+    """Simple helper class to make working with a checkbox easier.
+
     Identical to ttk.Checkbutton, but auto-inits its variable
     if necessary, and provides direct access to its var with get()
-    set() select() setState() toggle() etc methods. Also provides 
+    set() select() setState() toggle() etc methods. Also provides
     a direct trace method.
-    
-    '''
+
+    """
     
     def __init__(self, *args, **kwargs):
 
@@ -183,38 +183,38 @@ def _MPC_load_cfg():
 
 class CalibrationPrompt(): 
     
-    '''Class for handling easy creation of multi point
-    calibrations. 
-    
+    """Class for handling easy creation of multi point
+    calibrations.
+
     Usage:
         m = CalibrationPrompt()
 
-    Much initialization code has been moved into subroutines for 
-    better organization, but everything will break if stuff is 
+    Much initialization code has been moved into subroutines for
+    better organization, but everything will break if stuff is
     moved around too much. It makes it easier to find stuff,
-    at least. 
-    
+    at least.
+
     To significantly change UI, its probably worthwhile to start by
-    inlining all of the setup subroutines. 
-    
-    #Todo: 
+    inlining all of the setup subroutines.
+
+    #Todo:
         -Control tab stop order.
-        -Make prettier.   
-    
-    update 1/14/2014: 
+        -Make prettier.
+
+    update 1/14/2014:
         misc cleanup w/ pep8.py, removing old commented-out code
         enforce more consistent function naming:
-        
+
         __funcname, __func_name, __func_name_ -> the more underscores, the more
                                                  wtf if you try to change these
-                                                 
+
         _func_name - model function
-        
+
         funcName - programming interface (controller) /view function
-        
+
         added ability to enter custom axis name.
-        
-    '''
+
+    """
     _complete = False
 
     #get/store cfg options 
@@ -222,7 +222,7 @@ class CalibrationPrompt():
     _cfg = _MPC_load_cfg()
     
     def __init__(self):
-        '''Set up all tkinter widgets and settings'''
+        """Set up all tkinter widgets and settings"""
         
         self.root = tk.Tk()
         self.root.resizable(width=False, height=False)
@@ -304,10 +304,10 @@ class CalibrationPrompt():
 
     def _grid_data_entries(self):
         
-        '''Unpack constants from config to make code slightly more readable.
+        """Unpack constants from config to make code slightly more readable.
         also slightly less hacky than locals().update(self._cfg)
-        
-        '''
+
+        """
         cfg = self._cfg
         
         YDAT_COL = cfg['YDAT_COL']
@@ -341,17 +341,17 @@ class CalibrationPrompt():
                              sticky=(tk.E, tk.W))
 
     def _setup_data_entries(self, frame):
-        ''' Create default # of rows of x/y _data point pairs
+        """ Create default # of rows of x/y _data point pairs
     cal_pt_list is a list of tuples: (x_entry, y_entry, delete_button)
-    none is placeholder for delete button widget, since these 
-    defaults won't be deleted. 
+    none is placeholder for delete button widget, since these
+    defaults won't be deleted.
 
-    vcmd = tuple of validation command + '%' modifier args. 
-    
-    ref - http://www.tcl.tk/man/tcl8.5/TkCmd/entry.htm#M-validate 
+    vcmd = tuple of validation command + '%' modifier args.
+
+    ref - http://www.tcl.tk/man/tcl8.5/TkCmd/entry.htm#M-validate
           http://stackoverflow.com/questions/4140437/python-tkinter-interactively-validating-entry-widget-content/4140988#4140988
-    
-    '''
+
+    """
         self.ydat_header = ttk.Label(frame, text="Y Axis:")
         self.xdat_header = ttk.Label(frame, text="X Axis:")
         
@@ -418,11 +418,11 @@ class CalibrationPrompt():
 
     def _setup_action_buttons(self, frame, root):
         
-        '''Setup action buttons.
+        """Setup action buttons.
         @param frame: the frame in which to grid the add button
         @param root: the frame in which to grid the nav buttons
-        
-        '''
+
+        """
         
         #make action buttons now bc of resulting tab stop order
         self.finish_button = ttk.Button(root, text="Finish", command=self._finish)
@@ -433,10 +433,10 @@ class CalibrationPrompt():
         self.frame.bind_class(tk_btn_class, "<Return>", self._invoke_command)
 
     def y_axis_menu_changed(self, selection):
-        '''Event listener on OptionMenu change.
+        """Event listener on OptionMenu change.
         @param selection: the new selection value (string)
-        
-        '''
+
+        """
         
         if selection != self._cfg['CUSTOM_AXIS_INDICATOR']:
             return
@@ -462,10 +462,10 @@ class CalibrationPrompt():
         self._current_yaxis = result
         
     def x_axis_menu_changed(self, selection):
-        '''Event listener on OptionMenu change.
+        """Event listener on OptionMenu change.
         @param selection: the new selection value (string)
-        
-        '''
+
+        """
         
         if selection != self._cfg['CUSTOM_AXIS_INDICATOR']:
             return
@@ -489,7 +489,7 @@ class CalibrationPrompt():
 
     def _add_temp_pt(self):
 
-        '''Add Temp Cal Point'''
+        """Add Temp Cal Point"""
         frame = self.frame
         cfg = self._cfg
         new_x_entry = ttk.Entry(frame)
@@ -516,17 +516,17 @@ class CalibrationPrompt():
         
     def _del_temp_pt(self, data_point_tuple):
         
-        '''Delete a temp point by looking up the index in the point
-        list by value. This uses a list with O(n) lookup, because the 
+        """Delete a temp point by looking up the index in the point
+        list by value. This uses a list with O(n) lookup, because the
         only other alternative is an OrderedDict or linked-list-dict-thingy
-        
-        @param data_point_tuple : tuple of xdata_entry, ydata_entry, 
-                                    delete_button created in _add_temp_pt. 
+
+        @param data_point_tuple : tuple of xdata_entry, ydata_entry,
+                                    delete_button created in _add_temp_pt.
                                     Called automatically by lambda callback.
 
         Should/can never be called directly.
-        
-        '''
+
+        """
         
         i = self.cal_pt_list.index(data_point_tuple)
         
@@ -544,19 +544,19 @@ class CalibrationPrompt():
         
     def _invoke_command(self, event):
         
-        '''Event handler for .bind("<Return>") events.
-        @param event: the event generated, sent to the handler 
-        '''
+        """Event handler for .bind("<Return>") events.
+        @param event: the event generated, sent to the handler
+        """
         
         event.widget.invoke()
         
     def _check_number_input(self, new_val):
-        '''Event handler for verifying proper entry into data
+        """Event handler for verifying proper entry into data
         point boxes. Verify by attempting to convert value to float.
-        
+
         @param new_value: the value that would appear in the box if
-                            validation were to return True. 
-        '''
+                            validation were to return True.
+        """
         
         # Special cases
         
@@ -577,12 +577,12 @@ class CalibrationPrompt():
             return False
         
     def _finish(self):
-        '''Finish and close dialog buttons. This function does 
+        """Finish and close dialog buttons. This function does
         checking to be sure that data is good, iterating through all
         the things and appending to a list of errors. If errors, print
         errors, return. Otherwise, shut down the dialog and export data.
-        
-        '''
+
+        """
         errors = []
         data = []
         
@@ -645,12 +645,12 @@ class CalibrationPrompt():
             self.root.destroy()
         
     def CloseDialog(self):
-        '''Close dialog by destroying root.'''
+        """Close dialog by destroying root."""
         
         self.root.destroy()
         
     def Execute(self):
-        '''Call this to start the dialog'''
+        """Call this to start the dialog"""
         self.root.mainloop()
         if not self._complete:
             raise DialogIncomplete
@@ -676,22 +676,22 @@ class CalibrationPrompt():
                            xlabel='', 
                            ylabel=''):
         
-        ''' Logic to set up the excel template page.
-        pass range_obj param to more easily set up 
+        """ Logic to set up the excel template page.
+        pass range_obj param to more easily set up
         multiple templates/worksheets if needed.
-        Ie, multiple sections on same worksheet. 
-            
+        Ie, multiple sections on same worksheet.
+
         @param range_obj : the base range object (eg, ws.Cells) to insert into.
                             Offsets will be offset relative to top left range object
-                            cell                
+                            cell
         @param data_points  : the # of _data points to be plotted
-                                will be used to calculate range to change borders                    
+                                will be used to calculate range to change borders
         @param reactor name: the name to go in reactor name cell/chart title
         @param test_type- the name to put in test type cell/chart title
         @param xlabel- the name of the x-axis
         @param ylabel- the name of the y-axis
-        
-        '''
+
+        """
         
         range_obj(2,2).Value = 'Reactor:'
         range_obj(2,3).Value = reactor_name
@@ -706,18 +706,18 @@ class CalibrationPrompt():
         
     def PlotData(self, xlctxt, data):
     
-        '''Take _data from input _data, 
+        """Take _data from input _data,
         do the actual work of plotting in excel
-        
-        @param xlctxt: context object (tuple) containing 
-                        references to the relevant workbook, 
-                        worksheet, and worksheet's cells object. 
-                        
-        @param data: data dictionary from successful CalibrationPrompt dialog 
+
+        @param xlctxt: context object (tuple) containing
+                        references to the relevant workbook,
+                        worksheet, and worksheet's cells object.
+
+        @param data: data dictionary from successful CalibrationPrompt dialog
                         But, as long as dictionary has a 'Data' key, it will
-                        attempt to get values. 
-        
-        '''
+                        attempt to get values.
+
+        """
         
         _xl, wb, ws, cells = xlctxt  # xl unused
     
@@ -838,13 +838,13 @@ class CalibrationPrompt():
             print("Printout!")
         
     def CreateSpreadsheet(self, data=None):
-        ''' Create spreadsheet from data returned by CalibrationPrompt.
+        """ Create spreadsheet from data returned by CalibrationPrompt.
         Exists mostly to ensure proper xl cleanup by executing in
         try/finally context.
-        
+
         @param data: dict from prompt
-        
-        '''
+
+        """
         if data is None:
             if not self._complete:
                 raise DialogIncomplete("Can't create spreadsheet without data.\nNo data given, none generated by dialog.")
@@ -880,4 +880,3 @@ if __name__ == "__main__":
         print("Dialog Canceled.")
     else:
         m.CreateSpreadsheet()
-        

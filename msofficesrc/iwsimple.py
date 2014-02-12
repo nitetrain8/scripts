@@ -1,8 +1,8 @@
-'''
+"""
 Created on Oct 28, 2013
 
 @author: PBS Biotech
-'''
+"""
 import tkinter as tk
 import tkinter.ttk as ttk
 from tkinter.filedialog import askopenfilenames
@@ -16,14 +16,14 @@ class DialogIncompleteError(Exception):
 
 class ImportDialog():
 
-    '''once dlg is done, call get_analysis_type to get type of analysis, 
+    """once dlg is done, call get_analysis_type to get type of analysis,
     and get_raw_files to get list of raw files to analyze
-    '''
+    """
 
     def __init__(self):
-        ''' a good programmer would make everything here 
-        a class variable. oh well. 
-        '''
+        """ a good programmer would make everything here
+        a class variable. oh well.
+        """
 
         '''Setup controls for root'''
         self.root = tk.Tk()
@@ -107,11 +107,11 @@ class ImportDialog():
 
 
     def flist_redraw_items(self):
-        '''whenever adjusting list of raw files,
+        """whenever adjusting list of raw files,
         delete everything from flistbox and reinsert
         everything from filelist so they are always
         synced
-        '''
+        """
 
         self.flistbox.delete(0, tk.END)
         self.flistbox.insert(tk.END, *self.raw_files)
@@ -131,7 +131,7 @@ class ImportDialog():
         self.flist_redraw_items()
 
     def show_select_file_screen(self):
-        '''Show screen to select raw files for analysis'''
+        """Show screen to select raw files for analysis"""
 
         # listbox's row and column span determine placement of other
         # widgets
@@ -154,8 +154,8 @@ class ImportDialog():
 
 
     def end_prompt(self):
-        '''check stuff is valid, then exit tkinter dlg
-        '''
+        """check stuff is valid, then exit tkinter dlg
+        """
         if self.check_final() == True:
             self.root.destroy()
 
@@ -193,14 +193,14 @@ class ImportDialog():
 
 class AskBatchFiles(ImportDialog):
 
-    '''Class to call from other script to get an IW dlg'''
+    """Class to call from other script to get an IW dlg"""
 
     def __init__(self, test_type):
-        '''call main __init__ and then do some 
+        """call main __init__ and then do some
         sloppy cleanup to turn the dialog into a form
         suitable to be called from other scripts.
         This is currently horrible. Fixing this majorly on Todo list
-        but it works. '''
+        but it works. """
 
         super().__init__()
         if test_type.lower() not in self.atypes:

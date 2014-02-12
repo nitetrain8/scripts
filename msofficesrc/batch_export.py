@@ -1,9 +1,9 @@
-'''
+"""
 Created on Jan 20, 2014
 
 @Company: PBS Biotech
 @Author: Nathan Starkweather
-'''
+"""
 
 import tkinter as tk
 import tkinter.ttk as ttk
@@ -189,5 +189,4 @@ def main():
 if __name__ == '__main__':
     main()
 
-    
     

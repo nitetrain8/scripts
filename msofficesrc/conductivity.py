@@ -1,4 +1,4 @@
-'''
+"""
 Created on Jan 27, 2014
 
 @Company: PBS Biotech
@@ -6,10 +6,10 @@ Created on Jan 27, 2014
 
 Refactor of msofficesrc/mixingtime.py.
 
-After looking at the original, it was holy balls bad. 
-SO BAD. Kill myself bad. Live, learn, refactor.  
+After looking at the original, it was holy balls bad.
+SO BAD. Kill myself bad. Live, learn, refactor.
 
-'''
+"""
 
 from officelib.olutils import getDownloadDir
 from tkinter.filedialog import askopenfilenames
@@ -20,21 +20,21 @@ from itertools import zip_longest
 
 
 def mean(list_):
-    ''' Naive mean for simple things'''
+    """ Naive mean for simple things"""
     return sum(list_) / len(list_)
 
 
 def ask_user_for_files():
-    ''' Ask the user what files they'd like to 
+    """ Ask the user what files they'd like to
     analyze. This function should be the frontend
     for getting information from user, including list
     of all files to manage, and any other options.
-    
+
     If necessary, let this function grow into a class.
-    
+
     @return: list of filenames
     @rtype: list of strings
-    '''
+    """
     
     try:
         initialdir = getDownloadDir()
@@ -49,11 +49,11 @@ def ask_user_for_files():
     
     
 class ConductivityTest(BatchFile):
-    ''' Object representing the individual conductivity tests.
-    
+    """ Object representing the individual conductivity tests.
+
     A conductivity test is a batch file, with a few extra
-    methods for calculating test-specific values. 
-    '''
+    methods for calculating test-specific values.
+    """
     
     def __init__(self, filename=None):
         super().__init__(filename)
@@ -77,22 +77,22 @@ class ConductivityTest(BatchFile):
         return (logger_start_index, start_time)
     
     def find_conductivity_parameter(self):
-        ''' Determine which column is used to store
+        """ Determine which column is used to store
         conductivity values. Currently, either phA
         or phB is used as a proxy to record the raw
-        voltage output by the conductivity probe. 
-        
-        If both are recorded in a batch file, try and 
-        guess the one that is being used. A typical test 
+        voltage output by the conductivity probe.
+
+        If both are recorded in a batch file, try and
+        guess the one that is being used. A typical test
         according to IP00043 Rev A results in an increase
-        of approximately 0.25V from start to finish, so a 
+        of approximately 0.25V from start to finish, so a
         the one which shows a value closest to that is probably
-        the one.   
-        
+        the one.
+
         @return: name of column used for conductivity
         @rtype: str
-        
-        '''
+
+        """
         
         pHA = self.get('pHARaw', None)
         pHB = self.get('pHBRaw', None)
@@ -118,12 +118,12 @@ class ConductivityTest(BatchFile):
             return pHB
     
     def _value_delta(self, param):
-        ''' Helper func for calculating the delta of 
+        """ Helper func for calculating the delta of
         parameter values
-        
+
         @param param: proxies.Parameters object
         @return: float
-        '''
+        """
         
         values = param.values
         start = values[:5]
@@ -133,9 +133,9 @@ class ConductivityTest(BatchFile):
         
     def py2xlAddress(self, index, parameter):
         
-        ''' Get excel $A$1 style cell address for the
+        """ Get excel $A$1 style cell address for the
         given parameter in the spreadsheet
-        '''       
+        """
         
         column = self.py2xlColumn(parameter)
         row = index + 2
@@ -175,9 +175,9 @@ class ConductivityTest(BatchFile):
         return start_conductivity, end_conductivity
         
     def PlotRaw(self, ws):
-        ''' Plot the raw data, plus the elapsed
+        """ Plot the raw data, plus the elapsed
         time column.
-        '''
+        """
         
         test_param = self.test_parameter
         self.move_to_end(test_param.name)       
@@ -236,11 +236,11 @@ class ConductivityTest(BatchFile):
         
 
 def analyze_files(xl, files):
-    ''' toWorksheet the files using xl application
+    """ toWorksheet the files using xl application
     @param xl: win32com Excel application object
     @param files: list of filenames
-    
-    '''
+
+    """
 
     for file in files:
         test = ConductivityTest(file)
@@ -281,7 +281,6 @@ def main():
     
 if __name__ == '__main__':
     main()
-    
     
     
     

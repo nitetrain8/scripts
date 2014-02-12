@@ -1,8 +1,8 @@
-'''
+"""
 Created on Oct 25, 2013
 
 @author: PBS Biotech
-'''
+"""
 from officelib import *
 
 def createchart(ws, xval, yval, title, xaxistitle, yaxistitle):
