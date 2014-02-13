@@ -8,61 +8,41 @@ Created in: PyCharm Community Edition
 """
 __author__ = 'Nathan Starkweather'
 
-steps_report = "C:\\Users\\PBS Biotech\\Downloads\\weekendsteps.csv"
-from officelib.pbslib.batchutil import ParseDateFormat
-from scripts.test_stuff.tpidmany import full_open_batch, manyfile3
-from datetime import datetime, timedelta
+list1 = ["r1c%d" % i for i in range(10)]
+list2 = ["r2c%d" % i for i in range(10)]
+list3 = ["r3c%d" % i for i in range(10)]
+
+from itertools import zip_longest
+
+# list4 = []
+# list4.extend((list1, list2, list3))
+# print(list4)
 
 
-with open(steps_report, 'r') as f:
-    f.readline()
-    contents = [line.strip().split(',') for line in f.readlines()]
+list5 = [
+        ["r1c1", "r1c2"],
+        ["r2c1", "r2c2"],
+        ["r3c1", "r3c2"]]
+# 
+# for i in range(2, 10, 2):
+#     for n, row in enumerate(list5, start=1):
+#         row.extend(("r%dc%d" % (n, i), "r%dc%d" % (n, i + 1)))
+#     
+# for i in list5:
+#     print(i)
 
-tests = []
-data = iter(contents)
+class myclass():
+    def __enter__(self):
+        print("enter")
+    def __exit__(self, *args):
+        if any(args):
+            print(*args)
+            print(args[0], args[1], args[2])
+        print('exit')
 
-extracted = []
-
-
-for _, datestring, step in data:
-    fmt = ParseDateFormat(datestring)
-    date = datetime.strptime(datestring, fmt)
-    step = step.strip()
-    extracted.append((date, step))
-
-batch = full_open_batch(manyfile3)
-
-r = 5
-q_before = timedelta(minutes=60-r)
-q_after = timedelta(minutes=60+r)
-
-
-def in_range(steps, data, before=q_before, after=q_after):
-    b = steps + q_before
-    a = steps + q_after
-    return b < data < a
-
-param = iter(batch['TempModeActual'])
-test_step = 'Set "TempModeUser" to Auto'
-
-count = 0
-wrong = []
-for date, step in extracted:
-    if step == test_step:
-        count += 1
-        try:
-            start, pv = next((time, pv) for time, pv in param if time > date)
-            next(param)
-            data_time = next((time for time, v in param if v != pv))
-        except StopIteration:
-            print("foo")
-            break
-        if in_range(start, data_time):
-            wrong.append((start, data_time))
-        else:
-            print(start)
-
-print(count)
-for a, b in wrong:
-    print("start:", a, "end:", b)
-print(len(wrong))
+try:
+    with myclass() as m:
+        raise ValueError
+        print("hello world!")
+except ValueError:
+    pass

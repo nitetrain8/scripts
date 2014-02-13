@@ -6,15 +6,15 @@ Created in: PyCharm Community Edition
 
 
 """
-__author__ = 'Nathan Starkweather'
-
 from officelib.pbslib.proxies import BatchFile
 from itertools import zip_longest
-from collections import OrderedDict
 from officelib.pbslib.batchutil import ParseDateFormat, flatten
 from weakref import ref as wref
 from datetime import timedelta, datetime
 from officelib.xllib.xladdress import cellStr, cellRangeStr
+from os.path import exists as path_exists, split as path_split, splitext as path_splitext
+from officelib.olutils import getFullLibraryPath
+
 
 manyfile = "C:\\Users\\PBS Biotech\\Downloads\\2014020613364723.csv"
 manyfile2 = "C:\\Users\\PBS Biotech\\Downloads\\overnight2.csv"
@@ -99,14 +99,26 @@ class RampTest():
         return out
 
 
-class ChartInfo():
+class ChartSeriesInfo():
+
     def __init__(self,
-                 series_name=None,
-                 start_row=None,
-                 end_row=None,
-                 x_column=None,
-                 y_column=None,
-                 sheet_name=None):
+                 series_name='',
+                 start_row=1,
+                 end_row=2,
+                 x_column=1,
+                 y_column=2,
+                 sheet_name='Sheet1',
+                 chart_name=''):
+
+        """
+        @type series_name: str
+        @type start_row: int > 0
+        @type end_row: int > 0
+        @type x_column: int > 0
+        @type y_column: int > 0
+        @type sheet_name: str
+        @type chart_name: str
+        """
 
         self.series_name = series_name
         self.start_row = start_row
@@ -114,6 +126,7 @@ class ChartInfo():
         self.x_column = x_column
         self.y_column = y_column
         self.sheet_name = sheet_name
+        self.chart_name = chart_name
 
     @property
     def XSeriesRange(self, cellRangeStr=cellRangeStr):
@@ -131,7 +144,24 @@ class ChartInfo():
 
     @property
     def SeriesName(self):
-        return self.series_name
+        """ If series name undefined, return formula
+        for contents of top cell of Y column.
+
+        Otherwise return series name.
+        """
+        if not self.series_name:
+            name_row = max(self.start_row - 1, 1)  # avoid negatives or 0
+            name = "=%s!" % self.sheet_name
+            name += cellStr(name_row, self.y_column)
+        else:
+            name = self.series_name
+        return name
+
+    @property
+    def ChartName(self):
+        if not self.chart_name and self.series_name:
+            return self.series_name
+        return self.chart_name
 
 
 def backup_settings() -> list:
@@ -145,7 +175,14 @@ def backup_settings() -> list:
 
 
 def find_auto2auto_settings(batch: BatchFile, tests: list):
-
+    """
+    @param batch:
+    @type batch:
+    @param tests:
+    @type tests:
+    @return:
+    @rtype:
+    """
     pgain = batch["TempHeatDutyControl.PGain(min)"]
     itime = batch["TempHeatDutyControl.ITime(min)"]
     dtime = batch["TempHeatDutyControl.DTime(min)"]
@@ -243,19 +280,12 @@ def unpickle_info(filename: str):
     with open(filename, 'rb') as f:
         info = pickle_load(f)
 
-    if isinstance(info, OrderedDict):
-        info = BatchFile.fromMapping(info)
-
     return info
 
 
 def pickle_info(info: object, filename: str):
 
     from pysrc.snippets import safe_pickle
-
-    if isinstance(info, BatchFile):
-        info = OrderedDict(info)
-
     safe_pickle(info, filename)
 
 
@@ -277,33 +307,110 @@ def _make_elapsed(ref_cell, target_column, rows):
     return [formula for _ in range(rows)]
 
 
+def plot_tests(header, column_data, chart_series_list, header_row_offset):
+    """
+    @param header: iterable of tuples of header data to plot
+    @type header: collections.Sequence[collections.Sequence]
+    @param column_data: iterable of tuples of column data to plot
+    @type column_data: collections.Sequence[collections.Sequence]
+    @param chart_series_list: iterable of ChartSeriesInfo instances to plot
+    @type chart_series_list: collections.Sequence[ChartSeriesInfo]
+    @param header_row_offset: move the data down by this # of rows
+    @type header_row_offset: int
+    @return: None
+    @rtype: None
+    """
+
+    data_row_offset = len(header) + header_row_offset
+    rows = len(column_data)
+    columns = len(column_data[0])
+
+    data_area = cellRangeStr(
+                            (1 + data_row_offset, 1),
+                            (rows + data_row_offset, columns)
+                             )
+    header_area = cellRangeStr(
+                            (1 + header_row_offset, 1),
+                            (len(header) + header_row_offset, columns)
+                            )
+
+    from officelib.xllib.xlcom import xlObjs, CreateChart, \
+                                        CreateDataSeries, FormatChart, VisibleXlGuard
+    from officelib.const import xlXYScatterLinesNoMarkers, xlLocationAsNewSheet
+
+    xl, wb, ws, cells = xlObjs(visible=False)
+
+    with VisibleXlGuard(xl):
+        ws_name = ws.Name
+
+        cells.Range(header_area).Value = header
+        cells.Range(data_area).Value = column_data
+
+        chart_full = CreateChart(ws, xlXYScatterLinesNoMarkers)
+        chart_a2a = CreateChart(ws, xlXYScatterLinesNoMarkers)
+        chart_o2a = CreateChart(ws, xlXYScatterLinesNoMarkers)
+
+        FormatChart(chart_full, None, "Full Test", "Time(min)", "TempPV(C)", True, True)
+        FormatChart(chart_a2a, None, "Auto to Auto Test", "Time(min)", "TempPV(C)", True, True)
+        FormatChart(chart_o2a, None, "Off to Auto Test", "Time(min)", "TempPV(C)", True, True)
+
+        chart_map = {
+            "Off to Auto": chart_o2a,
+            "Auto to Auto": chart_a2a,
+            "Full Test": chart_full
+        }
+
+        for info in chart_series_list:
+            info.sheet_name = ws_name
+            info.series_name = info.series_name % ws_name
+            chart = chart_map[info.chart_name]
+            CreateDataSeries(chart, info.XSeriesRange, info.YSeriesRange, info.SeriesName)
+
+        for name, chart in chart_map.items():
+            chart.Location(Where=xlLocationAsNewSheet, Name=name)
+
+
 def process_tests(test_list, batch: BatchFile):
     """
     @param test_list: list of tests to process
     @type test_list: list[RampTest]
     @param batch: batch file corresponding to test list
     @type batch: BatchFile
-    @ retu rn xl, wb, ws, cells
-    @ rtyp e (T, U, V, X)
+    @return (xl, wb, ws, cells)
+    @rtype (T, U, V, X)
     """
 
     temppv = batch['TempPV(C)']
     pv_times = temppv.Times.Datestrings
     pv_values = temppv.Values
 
-    magic_name_formula = '=CONCATENATE("p",R[2]C[-1],"I",R[2]C,"d",R[2]C[1])'
-    columns_per_test = 5  # including blank spacer
-    data_start_row = 11
-    header_row_offset = 6
+    magic_name_formula1 = '=CONCATENATE("p",R[2]C[-1],"I",R[2]C,"d",R[2]C[1])'
+    magic_name_formula2 = '=CONCATENATE(SUBSTITUTE(R[6]C[-1], " ", ""),R[1]C,R[1]C[1],R[2]C,R[2]C[1],R[3]C,R[3]C[1])'
 
-    # Todo- using a bunch of lists for rows is sloppy, but easiest way to
-    # avoid having to transpose the whole header.
-    datas = []
+    columns_per_test = 5  # including blank spacer
+    header_row_offset = 0
+    data_row_offset = header_row_offset + 10
+
+    # Using a bunch of lists for rows is ugly, but easiest way to
+    # avoid having to transpose the whole header later.
+    # Just define header to be a list of all of the rows.
+    # this also makes it a bit clearer (imo) what's going on in the loop
+    # instead of multiassigning, assign header separately.
+    # otherwise, Pycharm type hinting gets confused.
+
+    column_data = []
     row1 = []
     row2 = []
     row3 = []
     row4 = []
-    chart_list = []
+    row5 = []
+    row6 = []
+    row7 = []
+    row8 = []
+    row9 = []
+    row10 = []
+
+    series_list = []
     for n, test in enumerate(test_list):
 
         start_index = test.start_index
@@ -312,74 +419,51 @@ def process_tests(test_list, batch: BatchFile):
         values = pv_values[start_index:end_index]
 
         column = n * columns_per_test + 1
-        ref_cell = (data_start_row, column)
+        ref_cell = (data_row_offset + 1, column)
         rows = len(times)
         elapsed_times = _make_elapsed(ref_cell, column + 1, rows)
 
-        chart_info = ChartInfo()
-        chart_info.series_name = "=Sheet1!" + cellStr(1, column + 1)
-        chart_info.start_row = data_start_row
-        chart_info.end_row = data_start_row + rows - 1
-        chart_info.x_column = column + 1
-        chart_info.y_column = column + 2
-        chart_list.append(chart_info)
+        series_info = ChartSeriesInfo()
+        series_info.series_name = "=%s!" + cellStr(1, column + 1)
+        series_info.start_row = data_row_offset + 1
+        series_info.end_row = data_row_offset + rows
+        series_info.x_column = column + 1
+        series_info.y_column = column + 2
+        series_info.chart_name = test.test_name
+        series_list.append(series_info)
 
-        datas.extend([times, elapsed_times, values, (None,), (None,)])  # Need iterable placeholders for zip_longest
-        row1.extend((test.test_name, magic_name_formula, None, None, None))
-        row2.extend(('Pgain', 'Itime', 'Dtime', None, None))
-        row3.extend((test.pgain, test.itime, test.dtime, None, None))
-        row4.extend(("Test Time", "Elapsed Time", "TempPV(C)", None, None))
+        column_data.extend([times, elapsed_times, values, (None,), (None,)])  # Need iterable placeholders for zip_longest
 
-    columns = len(datas)
-    datas = list(zip_longest(*datas))
-    rows = len(datas)
+        row1.extend(("Name", magic_name_formula2, None, None, None))
+        row2.extend(("Settings:", "P", "=R[7]C[-2]", None, None))
+        row3.extend((None, "I", "=R[6]C[-1]", None, None))
+        row4.extend((None, "D", "=R[5]C", None, None))
+        row5.extend((None, "AutoMax%", "50", None, None))
+        row6.extend((None, "SP", "39", None, None))
+        row7.extend((test.test_name, magic_name_formula1, None, None, None))
+        row8.extend(('Pgain', 'Itime', 'Dtime', None, None))
+        row9.extend((test.pgain, test.itime, test.dtime, None, None))
+        row10.extend(("Test Time", "Elapsed Time", "TempPV(C)", None, None))
 
-    data_area = cellRangeStr(
-                            (data_start_row, 1),
-                            (rows + data_start_row - 1, columns)
-                            )
-    row1_area = cellRangeStr(
-                            (1 + header_row_offset, 1),
-                            (1 + header_row_offset, len(row1))
-                            )
-    row2_area = cellRangeStr(
-                            (2 + header_row_offset, 1),
-                            (2 + header_row_offset, len(row2))
-                            )
-    row3_area = cellRangeStr(
-                            (3 + header_row_offset, 1),
-                            (3 + header_row_offset, len(row3))
-                            )
-    row4_area = cellRangeStr(
-                            (4 + header_row_offset, 1),
-                            (4 + header_row_offset, len(row4))
-                            )
+    header = [
+            row1,
+            row2,
+            row3,
+            row4,
+            row5,
+            row6,
+            row7,
+            row8,
+            row9,
+            row10
+            ]
 
-    from officelib.xllib.xlcom import xlObjs, CreateChart, CreateDataSeries
-    from officelib.const import xlR1C1, xlA1, xlXYScatterLinesNoMarkers
+    column_data = list(zip_longest(*column_data))
 
-    xl, wb, ws, cells = xlObjs(visible=False)
-    xl.ReferenceStyle = xlR1C1
-    try:
-        cells.Range(row1_area).Value = row1
-        cells.Range(row2_area).Value = row2
-        cells.Range(row3_area).Value = row3
-        cells.Range(row4_area).Value = row4
-        cells.Range(data_area).Value = datas
-
-        chart = CreateChart(ws, xlXYScatterLinesNoMarkers)
-        for series in chart.SeriesCollection():
-            series.Delete()
-
-        ws_name = ws.Name
-
-        for info in chart_list:
-            info.sheet_name = ws_name
-            CreateDataSeries(chart, info.XSeriesRange, info.YSeriesRange, info.SeriesName)
-
-    finally:
-        xl.ReferenceStyle = xlA1
-        xl.Visible = True
+    plot_tests(header,
+                column_data,
+                series_list,
+                header_row_offset)
 
 
 def find_all_tests(tests: list, batch: BatchFile) -> list:
@@ -458,12 +542,8 @@ def main(filename: str) -> list:
     info = find_auto2auto_settings(batch, tests)
     pickle_file = "C:\\Users\\PBS Biotech\\Documents\\Personal\\PBS_Office\\MSOffice\\scripts\\test_stuff\\test_output.txt"
     pickle_info(info, pickle_file)
-    pickle_info(OrderedDict(batch), manypickle)
+    pickle_info(batch, manypickle)
     return info, batch
-
-
-from os.path import exists as path_exists, split as path_split, splitext as path_splitext
-from officelib.olutils import getFullLibraryPath
 
 
 def full_scan_steps(steps_report: str) -> list:

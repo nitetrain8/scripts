@@ -6,8 +6,9 @@ Created on Dec 12, 2013
 import tkinter as tk
 import tkinter.ttk as ttk
 from os import makedirs, name as os_name
-from officelib.xllib import cellRangeStr, changeBorders, \
-                            formatChart, createChart, XL_PIXEL_TO_POINT, \
+from officelib.xllib.xladdress import cellRangeStr
+from officelib.xllib.xlcom import ChangeBorders, \
+                            FormatChart, CreateChart, XL_PIXEL_TO_POINT, \
                             xlObjs
 from officelib.olutils import getUniqueName
 from re import sub as re_sub
@@ -19,23 +20,24 @@ class DialogIncomplete(Exception):
     pass
     
     
-'''Helper classes'''
+# Helper classes
     
     
 class SimplePrompt():
     """ Simple helper class to open a window
     with two buttons (ok and cancel), and a text entry
-
-    @param display_text : the text to display on the labelframe.
-    @return: string entered by user, if dialog completed.
-
     """
+
     
     def reset(self):
         for item in self.__dict__:
             self[item] = None
     
     def ask(self, display_text='SimplePrompt'):
+        """
+        @param display_text : the text to display on the labelframe.
+        @return: string entered by user, if dialog completed.
+        """
         
         self.display_text = display_text
         
@@ -702,7 +704,7 @@ class CalibrationPrompt():
         border_range = range_obj.Range(range_obj(5,2), 
                                        range_obj(4 + data_points, 3))    
         
-        changeBorders(AddRange=border_range)
+        ChangeBorders(AddRange=border_range)
         
     def PlotData(self, xlctxt, data):
     
@@ -767,7 +769,7 @@ class CalibrationPrompt():
                                  
         cell_range(data_range).Value = cal_data
         
-        chart = createChart(ws, 
+        chart = CreateChart(ws,
                             Top=(15 * (4.5 + data_points)),  # sizes in pixels
                             Left=(64 * XL_PIXEL_TO_POINT), 
                             Height=(14.5 * 15), 
@@ -782,7 +784,7 @@ class CalibrationPrompt():
         Series.Values = cell_range(y_range)
         Series.XValues = cell_range(x_range)
             
-        formatChart(chart,
+        FormatChart(chart,
                       Legend=False,
                       ChartTitle=(reactor_name + " " + test_type), 
                       Trendline=True,
