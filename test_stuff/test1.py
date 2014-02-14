@@ -6,14 +6,19 @@ Created in: PyCharm Community Edition
 
 
 """
+
 __author__ = 'Nathan Starkweather'
 
-from os import stat
 
-from datetime import datetime
-result = stat(__file__)
+# mystr = __author__
+# # print(bool('0'))
+# from itertools import takewhile
+# mylist = [1, 2, 3, 4, 5, None, 6, 7]
+empty = ''
+def foo(arg1, arg2):
+    return arg1 + arg2
 
+def oops(arg1, arg2=None):
+    return arg1 or False
 
-# date = datetime.fromordinal(result.st_mtime)
-print(datetime.fromtimestamp(int(result.st_mtime)))
-
+print(int(False))
