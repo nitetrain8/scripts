@@ -229,11 +229,11 @@ if __name__ == "__main__":
 #     print(dir(dbg.mframe.master))
 #     print(dbg.root.master)
 #     print(dbg.root.grid_slaves())
-    from pbsdbg import view_coords
+#     from pbsdbg import view_coords
     import sys
 
 
-    debug = view_coords(dbg.mframe)
+    # debug = view_coords(dbg.mframe)
 
     print(dir(dbg.mframe))
     dbg.execute()

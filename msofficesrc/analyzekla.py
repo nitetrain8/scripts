@@ -5,6 +5,9 @@ Created on Oct 28, 2013
 """
 from officelib import *
 from tkinter.filedialog import askopenfilenames
+from officelib.const import xlToRight, xlByRows, xlDown, xlXYScatterLines, xlPrimary
+from officelib.xllib.xlcom import prompt_files, xlObjs
+
 debug_files = [
                "C:/Users/PBS Biotech/Documents/Personal/source/KLA Testing/raw batch files/kla id22 60mLPM.csv",
                 "C:/Users/PBS Biotech/Documents/Personal/source/KLA Testing/raw batch files/KLA id22 500mlpm.csv",
@@ -84,8 +87,7 @@ def make_quick_chart(ws):
     x_data_col = DO_data_start.Column + 1
     y_data_col = x_data_col + 1
     end_data_row = DO_data_start.End(xlDown).Row
-    
-    
+
     insert_quick_time_col(x_data_col)
     
     end_data_row = cells(2, DO_data_start.Column + 1).End(xlDown).Row
@@ -104,31 +106,19 @@ def make_quick_chart(ws):
     axes = chart.Axes(AxisGroup=xlPrimary)
     x_axis = axes(1)
     y_axis = axes(2)
-    
-    chart.HasTitle = True
-    chart.ChartTitle.Text = "KLA"
-    
-    chart.HasLegend = False
-    
-    x_axis.HasTitle = True
-    y_axis.HasTitle = True
-    
-    x_axis.AxisTitle.Text = "Time(hours)"
-    y_axis.AxisTitle.Text = "DO PV (%)"
-    
-    settrendline(chart)
+
+    from officelib.xllib.xlcom import FormatChart
+
+    FormatChart(chart, None, "KLA", "Time(hours)", "DO PV (%)", True)
     
 
 raw_file = prompt_files()[0]
 xl, wb, ws, cells = xlObjs(raw_file)
 
+from officelib.xllib.xlcom import HiddenXl
 
-
-try:
+with HiddenXl(xl):
     make_quick_chart(ws)
-finally:
-    xl.Quit()
-    xl=None
 
 
 

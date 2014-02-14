@@ -27,16 +27,15 @@ class SimplePrompt():
     """ Simple helper class to open a window
     with two buttons (ok and cancel), and a text entry
     """
-
     
     def reset(self):
-        for item in self.__dict__:
-            self[item] = None
+        self.__dict__.clear()
     
     def ask(self, display_text='SimplePrompt'):
         """
         @param display_text : the text to display on the labelframe.
         @return: string entered by user, if dialog completed.
+        @rtype: str
         """
         
         self.display_text = display_text
@@ -183,7 +182,8 @@ def _MPC_load_cfg():
     return cfg
 
 
-class CalibrationPrompt(): 
+# noinspection PyMethodMayBeStatic
+class CalibrationPrompt():
     
     """Class for handling easy creation of multi point
     calibrations.
@@ -361,11 +361,12 @@ class CalibrationPrompt():
         
         self.check_input_vcmd = (self.root.register(self._check_number_input), '%P')
         
-        entry_kw = {'validate':"key", 'validatecommand':self.check_input_vcmd}
-        
-        self.cal_pt_list = [(ttk.Entry(frame, **entry_kw), 
-                            ttk.Entry(frame, **entry_kw), None) for 
-                            _ in range(rows)]
+        entry_kw = {'validate' : "key", 'validatecommand' : self.check_input_vcmd}
+
+        self.cal_pt_list = [(ttk.Entry(frame, **entry_kw),
+                             ttk.Entry(frame, **entry_kw), None)
+                            for _ in range(rows)]
+        """ @type : list[(ttk.Entry, ttk.Entry, None | ttk.Button)]"""
                             
     def _setup_reactor_info(self, frame):
         #entries for name, test type
@@ -509,7 +510,7 @@ class CalibrationPrompt():
                                  command=lambda: self._del_temp_pt((new_x_entry, 
                                                                 new_y_entry, 
                                                                 new_del_btn)))
-        
+
         self.cal_pt_list.append((new_x_entry, new_y_entry, new_del_btn))
                                                                         
         new_del_btn.grid(column=cfg['YDAT_COL'] + 1, 
@@ -543,34 +544,31 @@ class CalibrationPrompt():
         data_point_tuple[2].grid_forget()
         
         self.cal_pt_list.pop(i)
-        
+
+    # noinspection PyMethodMayBeStatic
     def _invoke_command(self, event):
-        
         """Event handler for .bind("<Return>") events.
         @param event: the event generated, sent to the handler
         """
-        
         event.widget.invoke()
         
     def _check_number_input(self, new_val):
         """Event handler for verifying proper entry into data
         point boxes. Verify by attempting to convert value to float.
 
-        @param new_value: the value that would appear in the box if
+        @param new_val: the value that would appear in the box if
                             validation were to return True.
+        @type new_val: str
         """
-        
-        # Special cases
-        
+
+        # Special cases- no spaces allowed, but allow negative/decimal/empty
         if ' ' in new_val:
             self.root.bell()
             return False
-            
         elif new_val in ("", "-", "."):
             return True
         
         # General case- if we can float it, its good.
-        
         try:
             float(new_val)
             return True
@@ -588,9 +586,8 @@ class CalibrationPrompt():
         errors = []
         data = []
         
-        '''Need to use external counter so it fails to increment on
-        ValueError. Throw error for anything that would result in
-        failure to convert to float.'''
+        # Throw error for anything that would result in
+        # failure to convert to float.
                 
         for xdat, ydat, dummy in self.cal_pt_list:
             try:
@@ -688,20 +685,20 @@ class CalibrationPrompt():
                             cell
         @param data_points  : the # of _data points to be plotted
                                 will be used to calculate range to change borders
-        @param reactor name: the name to go in reactor name cell/chart title
+        @param reactor_name: the name to go in reactor name cell/chart title
         @param test_type- the name to put in test type cell/chart title
         @param xlabel- the name of the x-axis
         @param ylabel- the name of the y-axis
 
         """
         
-        range_obj(2,2).Value = 'Reactor:'
-        range_obj(2,3).Value = reactor_name
-        range_obj(2,4).Value = test_type 
-        range_obj(4,2).Value = xlabel
-        range_obj(4,3).Value = ylabel
+        range_obj(2, 2).Value = 'Reactor:'
+        range_obj(2, 3).Value = reactor_name
+        range_obj(2, 4).Value = test_type
+        range_obj(4, 2).Value = xlabel
+        range_obj(4, 3).Value = ylabel
         
-        border_range = range_obj.Range(range_obj(5,2), 
+        border_range = range_obj.Range(range_obj(5, 2),
                                        range_obj(4 + data_points, 3))    
         
         ChangeBorders(AddRange=border_range)
@@ -751,17 +748,17 @@ class CalibrationPrompt():
         y_col = 3
         start_row = 5
         end_row = 4 + data_points 
-        abs_ref = 1  # absolute address eg $A1
+        abs_ = True  # absolute address eg $A1
         
         # Address strings
         
         y_range = cellRangeStr(
-                                 (start_row, y_col, abs_ref, abs_ref), 
-                                 (end_row, y_col, abs_ref, abs_ref))
+                                 (start_row, y_col, abs_, abs_),
+                                 (end_row, y_col, abs_, abs_))
                                  
         x_range = cellRangeStr(
-                                 (start_row, x_col, abs_ref, abs_ref), 
-                                 (end_row, x_col, abs_ref, abs_ref))
+                                 (start_row, x_col, abs_, abs_),
+                                 (end_row, x_col, abs_, abs_))
                                  
         data_range = ':'.join((
                                x_range, 

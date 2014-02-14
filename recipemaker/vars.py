@@ -14,7 +14,7 @@ __VARS_FILE__ = "C:\\Users\\PBS Biotech\\Documents\\Personal\\test files\\logger
 VARS_FILE = __VARS_FILE__
 
 
-def load_raw_vars(file: str=VARS_FILE) -> list:
+def load_logger_vars(file: str=VARS_FILE) -> list:
 
     """
     @param file: file containing an example logger file,
@@ -66,7 +66,10 @@ class RecipeVariable():
         self._name = recipe_var_name
 
     @property
-    def Name(self) -> str:
+    def Name(self):
+        """
+         @rtype: str
+        """
         return self._name
 
     name = Name
@@ -103,15 +106,35 @@ class RecipeVariable():
         """ >= """
         return self.wait_until(">=", val)
 
-__vars = load_raw_vars()
+__vars = load_logger_vars()
 __pynames = raw_to_pynames(__vars)
 __pydict = {pyname : RecipeVariable(varname) for pyname, varname in __pynames.items()}
-globals().update(__pydict)
+
 
 # debug
 if __name__ == '__main__':
 
-    outfile = "C:\\Users\\PBS Biotech\\Documents\\Personal\\test files\\vartest.txt"
-    with open(outfile, 'w') as f:
-        for k in __pydict:
-            print(k, eval("%s > 5" % k), file=f)
+    from os.path import split
+    base, name = split(__file__)
+    outfile = '/'.join((base, 'vartest.txt'))
+    # outfile = "C:\\Users\\PBS Biotech\\Documents\\Personal\\test files\\vartest.txt"
+    # globals().update(__pydict)
+    # with open(outfile, 'w') as f:
+    #     for k in __pydict:
+    #         print(k, eval("%s > 5" % k), file=f)
+
+    from collections import OrderedDict
+    __jsondict = OrderedDict(((k, v) for k, v in sorted(__pynames.items())))
+    # # pynames: dict pyname : varname
+    # more = {}
+    # for pyname, varname in __jsondict.items():
+    #     more[pyname.lower()] = varname
+    #     more[pyname.upper()] = varname
+    #
+    # __jsondict.update(more)
+    __jsondict = list(__jsondict.items())
+    __jsondict.sort(key=lambda x: x[1])
+    from pysrc.snippets import safe_json
+    safe_json(__jsondict, outfile)
+    from officelib.nsdbg import npp_open
+    npp_open(outfile)

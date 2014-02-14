@@ -3,135 +3,73 @@
 
 
 class Recipe():
-
-    """
-    Recipe maker.
-    """
-
+    """ Recipe maker."""
     def __init__(self):
         self.buffer = []
 
     def write(self, code):
         """
-
-        @param code:
+        @param code: code to write
+        @type code: str
         """
-        self.buffer.append('\n' + code)
+        self.buffer.append(code)
 
     def set(self, param, value):
         """
-
-        @param param:
-        @param value:
+        @param param: variable to set
+        @type param: str
+        @param value: value to set it to
+        @type value: str | int | float
         """
-        self.write("Set \"%s\" to " % param + str(value))
+        self.write("Set \"%s\" to %s" % (param, str(value)))
 
+    # alias
     Set = set
 
     def waituntil(self, param, op, val):
         """
-
-        @param param:
-        @param op:
-        @param val:
+        @param param: parameter to wait for
+        @type param: str
+        @param op: wait operation
+        @type op: str
+        @param val: value to wait for
+        @type val: str | int | float
         """
-        self.write("Wait until \"%s\" %s " % (param, op) + str(val))
+        self.write("Wait until \"%s\" %s %s" % (param, op, str(val)))
 
     def wait(self, sec):
         """
-
-        @param sec:
+        @param sec: seconds to wait
+        @type sec: int
         """
         self.write("Wait %d seconds" % sec)
 
     def __str__(self):
-        return ''.join(self.buffer)
+        return '\n' + '\n'.join(self.buffer)
+
+    def __len__(self):
+        return len(self.buffer)
 
 
-# noinspection PyDocstring
-def make_auto2auto(pgain, itime, dtime):
-
-    recipe = Recipe()
-    recipe.set("TempHeatDutyControl.PGain(min)", pgain)
-    recipe.set("TempHeatDutyControl.ITime(min)", itime)
-    recipe.set("TempHeatDutyControl.DTime(min)", dtime)
-    recipe.set("TempSP(C)", 39)
-    recipe.waituntil('TempPV(C)', ">=", 39)
-    recipe.wait(1200)
-    recipe.set("TempSP(C)", 37)
-    recipe.waituntil("TempPV(C)", "<=", 37)
-    recipe.wait(1200)
-    return recipe
-
-
-def make_full_test(pgain: float, itime: float, dtime: float, sp: float) -> str:
-
-    recipe = Recipe()
-    recipe.set("TempHeatDutyControl.PGain(min)", pgain)
-    recipe.set("TempHeatDutyControl.ITime(min)", itime)
-    recipe.set("TempHeatDutyControl.DTime(min)", dtime)
-    recipe.set("TempSP(C)", sp)
-    recipe.wait(5)
-    recipe.set("TempModeUser", "Auto")
-    recipe.waituntil('TempPV(C)', ">=", sp)
-    recipe.wait(3600)
-    recipe.set("TempSP(C)", sp + 2)
-    recipe.wait(5)
-    recipe.waituntil("TempPV(C)", ">=", sp + 2)
-    recipe.wait(3600)
-    recipe.set("TempModeUser", "Off")
-    recipe.wait(5)
-    recipe.waituntil("TempPV(C)", "<=", 28)
-    return str(recipe)
-
-
-def make_long_recipe(settings: list) -> str:
+class LongRecipe(Recipe):
+    """ Chain together multiple recipes
     """
-    @param settings: iterable of tuples of (p, i, d) settings.
-    @return:
-    """
-    recipes = []
-    for p, i, d in settings:
-        recipe = make_full_test(p, i, d, 37)
-        recipes.append(str(recipe))
 
-    long_recipe = ''.join(recipes)
-    start = Recipe()
-    start.set("TempModeUser", "Off")
-    start.wait(5)
-    start.waituntil("TempPV(C)", "<=", 28)
+    def add_recipe(self, recipe):
+        """
+        @param recipe: recipe to add
+        @type recipe: Recipe
+        @return: None
+        @rtype: None
+        """
+        self.buffer.extend(recipe.buffer)
 
-    long_recipe = str(start) + long_recipe
-
-    return long_recipe
-
-
-def test_d_settings():
-    """
-    @return: List of settings for this test
-    """
-    ds = (0.1, 0.05, 0.01, 0.005, 0.001, 0.0005)
-    settings = [(32.5, 3.25, d) for d in ds]
-    settings.append((50, 5, 0))
-    settings.append((60, 6, 0))
-    return settings
-
-
-def test_ratio_no_d() -> list:
-    """
-    @return: list of settings with constant
-             ratio.
-    """
-    ps = [5 * i for i in range(1, 10)]
-    settings = ((p, p / 10, 0) for p in ps)
-    return list(settings)
-
-if __name__ == '__main__':
-    # settings = test_d_settings()
-    # recipe = make_long_recipe(settings)
-
-    settings = test_ratio_no_d()
-    recipe = make_long_recipe(settings)
-    outfile = "C:\\Users\\Public\\Documents\\PBSSS\\Functional Testing\\tpid.txt"
-    # print(recipe, file=open(outfile, 'w'))
-    print(recipe)
+    def extend_recipes(self, recipe_list):
+        """
+        @param recipe_list: list of recipes to add
+        @type recipe_list: collections.Iterable[Recipe]
+        @return: None
+        @rtype: None
+        """
+        for recipe in recipe_list:
+            self.buffer.extend(recipe.buffer)

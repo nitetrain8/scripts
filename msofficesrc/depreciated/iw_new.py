@@ -8,7 +8,7 @@ Created on Dec 2, 2013
 import tkinter as tk
 import tkinter.ttk as ttk
 import officelib.olutils
-import nsdbg
+
 
 sticky_all = (tk.E, tk.W, tk.S, tk.N)
 
