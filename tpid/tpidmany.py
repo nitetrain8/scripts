@@ -543,12 +543,12 @@ def _extend_tests_header(header, ramp_test):
     header[9].extend(("Test Time", "Elapsed Time", "TempPV(C)", None, None))
 
 
-def process_tests(test_list, batch: BatchFile):
+def process_tests(test_list, batch):
     """
     @param test_list: list of tests to process
     @type test_list: list[RampTestResult]
     @param batch: batch file corresponding to test list
-    @type batch: BatchFile
+    @type batch: DataReport
     @return (xl, wb, ws, cells)
     @rtype (T, U, V, X)
     """
@@ -591,7 +591,7 @@ def process_tests(test_list, batch: BatchFile):
     plot_tests(header, column_data, series_list, header_row_offset)
 
 
-def map_batch_steps(tests: list, batch: BatchFile) -> list:
+def map_batch_steps(tests, batch):
     """
     @param tests: list of tests (start, end1, start2, end2) datetimes
     @type tests: list[(datetime, datetime, datetime)]
@@ -708,7 +708,7 @@ def full_open_batch(data_report):
     @param data_report: filename of data report
     @type data_report: str
     @return: DataReport for report
-    @rtype: BatchFile
+    @rtype: DataReport
     """
     _head, tail = path_split(data_report)
     name, _ = path_splitext(tail)
