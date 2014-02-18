@@ -325,7 +325,7 @@ class PIDTest():
     def _build_settings(self, batch):
         
         """ Assign settings for the test from
-        the BatchFile object passed.
+        the DataReport object passed.
 
         """
         

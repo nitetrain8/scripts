@@ -6,7 +6,7 @@ Created in: PyCharm Community Edition
 
 
 """
-from officelib.pbslib.proxies import BatchFile
+from officelib.pbslib.datareport import DataReport
 from itertools import zip_longest
 from officelib.pbslib.batchutil import ParseDateFormat, flatten
 from datetime import timedelta, datetime
@@ -23,12 +23,18 @@ manyrecipesteps = "C:\\Users\\PBS Biotech\\Downloads\\weekendsteps.csv"
 pickle_cache = "C:\\Users\\PBS Biotech\\Documents\\Personal\\PBS_Office\\MSOffice\\scripts\\test_stuff\\pickle_cache"
 
 
-def open_batch(file: str=manyfile) -> BatchFile:
-    batch = BatchFile(file)
-    return batch
+def open_report(file=manyfile):
+    """
+    @param file: file to open
+    @type file: str
+    @return: DataReport
+    @rtype: DataReport
+    """
+    report = DataReport(file)
+    return report
 
 
-class RampTest():
+class RampTestResult():
     """
     @param pgain: pgain value
     @type pgain: float
@@ -108,12 +114,12 @@ class RampTest():
         Start: {5}, End: {6}
         """.format(self.pgain, self.itime, self.dtime,
                          self.start_time, self.end_time,
-                         self.start_index + 2, self.end_index + 1,
+                         self.start_index + 2, self.end_index + 2,
                          self.test_name)
         return out
 
 
-class ChartSeriesInfo():
+class ChartSeries():
     """
     @type series_name: str
     @type start_row: int
@@ -198,18 +204,18 @@ def backup_settings() -> list:
     return list(settings)
 
 
-def find_auto2auto_settings(batch: BatchFile, tests: list):
+def find_auto2auto_settings(report, tests):
     """
-    @param batch:
-    @type batch:
-    @param tests:
-    @type tests:
-    @return:
-    @rtype:
+    @param report: DataReport
+    @type report: DataReport
+    @param tests: list[(int, int, datetime, datetime)]
+    @type tests: list[(int, int, datetime, datetime)]
+    @return: list of ramp tests
+    @rtype: list[RampTestResult]
     """
-    pgain = batch["TempHeatDutyControl.PGain(min)"]
-    itime = batch["TempHeatDutyControl.ITime(min)"]
-    dtime = batch["TempHeatDutyControl.DTime(min)"]
+    pgain = report["TempHeatDutyControl.PGain(min)"]
+    itime = report["TempHeatDutyControl.ITime(min)"]
+    dtime = report["TempHeatDutyControl.DTime(min)"]
 
     info = []
     for start_index, end_index, start, end in tests:
@@ -217,18 +223,34 @@ def find_auto2auto_settings(batch: BatchFile, tests: list):
         i = next(pv for t, pv in itime if t > start)
         d = next(pv for t, pv in dtime if t > start)
 
-        test = RampTest(p, i, d, start, end, start_index, end_index)
+        test = RampTestResult(p, i, d, start, end, start_index, end_index)
 
         info.append(test)
 
     return info
 
 
-def hardmode_auto2auto_tests(batch: BatchFile):
+def hardmode_auto2auto_tests(report, settle_seconds=1200):
+    """
+    @param report: report
+    @type report: DataReport
+    @param settle_seconds: seconds for settle time steps
+    @type settle_seconds: int
+    @return: list[(int, int, datetime, datetime)]
+    @rtype: list[(int, int, datetime, datetime)]
 
-    temppv = batch['TempPV(C)']
+    Get the auto-to-auto tests out of a batch file
+    that forgot to record the TempSP. Start point, set-point
+    must be 37, 39 respectively.
+
+    If you need to use this, something went wrong,
+    and you should probably fix that instead of
+    relying on this.
+    """
+
+    temppv = report['TempPV(C)']
     data = iter(temppv)
-    settle_time = timedelta(seconds=1200)
+    settle_time = timedelta(seconds=settle_seconds)
 
     tests = []
     start_index = 0
@@ -239,10 +261,9 @@ def hardmode_auto2auto_tests(batch: BatchFile):
 
     tests.append((start_index, end_index, start, end))
     while True:
-
         # This loop sucks. For each set of points, need to call next() twice. First to find where
         # temp pv crosses the line to indicate the next step in the recipe, second to
-        # find the timestamp after waiting the 1200 second settle time.
+        # find the timestamp after waiting the second settle time.
         try:
             start_index, start = next((i, time) for i, (time, pv) in enumerate(data, start=end_index + 1) if pv < 37)
             start += settle_time
@@ -258,23 +279,20 @@ def hardmode_auto2auto_tests(batch: BatchFile):
     return tests
 
 
-def find_step_tests(steps_report: str, time_offset=None) -> list:
+def __scan_raw_steps_list(steps):
     """
-    @param steps_report: filename of batch report listing recipe steps
-    @type steps_report: str
-    @param time_offset: sometimes recipe steps bugs out. Increment all times by this amount of minutes.
-    @type time_offset: None | int
-    @return: list of Off-to-auto start, auto-to-auto start
-    @rtype: list[(datetime, datetime, datetime)]
+    @param steps: list of recipe steps
+    @type steps: list[list[str]]
+    @return: list of tests start and stop time
+    @rtype: list[(str, str, str)]
+
+    Internal scanning function unique to a certain type of recipe
+    steps test. I'm not sure how to distinguish between them
+    in a programmatically friendly way for use outside this module,
+    so for now just swap them manually when necessary.
     """
-
-    with open(steps_report, 'r') as f:
-        f.readline()
-        contents = [line.strip().split(',') for line in f.readlines()]
-
     tests = []
-    data = iter(contents)
-
+    data = iter(steps)
     while True:
         try:
             off_start = next(time for _, time, step in data if step == 'Set "TempModeUser" to Auto')
@@ -285,34 +303,52 @@ def find_step_tests(steps_report: str, time_offset=None) -> list:
 
         tests.append((off_start, auto_start, auto_end))
 
-    # The recipe steps report gives inaccurate timestamps,
+    return tests
+
+
+def find_step_tests(steps_filename, time_offset=0):
+    """
+    @param steps_filename: filename of batch report listing recipe steps
+    @type steps_filename: str
+    @param time_offset: Increment all times by this amount of minutes.
+    @type time_offset: None | int
+    @return: list of Off-to-auto start, auto-to-auto start
+    @rtype: list[(datetime, datetime, datetime)]
+
+    Note that this scanning function is unique to the recipe I've been using
+    so far. Changes in recipe == need to write a new function.
+    """
+
+    with open(steps_filename, 'r') as f:
+        f.readline()
+        steps = [line.strip().split(',') for line in f.readlines()]
+
+    tests = __scan_raw_steps_list(steps)
+
+    # The recipe steps report gives inaccurate timestamps, sometimes,
     # so we need to fix it by adding one hour.
     parse_fmt = ParseDateFormat
     strptime = datetime.strptime
     parsed = []
 
-    if time_offset:
-
-        offset = timedelta(minutes=time_offset)
-        for off_start, auto_start, auto_end in tests:
-            fmt = parse_fmt(off_start)
-            off_start = strptime(off_start, fmt) + offset
-            auto_start = strptime(auto_start, fmt) + offset
-            auto_end = strptime(auto_end, fmt) + offset
-            parsed.append((off_start, auto_start, auto_end))
-    else:
-
-        for off_start, auto_start, auto_end in tests:
-            fmt = parse_fmt(off_start)
-            off_start = strptime(off_start, fmt)
-            auto_start = strptime(auto_start, fmt)
-            auto_end = strptime(auto_end, fmt)
-            parsed.append((off_start, auto_start, auto_end))
+    offset = timedelta(minutes=time_offset)
+    for off_start, auto_start, auto_end in tests:
+        fmt = parse_fmt(off_start)
+        off_start = strptime(off_start, fmt) + offset
+        auto_start = strptime(auto_start, fmt) + offset
+        auto_end = strptime(auto_end, fmt) + offset
+        parsed.append((off_start, auto_start, auto_end))
 
     return parsed
 
 
-def unpickle_info(filename: str):
+def unpickle_info(filename):
+    """
+    @param filename: filename
+    @type filename: str
+    @return: unpickled info
+    @rtype: T
+    """
     from pickle import load as pickle_load
     with open(filename, 'rb') as f:
         info = pickle_load(f)
@@ -320,7 +356,15 @@ def unpickle_info(filename: str):
     return info
 
 
-def pickle_info(info: object, filename: str):
+def pickle_info(info, filename):
+    """
+    @param info: object
+    @type info: T
+    @param filename: filename
+    @type filename: str
+    @return: None
+    @rtype: None
+    """
 
     from pysrc.snippets import safe_pickle
     safe_pickle(info, filename)
@@ -340,7 +384,7 @@ def make_elapsed_times(ref_cell, target_column, rows):
     Helper for process_tests.
     Ref cell as tuple instead of just "knowing" that
     columns are next to each other, in case function
-    needs to be used elsewhere.
+    needs to be extended.
     """
     ref_row, ref_col = ref_cell
     offset = ref_col - target_column  # offset should be negative if col > ref_col
@@ -349,14 +393,37 @@ def make_elapsed_times(ref_cell, target_column, rows):
     return [formula for _ in range(rows)]
 
 
+def __prepare_charts_all_tests(ws):
+    """
+    @param ws:
+    @type ws:
+    @return:
+    @rtype:
+    """
+
+    from officelib.xllib.xlcom import CreateChart, FormatChart, FormatAxesScale
+    from officelib.const import xlXYScatterLinesNoMarkers
+
+    chart_full = CreateChart(ws, xlXYScatterLinesNoMarkers)
+    chart_a2a = CreateChart(ws, xlXYScatterLinesNoMarkers)
+    chart_o2a = CreateChart(ws, xlXYScatterLinesNoMarkers)
+    FormatChart(chart_full, None, "Full Test", "Time(min)", "TempPV(C)", True, True)
+    FormatChart(chart_a2a, None, "Auto to Auto Test", "Time(min)", "TempPV(C)", True, True)
+    FormatChart(chart_o2a, None, "Off to Auto Test", "Time(min)", "TempPV(C)", True, True)
+    FormatAxesScale(chart_full, 0, None, 36, 40)
+    FormatAxesScale(chart_a2a, 0, None, 38, 40)
+    FormatAxesScale(chart_o2a, 0, None, 36, 38)
+    return chart_a2a, chart_full, chart_o2a
+
+
 def plot_tests(header, column_data, chart_series_list, header_row_offset):
     """
     @param header: iterable of tuples of header data to plot
     @type header: collections.Sequence[collections.Sequence]
     @param column_data: iterable of tuples of column data to plot
     @type column_data: collections.Sequence[collections.Sequence]
-    @param chart_series_list: iterable of ChartSeriesInfo instances to plot
-    @type chart_series_list: collections.Sequence[ChartSeriesInfo]
+    @param chart_series_list: iterable of ChartSeries instances to plot
+    @type chart_series_list: collections.Sequence[ChartSeries]
     @param header_row_offset: move the data down by this # of rows
     @type header_row_offset: int
     @return: None
@@ -380,9 +447,13 @@ def plot_tests(header, column_data, chart_series_list, header_row_offset):
                             (len(header) + header_row_offset, columns)
                             )
 
-    from officelib.xllib.xlcom import xlObjs, CreateChart, \
-                                        CreateDataSeries, FormatChart, HiddenXl, FormatAxesScale
-    from officelib.const import xlXYScatterLinesNoMarkers, xlLocationAsNewSheet
+    # Because importing xllib requires importing win32com, and
+    # win32com can be very slow to initialize, wait until here to
+    # do the import, so that any errors thrown will abort analysis
+    # before getting to this point.
+
+    from officelib.xllib.xlcom import xlObjs, CreateDataSeries, HiddenXl
+    from officelib.const import xlLocationAsNewSheet
 
     xl, wb, ws, cells = xlObjs(visible=False)
 
@@ -392,17 +463,7 @@ def plot_tests(header, column_data, chart_series_list, header_row_offset):
         cells.Range(header_area).Value = header
         cells.Range(data_area).Value = column_data
 
-        chart_full = CreateChart(ws, xlXYScatterLinesNoMarkers)
-        chart_a2a = CreateChart(ws, xlXYScatterLinesNoMarkers)
-        chart_o2a = CreateChart(ws, xlXYScatterLinesNoMarkers)
-
-        FormatChart(chart_full, None, "Full Test", "Time(min)", "TempPV(C)", True, True)
-        FormatChart(chart_a2a, None, "Auto to Auto Test", "Time(min)", "TempPV(C)", True, True)
-        FormatChart(chart_o2a, None, "Off to Auto Test", "Time(min)", "TempPV(C)", True, True)
-
-        FormatAxesScale(chart_full, 0, None, 36, 40)
-        FormatAxesScale(chart_a2a, 0, None, 38, 40)
-        FormatAxesScale(chart_o2a, 0, None, 36, 38)
+        chart_a2a, chart_full, chart_o2a = __prepare_charts_all_tests(ws)
 
         chart_map = {
             "Off to Auto": chart_o2a,
@@ -429,13 +490,13 @@ def _make_series_info(column, start_row, rows, ramp_test):
     @param rows: number of rows
     @type rows: int
     @param ramp_test: the ramp test
-    @type ramp_test: RampTest
+    @type ramp_test: RampTestResult
     @return: series info
-    @rtype: ChartSeriesInfo
+    @rtype: ChartSeries
 
     Helper function for process_tests to make chart series info.
     """
-    series_info = ChartSeriesInfo()
+    series_info = ChartSeries()
     series_info.series_name = "=%s!" + cellStr(1, column + 1)
     series_info.start_row = start_row
     series_info.end_row = start_row + rows
@@ -449,8 +510,8 @@ def _extend_tests_header(header, ramp_test):
     """
     @param header: the header
     @type header: collections.Sequence[list[str]]
-    @param ramp_test: RampTest
-    @type ramp_test: RampTest
+    @param ramp_test: RampTestResult
+    @type ramp_test: RampTestResult
     @return: None
     @rtype: None
 
@@ -485,7 +546,7 @@ def _extend_tests_header(header, ramp_test):
 def process_tests(test_list, batch: BatchFile):
     """
     @param test_list: list of tests to process
-    @type test_list: list[RampTest]
+    @type test_list: list[RampTestResult]
     @param batch: batch file corresponding to test list
     @type batch: BatchFile
     @return (xl, wb, ws, cells)
@@ -535,9 +596,9 @@ def map_batch_steps(tests: list, batch: BatchFile) -> list:
     @param tests: list of tests (start, end1, start2, end2) datetimes
     @type tests: list[(datetime, datetime, datetime)]
     @param batch: batch file corresponding to tests
-    @param batch: BatchFile
+    @param batch: DataReport
     @return: list of tests with indicies.
-    @rtype: list[(RampTest, RampTest, RampTest)]
+    @rtype: list[(RampTestResult, RampTestResult, RampTestResult)]
 
     This process is rather different than the Auto2Auto settings finder,
     so needs its own implementation despite identical code in some places.
@@ -566,7 +627,7 @@ def map_batch_steps(tests: list, batch: BatchFile) -> list:
         except StopIteration:
             continue
 
-        off_to_auto = RampTest()
+        off_to_auto = RampTestResult()
         off_to_auto.pgain = p
         off_to_auto.itime = i
         off_to_auto.dtime = d
@@ -578,7 +639,7 @@ def map_batch_steps(tests: list, batch: BatchFile) -> list:
         off_to_auto.end_time = auto_start
         off_to_auto.test_name = "Off to Auto"
 
-        auto_to_auto = RampTest()
+        auto_to_auto = RampTestResult()
         auto_to_auto.pgain = p
         auto_to_auto.itime = i
         auto_to_auto.dtime = d
@@ -590,7 +651,7 @@ def map_batch_steps(tests: list, batch: BatchFile) -> list:
         auto_to_auto.end_time = auto_end
         auto_to_auto.test_name = "Auto to Auto"
 
-        full_test = RampTest()
+        full_test = RampTestResult()
         full_test.pgain = p
         full_test.itime = i
         full_test.dtime = d
@@ -609,7 +670,7 @@ def map_batch_steps(tests: list, batch: BatchFile) -> list:
 
 def main(filename: str) -> list:
 
-    batch = open_batch(filename)
+    batch = open_report(filename)
     tests = hardmode_auto2auto_tests(batch)
     info = find_auto2auto_settings(batch, tests)
     pickle_file = "C:\\Users\\PBS Biotech\\Documents\\Personal\\PBS_Office\\MSOffice\\scripts\\test_stuff\\test_output.txt"
@@ -646,7 +707,7 @@ def full_open_batch(data_report):
     """
     @param data_report: filename of data report
     @type data_report: str
-    @return: BatchFile for report
+    @return: DataReport for report
     @rtype: BatchFile
     """
     _head, tail = path_split(data_report)
@@ -657,7 +718,7 @@ def full_open_batch(data_report):
         batch = unpickle_info(cache)
     else:
         data_report = getFullLibraryPath(data_report)
-        batch = open_batch(data_report)
+        batch = open_report(data_report)
         pickle_info(batch, cache)
 
     return batch

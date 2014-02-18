@@ -14,11 +14,27 @@ __author__ = 'Nathan Starkweather'
 # # print(bool('0'))
 # from itertools import takewhile
 # mylist = [1, 2, 3, 4, 5, None, 6, 7]
-empty = ''
-def foo(arg1, arg2):
-    return arg1 + arg2
 
-def oops(arg1, arg2=None):
-    return arg1 or False
 
-print(int(False))
+from pysrc.snippets import printdir
+
+
+import collections.abc
+
+
+class myclass():
+    def __getitem__(self, item):
+        print("foo")
+        print(item)
+        printdir(item)
+        print(isinstance(item, slice))
+
+
+def main():
+    m = myclass()[::2]
+    return m
+main()
+
+
+import dis
+
