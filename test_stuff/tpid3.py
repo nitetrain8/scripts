@@ -99,7 +99,7 @@ class RawTPID():
     def _build_settings(self, batch: BatchFile) -> None:
         
         """ Assign settings for the test from
-        the BatchFile object passed.
+        the DataReport object passed.
 
         """
 

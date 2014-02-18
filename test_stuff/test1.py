@@ -6,14 +6,35 @@ Created in: PyCharm Community Edition
 
 
 """
+
 __author__ = 'Nathan Starkweather'
 
-from os import stat
 
-from datetime import datetime
-result = stat(__file__)
+# mystr = __author__
+# # print(bool('0'))
+# from itertools import takewhile
+# mylist = [1, 2, 3, 4, 5, None, 6, 7]
 
 
-# date = datetime.fromordinal(result.st_mtime)
-print(datetime.fromtimestamp(int(result.st_mtime)))
+from pysrc.snippets import printdir
+
+
+import collections.abc
+
+
+class myclass():
+    def __getitem__(self, item):
+        print("foo")
+        print(item)
+        printdir(item)
+        print(isinstance(item, slice))
+
+
+def main():
+    m = myclass()[::2]
+    return m
+main()
+
+
+import dis
 
