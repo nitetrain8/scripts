@@ -6,7 +6,7 @@ Created on Feb 5, 2014
 """
 from itertools import zip_longest
 
-from officelib.pbslib.proxies import BatchFile, Parameter
+from officelib.pbslib.datareport import DataReport, Parameter
 from officelib.pbslib.batchutil import grouper
 from officelib.xllib.xladdress import cellStr as _cellStr
 
@@ -66,15 +66,15 @@ class RawTPID():
         @param filename: same as init
         @return: None
         """
-        batch = BatchFile(filename)
+        batch = DataReport(filename)
         self._process_batch(batch)
 
-    def _process_batch(self, batch: BatchFile) -> None:
+    def _process_batch(self, batch: DataReport) -> None:
         self._build_settings(batch)
         self._extract_data(batch)
 
     @classmethod
-    def fromBatch(cls, batch: BatchFile):
+    def fromBatch(cls, batch: DataReport):
         """
         @param batch: batch file to build test entry from
         @return: new instance of RawTPID
@@ -91,12 +91,12 @@ class RawTPID():
         """
         return self._settings
 
-    def _extract_data(self, batch: BatchFile) -> None:
+    def _extract_data(self, batch: DataReport) -> None:
         
         self._temppv = batch['TempPV(C)']
         self._heatduty = batch['TempHeatDutyActual(%)']
         
-    def _build_settings(self, batch: BatchFile) -> None:
+    def _build_settings(self, batch: DataReport) -> None:
         
         """ Assign settings for the test from
         the DataReport object passed.
@@ -233,7 +233,7 @@ class xlEntry():
         return self
 
     @classmethod
-    def fromBatch(cls, batch: BatchFile, top_left: tuple=(1, 1)):
+    def fromBatch(cls, batch: DataReport, top_left: tuple=(1, 1)):
         """
         @param batch: RawTPID instance to make test entry from
         @param top_left: cell coordinates (row, column) of topleft

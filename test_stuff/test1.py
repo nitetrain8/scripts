@@ -19,22 +19,20 @@ __author__ = 'Nathan Starkweather'
 from pysrc.snippets import printdir
 
 
-import collections.abc
+# import collections.abc
+#
+#
+# class myclass():
+#     def __getitem__(self, item):
+#         print("foo")
+#         print(item)
+#         printdir(item)
+#         print(isinstance(item, slice))
+#
+#
+# def main():
+#     m = myclass()[::2]
+#     return m
+# main()
 
-
-class myclass():
-    def __getitem__(self, item):
-        print("foo")
-        print(item)
-        printdir(item)
-        print(isinstance(item, slice))
-
-
-def main():
-    m = myclass()[::2]
-    return m
-main()
-
-
-import dis
-
+import officelib.pbslib.recipemaker
