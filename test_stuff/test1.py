@@ -35,4 +35,6 @@ from pysrc.snippets import printdir
 #     return m
 # main()
 
-import officelib.pbslib.recipemaker
+from os import listdir
+
+print(listdir("C:\\"))

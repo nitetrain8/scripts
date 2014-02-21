@@ -9,7 +9,7 @@ Script to analyze data for pressure based level sensor
 
 from officelib.pbslib import DataReport
 from officelib.const import xlByRows, xlDown
-from officelib.xllib.xlProxy import ChartSeries
+from officelib.xllib.xlproxy import ChartSeries
 
 
 def open_report(fpath):
@@ -29,7 +29,7 @@ def find_chart_info(cells, name):
     @param name: name in first row
     @type name: str
     @return: cell object
-    @rtype: xllib.xlProxy.ChartSeries
+    @rtype: xllib.xlproxy.ChartSeries
     """
     result = cells.Find(What=name, SearchOrder=xlByRows)
     if not result:
