@@ -7,7 +7,7 @@ Created in: PyCharm Community Edition
 Script to analyze data for pressure based level sensor
 """
 
-from officelib.pbslib import DataReport
+from pbslib import DataReport
 from officelib.const import xlByRows, xlDown
 from officelib.xllib.xlproxy import ChartSeries
 

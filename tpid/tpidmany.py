@@ -6,12 +6,13 @@ Created in: PyCharm Community Edition
 
 
 """
-from officelib.pbslib.datareport import DataReport
 from itertools import zip_longest
-from officelib.pbslib.batchutil import ParseDateFormat, flatten
 from datetime import timedelta, datetime
-from officelib.xllib.xladdress import cellStr, cellRangeStr
 from os.path import exists as path_exists, split as path_split, splitext as path_splitext
+
+from pbslib.datareport import DataReport
+from officelib.pbslib.batchutil import ParseDateFormat, flatten
+from officelib.xllib.xladdress import cellStr, cellRangeStr
 from officelib.olutils import getFullLibraryPath
 
 

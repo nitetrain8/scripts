@@ -13,13 +13,14 @@ Update 2/14/2014: still holy balls bad. My, how time flies.
 
 """
 
-from officelib.olutils import getDownloadDir
 from tkinter.filedialog import askopenfilenames
-from officelib.xllib.xlcom import Excel, HiddenXl
-from officelib.xllib.xladdress import cellStr
-from officelib.pbslib.proxies import BatchFile
 from itertools import zip_longest
 from datetime import timedelta
+
+from officelib.olutils import getDownloadDir
+from officelib.xllib.xlcom import Excel, HiddenXl
+from officelib.xllib.xladdress import cellStr
+from pbslib.proxies import BatchFile
 
 
 def mean(list_):

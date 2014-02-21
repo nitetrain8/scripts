@@ -4,9 +4,10 @@ Created on Nov 7, 2013
 @author: PBS Biotech
 """
 
-from officelib import xllib
-from officelib.pbslib.proxies import BatchFile  # @UnresolvedImport
 from itertools import zip_longest
+
+from officelib import xllib
+
 
 class InvalidTestError(Exception):
     pass

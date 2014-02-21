@@ -4,13 +4,8 @@ Created on Oct 1, 2013
 @author: PBS Biotech
 """
 
-from officelib.xllib import *
-from officelib.pbslib import *
-def main(): 
-    import sys
 
-    import time
-    
+def main():
     client = win32com.client
     
     target_path = "C:\\Users\\Public\\Documents\\PBSSS\\Miscellaneous test\\PBS 3 Environment Heater Response\\"

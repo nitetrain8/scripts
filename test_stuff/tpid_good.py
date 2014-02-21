@@ -8,13 +8,14 @@ Methods related to performing analysis for
 temperature-PID tuning.
 
 """
-from officelib.pbslib.proxies import BatchFile  # @UnresolvedImport
-from officelib.pbslib.batchutil import FilterIndexRange  # @UnresolvedImport
 from itertools import zip_longest
 from os.path import split as path_split
+
+from pbslib.proxies import BatchFile  # @UnresolvedImport
+from officelib.pbslib.batchutil import FilterIndexRange  # @UnresolvedImport
 from officelib.olutils import ListFullDir as ol_ListFullDir
-from officelib.xllib.xlcom import xlBook, EnsureDispatch  # @UnresolvedImport
-from officelib.const import xlByColumns, xlByRows  # @UnresolvedImport
+from officelib.xllib.xlcom import xlBook  # @UnresolvedImport
+from officelib.const import xlByColumns  # @UnresolvedImport
 from officelib.xllib.xladdress import cellRangeStr, cellStr  # @UnusedImport @UnresolvedImport
 
 
