@@ -37,4 +37,6 @@ from pysrc.snippets import printdir
 
 from os import listdir
 
-print(listdir("C:\\"))
+from os.path import dirname
+
+"foo".replace('o', 'i')

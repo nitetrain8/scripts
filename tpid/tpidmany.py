@@ -4,6 +4,34 @@ Created by: Nathan Starkweather
 Created on: 02/07/2014
 Created in: PyCharm Community Edition
 
+Functions to analyze long tpid recipes containing many
+individual tpid tests.
+
+Public functions:
+
+full_scan(data_report_filename, steps_report_filename, report_time_diff) ->
+            Analyze everything and plot in  excel. This function binds together everything
+            from below.
+
+
+open_batch(filename) -> DataReport instance derived from the filename
+
+pickle_info(obj, filename) -> save the object to filename
+
+unpickle_info(filename) -> unpickle the object
+
+
+full_open_data_report(filename) -> fully open the batch report, either freshly or from pickled info
+
+full_scan_steps(filename) -> return list of (off_to_auto_start, auto_to_auto_start, end) datetimes from report
+
+map_batch_steps(steps, data) -> map tests from full_scan_steps, data from full_open_data_report into
+                                list of RampTest instances corresponding to steps from full_scan_steps.
+                                Steps are returned as (off_to_auto, auto_to_auto, full_test).
+
+process_tests(test_list, data) -> process all tests in the list corresponding to the data report and plot in
+                                excel. Be sure to flatten the list from map_batch_steps before passing anything
+                                in.
 
 """
 from itertools import zip_longest
@@ -11,7 +39,7 @@ from datetime import timedelta, datetime
 from os.path import exists as path_exists, split as path_split, splitext as path_splitext
 
 from pbslib.datareport import DataReport
-from officelib.pbslib.batchutil import ParseDateFormat, flatten
+from pbslib.batchutil import ParseDateFormat, flatten
 from officelib.xllib.xladdress import cellStr, cellRangeStr
 from officelib.olutils import getFullLibraryPath
 
@@ -280,7 +308,7 @@ def hardmode_auto2auto_tests(report, settle_seconds=1200):
     return tests
 
 
-def __scan_raw_steps_list(steps):
+def _scan_raw_steps_list(steps):
     """
     @param steps: list of recipe steps
     @type steps: list[list[str]]
@@ -324,7 +352,7 @@ def find_step_tests(steps_filename, time_offset=0):
         f.readline()
         steps = [line.strip().split(',') for line in f.readlines()]
 
-    tests = __scan_raw_steps_list(steps)
+    tests = _scan_raw_steps_list(steps)
 
     # The recipe steps report gives inaccurate timestamps, sometimes,
     # so we need to fix it by adding one hour.
@@ -332,7 +360,7 @@ def find_step_tests(steps_filename, time_offset=0):
     strptime = datetime.strptime
     parsed = []
 
-    offset = timedelta(minutes=time_offset)
+    offset = timedelta(minutes=time_offset or 0)
     for off_start, auto_start, auto_end in tests:
         fmt = parse_fmt(off_start)
         off_start = strptime(off_start, fmt) + offset
@@ -544,17 +572,17 @@ def _extend_tests_header(header, ramp_test):
     header[9].extend(("Test Time", "Elapsed Time", "TempPV(C)", None, None))
 
 
-def process_tests(test_list, batch):
+def process_tests(test_list, data):
     """
     @param test_list: list of tests to process
     @type test_list: list[RampTestResult]
-    @param batch: batch file corresponding to test list
-    @type batch: DataReport
+    @param data: data file corresponding to test list
+    @type data: DataReport
     @return (xl, wb, ws, cells)
     @rtype (T, U, V, X)
     """
 
-    temppv = batch['TempPV(C)']
+    temppv = data['TempPV(C)']
     pv_times = temppv.Times.Datestrings
     pv_values = temppv.Values
 
@@ -592,27 +620,27 @@ def process_tests(test_list, batch):
     plot_tests(header, column_data, series_list, header_row_offset)
 
 
-def map_batch_steps(tests, batch):
+def map_batch_steps(steps, data):
     """
-    @param tests: list of tests (start, end1, start2, end2) datetimes
-    @type tests: list[(datetime, datetime, datetime)]
-    @param batch: batch file corresponding to tests
-    @param batch: DataReport
-    @return: list of tests with indicies.
+    @param steps: list of steps (start, end1, start2, end2) datetimes
+    @type steps: list[(datetime, datetime, datetime)]
+    @param data: data file corresponding to steps
+    @param data: DataReport
+    @return: list of steps with indicies.
     @rtype: list[(RampTestResult, RampTestResult, RampTestResult)]
 
     This process is rather different than the Auto2Auto settings finder,
     so needs its own implementation despite identical code in some places.
     """
-    pgain = batch["TempHeatDutyControl.PGain(min)"]
-    itime = batch["TempHeatDutyControl.ITime(min)"]
-    dtime = batch["TempHeatDutyControl.DTime(min)"]
-    pvs = batch['TempPV(C)'].Values
-    times = batch['TempPV(C)'].Times
+    pgain = data["TempHeatDutyControl.PGain(min)"]
+    itime = data["TempHeatDutyControl.ITime(min)"]
+    dtime = data["TempHeatDutyControl.DTime(min)"]
+    pvs = data['TempPV(C)'].Values
+    times = data['TempPV(C)'].Times
     temp_times = iter(times)
     info = []
     auto_end_index = -1  # ensure first loop starts at right enumerate index
-    for off_start, auto_start, auto_end in tests:
+    for off_start, auto_start, auto_end in steps:
 
         try:
             p = next(pv for t, pv in pgain if t > auto_end)
@@ -669,7 +697,7 @@ def map_batch_steps(tests, batch):
     return info
 
 
-def main(filename: str) -> list:
+def old_main(filename: str) -> list:
 
     batch = open_report(filename)
     tests = hardmode_auto2auto_tests(batch)
@@ -689,11 +717,10 @@ def full_scan_steps(steps_report, time_offset=None):
     @return: list
     @rtype: list[(datetime, datetime, datetime)]
     """
-    _head, tail = path_split(steps_report)
-    name, _ = path_splitext(tail)
-    cache = '\\'.join((pickle_cache, name + '.pickle'))
 
-    if path_exists(cache) and __cache_is_recent(cache):
+    cache = _get_cache_name(steps_report)
+
+    if path_exists(cache) and _cache_is_recent(steps_report, cache):
         tests = unpickle_info(cache)
     else:
         steps_report = getFullLibraryPath(steps_report)
@@ -704,18 +731,31 @@ def full_scan_steps(steps_report, time_offset=None):
     return tests
 
 
-def full_open_batch(data_report):
+def _get_cache_name(filename):
+    """
+    @param filename: filename to get cache name for
+    @type filename: str
+    @return: the name of the corresponding pickle cache
+    @rtype: str
+    """
+
+    _, tail = path_split(filename)
+    name, _ = path_splitext(tail)
+    cache = '\\'.join((pickle_cache, name + '.pickle'))
+    return cache
+
+
+def full_open_data_report(data_report):
     """
     @param data_report: filename of data report
     @type data_report: str
     @return: DataReport for report
     @rtype: DataReport
     """
-    _head, tail = path_split(data_report)
-    name, _ = path_splitext(tail)
-    cache = '\\'.join((pickle_cache, name + '.pickle'))
 
-    if path_exists(cache) and __cache_is_recent(cache):
+    cache = _get_cache_name(data_report)
+
+    if path_exists(cache) and _cache_is_recent(data_report, cache):
         batch = unpickle_info(cache)
     else:
         data_report = getFullLibraryPath(data_report)
@@ -737,7 +777,7 @@ def full_scan(data_report: str, steps_report: str, steps_time_offset=None):
     @rtype: None
     """
 
-    batch = full_open_batch(data_report)
+    batch = full_open_data_report(data_report)
     tests = full_scan_steps(steps_report, steps_time_offset)
     all_tests = map_batch_steps(tests, batch)
     all_tests = list(flatten(all_tests))
@@ -765,24 +805,33 @@ def __profile_code():
 
 from os import stat as os_stat
 
-__last_save = datetime.fromtimestamp(os_stat(__file__).st_mtime)
+__last_save = os_stat(__file__).st_mtime
 
 
-def __cache_is_recent(filename, good_after=__last_save):
+def _cache_is_recent(report_file, cache_file, script_modified=__last_save):
     """
-    @param filename:
-    @type filename: str
-    @param good_after: datetime after which cache is considered outdated
-    @type good_after: datetime
+    @param report_file: the file to check cache for
+    @type report_file: str
+    @param cache_file: the cached data file corresponding to the report file
+    @type cache_file: str
+    @param script_modified: time after which cache is considered outdated
+    @type script_modified: float
     @return: bool
     @rtype: bool
     """
-    file_modified = datetime.fromtimestamp(os_stat(filename).st_mtime)
-    return file_modified > good_after
+
+    report_modified = os_stat(report_file).st_mtime
+    cache_modified = os_stat(cache_file).st_mtime
+
+    return cache_modified > report_modified and cache_modified > script_modified
 
 
 if __name__ == "__main__":
 
-    full_scan(manyfile3, manyrecipesteps, 60)
+    # full_scan(manyfile3, manyrecipesteps, 60)
     # __profile_code()
+
+    data4 = "C:\\users\\pbs biotech\\downloads\\tpidoverweekend2.csv"
+    steps4 = "C:\\users\\pbs biotech\\downloads\\tpidoverweekendsteps2.csv"
+    full_scan(data4, steps4)
 
