@@ -8,7 +8,9 @@ Created on Jan 20, 2014
 import tkinter as tk
 import tkinter.ttk as ttk
 from tkinter.filedialog import askopenfilename
-from officelib.xllib import Excel, cellStr, cellRangeStr, xlDown, createChart, formatChart, xlLocationAsNewSheet
+from officelib.xllib.xlcom import Excel, CreateChart, FormatChart
+from officelib.const import xlDown, xlLocationAsNewSheet
+from officelib.xllib.xladdress import cellStr, cellRangeStr
 
 
 class SimpleEntry(tk.Entry):
@@ -136,7 +138,7 @@ def MakeChart(xl, reactor_name, filename, export_by):
                           (end_row, pv_col, 1, 1)
                             )
                             
-    chart = createChart(ws)
+    chart = CreateChart(ws)
     SeriesCollection = chart.SeriesCollection()
     
     for i in range(SeriesCollection.Count, 0, -1):
@@ -156,7 +158,7 @@ def MakeChart(xl, reactor_name, filename, export_by):
     XAxisTitle = 'Time(date)'
     YAxisTitle = 'TempPV'
 
-    formatChart(chart, ChartTitle=ChartTitle,
+    FormatChart(chart, ChartTitle=ChartTitle,
                         xAxisTitle=XAxisTitle,
                         yAxisTitle=YAxisTitle)
     
