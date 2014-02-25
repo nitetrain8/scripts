@@ -322,10 +322,17 @@ def _scan_raw_steps_list(steps):
     """
     tests = []
     data = iter(steps)
+
+    # bump iterator forward until first test start.
+    next(None for _1, _2, step in data if 'TempHeatDutyControl' in step)
+
     while True:
         try:
             off_start = next(time for _, time, step in data if step == 'Set "TempModeUser" to Auto')
-            auto_start = next(time for _, time, step in data if step == 'Wait 5 seconds')
+            # want step after this one
+            next(time for _, time, step in data if step == 'Wait 3600 seconds')
+            auto_start = next(time for _, time, _1 in data)
+
             auto_end = next(time for _, time, step in data if step == 'Set "TempModeUser" to Off')
         except StopIteration:
             break
@@ -725,7 +732,6 @@ def full_scan_steps(steps_report, time_offset=None):
     else:
         steps_report = getFullLibraryPath(steps_report)
         tests = find_step_tests(steps_report, time_offset)
-
         pickle_info(tests, cache)
 
     return tests
