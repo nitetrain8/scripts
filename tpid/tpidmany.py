@@ -310,36 +310,55 @@ def hardmode_auto2auto_tests(report, settle_seconds=1200):
 
 def _scan_raw_steps_list(steps):
     """
-    @param steps: list of recipe steps
-    @type steps: list[list[str]]
-    @return: list of tests start and stop time
-    @rtype: list[(str, str, str)]
-
     Internal scanning function unique to a certain type of recipe
     steps test. I'm not sure how to distinguish between them
     in a programmatically friendly way for use outside this module,
     so for now just swap them manually when necessary.
+
+    A steps report has the column format of
+    Step_Type, TimeStamp, StepCommand
+
+    Only timestamp and stepcommand are needed.
+
+    @param steps: list of recipe steps
+    @type steps: list[(str, str, str)]
+    @return: list of tests start and stop time
+    @rtype: list[(str, str, str)]
+
     """
     tests = []
-    data = iter(steps)
+    iter_steps = iter(steps)
 
     # bump iterator forward until first test start.
-    next(None for _1, _2, step in data if 'TempHeatDutyControl' in step)
+    next(None for _1, _2, step in iter_steps if 'TempHeatDutyControl' in step)
 
     while True:
         try:
-            off_start = next(time for _, time, step in data if step == 'Set "TempModeUser" to Auto')
+            off_start = next(time for _, time, step in iter_steps if step == 'Set "TempModeUser" to Auto')
             # want step after this one
-            next(time for _, time, step in data if step == 'Wait 3600 seconds')
-            auto_start = next(time for _, time, _1 in data)
+            next(time for _, time, step in iter_steps if step == 'Wait 3600 seconds')
+            auto_start = next(time for _, time, _1 in iter_steps)
 
-            auto_end = next(time for _, time, step in data if step == 'Set "TempModeUser" to Off')
+            auto_end = next(time for _, time, step in iter_steps if step == 'Set "TempModeUser" to Off')
         except StopIteration:
             break
 
         tests.append((off_start, auto_start, auto_end))
 
     return tests
+
+
+def extract_raw_steps(steps_filename):
+    """
+    @param steps_filename: steps file to extract steps from
+    @type steps_filename: str
+    @return: list of steps as strings
+    @rtype: list[(str, str, str)]
+    """
+    with open(steps_filename, 'r') as f:
+        f.readline()
+        steps = [line.strip().split(',') for line in f.readlines()]
+    return steps
 
 
 def find_step_tests(steps_filename, time_offset=0):
@@ -355,9 +374,7 @@ def find_step_tests(steps_filename, time_offset=0):
     so far. Changes in recipe == need to write a new function.
     """
 
-    with open(steps_filename, 'r') as f:
-        f.readline()
-        steps = [line.strip().split(',') for line in f.readlines()]
+    steps = extract_raw_steps(steps_filename)
 
     tests = _scan_raw_steps_list(steps)
 
@@ -751,21 +768,36 @@ def _get_cache_name(filename):
     return cache
 
 
-def full_open_data_report(data_report):
+def full_open_data_report(csv_report):
     """
-    @param data_report: filename of data report
-    @type data_report: str
+    Open the data report and create a DataReport
+    instance from the file. The result is also cached
+    in a .pickle file for intra-runtime persistance.
+
+    Attempt first to see if a corresponding .pickle cache file
+    exists for the same report upon being called, and if the
+    cache is considered 'recent'.
+
+    To be recent, the .pickle file must have been modified
+    more recently than both the script and the corresponding
+    .csv data report.
+
+    This function will probably bug out if filenames passed
+    are identical.
+
+    @param csv_report: csv_report of data report
+    @type csv_report: str
     @return: DataReport for report
     @rtype: DataReport
     """
 
-    cache = _get_cache_name(data_report)
+    cache = _get_cache_name(csv_report)
 
-    if path_exists(cache) and _cache_is_recent(data_report, cache):
+    if path_exists(cache) and _cache_is_recent(csv_report, cache):
         batch = unpickle_info(cache)
     else:
-        data_report = getFullLibraryPath(data_report)
-        batch = open_report(data_report)
+        csv_report = getFullLibraryPath(csv_report)
+        batch = open_report(csv_report)
         pickle_info(batch, cache)
 
     return batch
