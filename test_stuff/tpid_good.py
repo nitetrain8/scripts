@@ -11,7 +11,7 @@ temperature-PID tuning.
 from itertools import zip_longest
 from os.path import split as path_split
 
-from pbslib.proxies import BatchFile  # @UnresolvedImport
+from batchreport.proxies import BatchFile  # @UnresolvedImport
 from officelib.pbslib.batchutil import FilterIndexRange  # @UnresolvedImport
 from officelib.olutils import ListFullDir as ol_ListFullDir
 from officelib.xllib.xlcom import xlBook  # @UnresolvedImport

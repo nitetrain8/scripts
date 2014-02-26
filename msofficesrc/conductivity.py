@@ -20,7 +20,7 @@ from datetime import timedelta
 from officelib.olutils import getDownloadDir
 from officelib.xllib.xlcom import Excel, HiddenXl
 from officelib.xllib.xladdress import cellStr
-from pbslib.proxies import BatchFile
+from batchreport.proxies import BatchFile
 
 
 def mean(list_):

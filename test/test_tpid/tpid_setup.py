@@ -138,9 +138,10 @@ steps_report1_expected_test_steps = [
 
 ]
 
-
 from datetime import datetime
-from pbslib.batchutil import ParseDateFormat as parse
+
+from batchreport.batchutil import ParseDateFormat as parse
+
 strptime = datetime.strptime
 
 steps_report1_datetimes = []

@@ -6,7 +6,7 @@ Created on Feb 5, 2014
 """
 from itertools import zip_longest
 
-from pbslib.datareport import DataReport, Parameter
+from batchreport.datareport import DataReport, Parameter
 from officelib.xllib.xladdress import cellStr as _cellStr
 
 
