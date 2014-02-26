@@ -38,6 +38,7 @@ from itertools import zip_longest
 from datetime import timedelta, datetime
 from os.path import exists as path_exists, split as path_split, splitext as path_splitext
 
+from pbslib.recipemaker.tpid_recipes import get_long_recipe_start as _get_recipe_start
 from pbslib.datareport import DataReport
 from pbslib.batchutil import ParseDateFormat, flatten
 from officelib.xllib.xladdress import cellStr, cellRangeStr
@@ -50,17 +51,6 @@ manypickle = "C:\\Users\\PBS Biotech\\Documents\\Personal\\PBS_Office\\MSOffice\
 manyfile3 = "C:\\Users\\PBS Biotech\\Downloads\\overweekend.csv"
 manyrecipesteps = "C:\\Users\\PBS Biotech\\Downloads\\weekendsteps.csv"
 pickle_cache = "C:\\Users\\PBS Biotech\\Documents\\Personal\\PBS_Office\\MSOffice\\scripts\\test_stuff\\pickle_cache"
-
-
-def open_report(file=manyfile):
-    """
-    @param file: file to open
-    @type file: str
-    @return: DataReport
-    @rtype: DataReport
-    """
-    report = DataReport(file)
-    return report
 
 
 class RampTestResult():
@@ -308,7 +298,14 @@ def hardmode_auto2auto_tests(report, settle_seconds=1200):
     return tests
 
 
-def _scan_raw_steps_list(steps):
+__start_steps = len(_get_recipe_start())
+
+
+def extract_test_steps(steps,
+                            skip_steps=__start_steps,
+                            off_start_step='Set "TempModeUser" to Auto',
+                            auto_start_step='Set "TempSP(C)" to 39',
+                            end_step='Set "TempModeUser" to Off'):
     """
     Internal scanning function unique to a certain type of recipe
     steps test. I'm not sure how to distinguish between them
@@ -330,16 +327,13 @@ def _scan_raw_steps_list(steps):
     iter_steps = iter(steps)
 
     # bump iterator forward until first test start.
-    next(None for _1, _2, step in iter_steps if 'TempHeatDutyControl' in step)
+    next(i for i in range(skip_steps))
 
     while True:
         try:
-            off_start = next(time for _, time, step in iter_steps if step == 'Set "TempModeUser" to Auto')
-            # want step after this one
-            next(time for _, time, step in iter_steps if step == 'Wait 3600 seconds')
-            auto_start = next(time for _, time, _1 in iter_steps)
-
-            auto_end = next(time for _, time, step in iter_steps if step == 'Set "TempModeUser" to Off')
+            off_start = next(time for _, time, step in iter_steps if step == off_start_step)
+            auto_start = next(time for _, time, step in iter_steps if step == auto_start_step)
+            auto_end = next(time for _, time, step in iter_steps if step == end_step)
         except StopIteration:
             break
 
@@ -361,22 +355,19 @@ def extract_raw_steps(steps_filename):
     return steps
 
 
-def find_step_tests(steps_filename, time_offset=0):
+def parse_test_dates(tests, time_offset=0):
     """
-    @param steps_filename: filename of batch report listing recipe steps
-    @type steps_filename: str
+    @param tests: list of
+    @type tests: list[(str, str, str)]
     @param time_offset: Increment all times by this amount of minutes.
     @type time_offset: None | int
     @return: list of Off-to-auto start, auto-to-auto start
     @rtype: list[(datetime, datetime, datetime)]
 
     Note that this scanning function is unique to the recipe I've been using
-    so far. Changes in recipe == need to write a new function.
+    so far (due to extract_test_steps()). Changes in recipe == need to write
+    a new function.
     """
-
-    steps = extract_raw_steps(steps_filename)
-
-    tests = _scan_raw_steps_list(steps)
 
     # The recipe steps report gives inaccurate timestamps, sometimes,
     # so we need to fix it by adding one hour.
@@ -384,13 +375,19 @@ def find_step_tests(steps_filename, time_offset=0):
     strptime = datetime.strptime
     parsed = []
 
+    # offset = timedelta(minutes=time_offset or 0)
+    # for off_start, auto_start, auto_end in tests:
+    #     fmt = parse_fmt(off_start)
+    #     off_start = strptime(off_start, fmt) + offset
+    #     auto_start = strptime(auto_start, fmt) + offset
+    #     auto_end = strptime(auto_end, fmt) + offset
+    #     parsed.append((off_start, auto_start, auto_end))
+
     offset = timedelta(minutes=time_offset or 0)
-    for off_start, auto_start, auto_end in tests:
-        fmt = parse_fmt(off_start)
-        off_start = strptime(off_start, fmt) + offset
-        auto_start = strptime(auto_start, fmt) + offset
-        auto_end = strptime(auto_end, fmt) + offset
-        parsed.append((off_start, auto_start, auto_end))
+    fmt = parse_fmt(tests[0][0])  # initial guess
+    for test in tests:
+        datetimes = (strptime(time, parse_fmt(time, fmt)) + offset for time in test)
+        parsed.append(tuple(datetimes))
 
     return parsed
 
@@ -505,12 +502,12 @@ def plot_tests(header, column_data, chart_series_list, header_row_offset):
     # do the import, so that any errors thrown will abort analysis
     # before getting to this point.
 
-    from officelib.xllib.xlcom import xlObjs, CreateDataSeries, HiddenXl
+    from officelib.xllib.xlcom import xlObjs, CreateDataSeries  #, HiddenXl
     from officelib.const import xlLocationAsNewSheet
 
     xl, wb, ws, cells = xlObjs(visible=False)
 
-    with HiddenXl(xl):
+    try:
         ws_name = ws.Name
 
         cells.Range(header_area).Value = header
@@ -532,6 +529,10 @@ def plot_tests(header, column_data, chart_series_list, header_row_offset):
 
         for name, chart in chart_map.items():
             chart.Location(Where=xlLocationAsNewSheet, Name=name)
+    except:
+        xl.Visible = True
+
+    return wb
 
 
 def _make_series_info(column, start_row, rows, ramp_test):
@@ -605,7 +606,6 @@ def process_tests(test_list, data):
     @return (xl, wb, ws, cells)
     @rtype (T, U, V, X)
     """
-
     temppv = data['TempPV(C)']
     pv_times = temppv.Times.Datestrings
     pv_values = temppv.Values
@@ -641,7 +641,7 @@ def process_tests(test_list, data):
 
     # Transpose data from column to row order
     column_data = list(zip_longest(*column_data))
-    plot_tests(header, column_data, series_list, header_row_offset)
+    return plot_tests(header, column_data, series_list, header_row_offset)
 
 
 def map_batch_steps(steps, data):
@@ -723,7 +723,7 @@ def map_batch_steps(steps, data):
 
 def old_main(filename: str) -> list:
 
-    batch = open_report(filename)
+    batch = DataReport(filename)
     tests = hardmode_auto2auto_tests(batch)
     info = find_auto2auto_settings(batch, tests)
     pickle_file = "C:\\Users\\PBS Biotech\\Documents\\Personal\\PBS_Office\\MSOffice\\scripts\\test_stuff\\test_output.txt"
@@ -748,7 +748,9 @@ def full_scan_steps(steps_report, time_offset=None):
         tests = unpickle_info(cache)
     else:
         steps_report = getFullLibraryPath(steps_report)
-        tests = find_step_tests(steps_report, time_offset)
+        steps = extract_raw_steps(steps_report)
+        tests = extract_test_steps(steps)
+        tests = parse_test_dates(tests, time_offset)
         pickle_info(tests, cache)
 
     return tests
@@ -797,7 +799,7 @@ def full_open_data_report(csv_report):
         batch = unpickle_info(cache)
     else:
         csv_report = getFullLibraryPath(csv_report)
-        batch = open_report(csv_report)
+        batch = DataReport(csv_report)
         pickle_info(batch, cache)
 
     return batch
@@ -811,8 +813,8 @@ def full_scan(data_report: str, steps_report: str, steps_time_offset=None):
     @type steps_report: str
     @param steps_time_offset: minutes to add to steps report times (to fix RIO bug, not our fault)
     @type steps_time_offset: None | int
-    @return: None
-    @rtype: None
+    @return: workbook
+    @rtype: officelib.xllib.typehint.th0x1x6._Workbook._Workbook
     """
 
     batch = full_open_data_report(data_report)
@@ -820,7 +822,7 @@ def full_scan(data_report: str, steps_report: str, steps_time_offset=None):
     all_tests = map_batch_steps(tests, batch)
     all_tests = list(flatten(all_tests))
 
-    process_tests(all_tests, batch)
+    return process_tests(all_tests, batch)
 
 
 def __profile_code():
@@ -866,7 +868,6 @@ def _cache_is_recent(report_file, cache_file, script_modified=__last_save):
 
 if __name__ == "__main__":
 
-    # full_scan(manyfile3, manyrecipesteps, 60)
     # __profile_code()
 
     data4 = "C:\\users\\pbs biotech\\downloads\\tpidoverweekend2.csv"
