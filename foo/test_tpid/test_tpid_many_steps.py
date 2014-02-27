@@ -12,7 +12,7 @@ __author__ = 'Nathan Starkweather'
 
 import unittest
 import scripts.tpid.tpidmany as tpidmany
-import scripts.test.test_tpid.tpid_setup as tpid_setup
+import scripts.foo.test_tpid.tpid_setup as tpid_setup
 from os import makedirs
 from os.path import dirname, join
 

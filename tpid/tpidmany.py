@@ -34,15 +34,19 @@ process_tests(test_list, data) -> process all tests in the list corresponding to
                                 in.
 
 """
-from itertools import zip_longest
+from itertools import zip_longest, chain
 from datetime import timedelta, datetime
 from os.path import exists as path_exists, split as path_split, splitext as path_splitext
 
 from pbslib.recipemaker.tpid_recipes import get_long_recipe_start as _get_recipe_start
-from batchreport.datareport import DataReport
-from batchreport.batchutil import ParseDateFormat, flatten
+from pbslib.batchreport import DataReport
+from pbslib.batchreport import ParseDateFormat
 from officelib.xllib.xladdress import cellStr, cellRangeStr
 from officelib.olutils import getFullLibraryPath
+
+
+def flatten(iterable):
+    return chain.from_iterable(iterable)
 
 
 manyfile = "C:\\Users\\PBS Biotech\\Downloads\\2014020613364723.csv"
@@ -461,8 +465,8 @@ def __prepare_charts_all_tests(ws):
     FormatChart(chart_a2a, None, "Auto to Auto Test", "Time(min)", "TempPV(C)", True, True)
     FormatChart(chart_o2a, None, "Off to Auto Test", "Time(min)", "TempPV(C)", True, True)
     FormatAxesScale(chart_full, 0, None, 36, 40)
-    FormatAxesScale(chart_a2a, 0, None, 38, 40)
-    FormatAxesScale(chart_o2a, 0, None, 36, 38)
+    FormatAxesScale(chart_a2a, 0, None, 38.8, 39.2)
+    FormatAxesScale(chart_o2a, 0, None, 36.8, 37.2)
     return chart_a2a, chart_full, chart_o2a
 
 
@@ -502,12 +506,12 @@ def plot_tests(header, column_data, chart_series_list, header_row_offset):
     # do the import, so that any errors thrown will abort analysis
     # before getting to this point.
 
-    from officelib.xllib.xlcom import xlObjs, CreateDataSeries  #, HiddenXl
+    from officelib.xllib.xlcom import xlObjs, CreateDataSeries, HiddenXl
     from officelib.const import xlLocationAsNewSheet
 
     xl, wb, ws, cells = xlObjs(visible=False)
 
-    try:
+    with HiddenXl(xl):
         ws_name = ws.Name
 
         cells.Range(header_area).Value = header
@@ -529,8 +533,6 @@ def plot_tests(header, column_data, chart_series_list, header_row_offset):
 
         for name, chart in chart_map.items():
             chart.Location(Where=xlLocationAsNewSheet, Name=name)
-    except:
-        xl.Visible = True
 
     return wb
 
@@ -870,7 +872,9 @@ if __name__ == "__main__":
 
     # __profile_code()
 
-    data4 = "C:\\users\\pbs biotech\\downloads\\tpidoverweekend2.csv"
-    steps4 = "C:\\users\\pbs biotech\\downloads\\tpidoverweekendsteps2.csv"
-    full_scan(data4, steps4)
+    data4 = "C:\\users\\pbs biotech\\downloads\\ovntpids4data (1).csv"
+    steps4 = "C:\\users\\pbs biotech\\downloads\\ovntpids4steps (1).csv"
+    wb = full_scan(data4, steps4)
+    xl = wb.Parent
+    xl.Visible = True
 

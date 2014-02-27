@@ -140,7 +140,7 @@ steps_report1_expected_test_steps = [
 
 from datetime import datetime
 
-from batchreport.batchutil import ParseDateFormat as parse
+from batchreport import ParseDateFormat as parse
 
 strptime = datetime.strptime
 
