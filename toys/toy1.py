@@ -15,7 +15,8 @@ from time import perf_counter as _timer
 def test_if(loops):
     timer = _timer
     times = []
-    foo_dict = {}
+    foo_dict = {'foo key': 'foo'}
+    bar_key = 'bar key'
     foo_key = 'foo key'
     for i in range(loops):
         t1 = timer()
@@ -23,7 +24,7 @@ def test_if(loops):
         if foo_result: pass
         foo_result = foo_dict.get(foo_key)
         if foo_result: pass
-        foo_result = foo_dict.get(foo_key)
+        foo_result = foo_dict.get(bar_key)
         if foo_result: pass
         foo_result = foo_dict.get(foo_key)
         if foo_result: pass
@@ -59,7 +60,7 @@ def test_if(loops):
         if foo_result: pass
         foo_result = foo_dict.get(foo_key)
         if foo_result: pass
-        foo_result = foo_dict.get(foo_key)
+        foo_result = foo_dict.get(bar_key)
         if foo_result: pass
         foo_result = foo_dict.get(foo_key)
         if foo_result: pass
@@ -105,7 +106,7 @@ def test_if(loops):
         if foo_result: pass
         foo_result = foo_dict.get(foo_key)
         if foo_result: pass
-        foo_result = foo_dict.get(foo_key)
+        foo_result = foo_dict.get(bar_key)
         if foo_result: pass
         foo_result = foo_dict.get(foo_key)
         if foo_result: pass
@@ -207,7 +208,7 @@ def test_if(loops):
         if foo_result: pass
         foo_result = foo_dict.get(foo_key)
         if foo_result: pass
-        foo_result = foo_dict.get(foo_key)
+        foo_result = foo_dict.get(bar_key)
         if foo_result: pass
         foo_result = foo_dict.get(foo_key)
         if foo_result: pass
@@ -236,8 +237,9 @@ def test_if(loops):
 def test_raise(loops):
     timer = _timer
     times = []
-    foo_dict = {}
+    foo_dict = {'foo key' : 'foo'}
     foo_key = 'foo key'
+    bar_key = 'bar key'
     for i in range(loops):
         t1 = timer()
         try: foo_dict[foo_key]
@@ -252,7 +254,7 @@ def test_raise(loops):
         except KeyError: pass
         try: foo_dict[foo_key]
         except KeyError: pass
-        try: foo_dict[foo_key]
+        try: foo_dict[bar_key]
         except KeyError: pass
         try: foo_dict[foo_key]
         except KeyError: pass
@@ -316,7 +318,7 @@ def test_raise(loops):
         except KeyError: pass
         try: foo_dict[foo_key]
         except KeyError: pass
-        try: foo_dict[foo_key]
+        try: foo_dict[bar_key]
         except KeyError: pass
         try: foo_dict[foo_key]
         except KeyError: pass
@@ -378,7 +380,7 @@ def test_raise(loops):
         except KeyError: pass
         try: foo_dict[foo_key]
         except KeyError: pass
-        try: foo_dict[foo_key]
+        try: foo_dict[bar_key]
         except KeyError: pass
         try: foo_dict[foo_key]
         except KeyError: pass
@@ -440,7 +442,7 @@ def test_raise(loops):
         except KeyError: pass
         try: foo_dict[foo_key]
         except KeyError: pass
-        try: foo_dict[foo_key]
+        try: foo_dict[bar_key]
         except KeyError: pass
         try: foo_dict[foo_key]
         except KeyError: pass
