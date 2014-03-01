@@ -38,7 +38,7 @@ from itertools import zip_longest, chain
 from datetime import timedelta, datetime
 from os.path import exists as path_exists, split as path_split, splitext as path_splitext
 
-from pbslib.recipemaker.tpid_recipes import get_long_recipe_start as _get_recipe_start
+from pbslib.recipemaker.tpid_recipes import cool_start as _get_recipe_start
 from pbslib.batchreport import DataReport
 from pbslib.batchreport import ParseDateFormat
 from officelib.xllib.xladdress import cellStr, cellRangeStr
