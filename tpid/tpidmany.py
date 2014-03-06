@@ -870,17 +870,9 @@ def _cache_is_recent(report_file, cache_file, script_modified=__last_save):
 def tpid_eval_steps_scan(steps_file):
 
     steps = extract_raw_steps(steps_file)
-    steps = [(quick_strptime(date, ParseDateFormat(date)), step) for _, date, step in steps]
-    steps_iter = iter(steps)
-    tests = []
-    while True:
-        try:
-            test_start = next(time for time, step in steps_iter if 'Set "TempSP(C)"' in step)
-            test_end = next(time for time, step in steps_iter if 'Set "TempSP(C)"' in step)
-
-        except StopIteration:
-            break
-        tests.append((test_start, test_end))
+    tests = [quick_strptime(date, ParseDateFormat(date))
+             for _, date, step in steps if 'Set "TempSP(C)"' in step]
+    # steps_iter = iter(steps)
 
     return tests
 
@@ -889,9 +881,20 @@ if __name__ == "__main__":
 
     # __profile_code()
 
-    data4 = "C:\\users\\pbs biotech\\downloads\\ovntpids4data (1).csv"
-    steps4 = "C:\\users\\pbs biotech\\downloads\\ovntpids4steps (1).csv"
-    wb = full_scan(data4, steps4)
-    xl = wb.Parent
-    xl.Visible = True
+    # data4 = "C:\\users\\pbs biotech\\downloads\\ovntpids4data (1).csv"
+# steps4 = "C:\\users\\pbs biotech\\downloads\\ovntpids4steps (1).csv"
+# wb = full_scan(data4, steps4)
+# xl = wb.Parent
+# xl.Visible = True
+
+    steps = "C:\\Users\\PBS Biotech\\Downloads\\p40i6evalsteps.csv"
+    tests = tpid_eval_steps_scan(steps)
+
+    for i, t in enumerate(tests):
+        try:
+            print("Start: ", t)
+            print("End: ", tests[i + 1], '\n')
+        except IndexError:
+            pass
+
 
