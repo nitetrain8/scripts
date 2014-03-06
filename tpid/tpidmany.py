@@ -37,10 +37,9 @@ process_tests(test_list, data) -> process all tests in the list corresponding to
 from itertools import zip_longest, chain
 from datetime import timedelta, datetime
 from os.path import exists as path_exists, split as path_split, splitext as path_splitext
-from batchreport._mock_strptime import ParseDateFormat
 
 from pbslib.recipemaker.tpid_recipes import cool_start as _get_recipe_start
-from pbslib.batchreport import DataReport
+from pbslib.batchreport import DataReport, ParseDateFormat, quick_strptime
 from officelib.xllib.xladdress import cellStr, cellRangeStr
 from officelib.olutils import getFullLibraryPath
 
@@ -376,7 +375,7 @@ def parse_test_dates(tests, time_offset=0):
     # The recipe steps report gives inaccurate timestamps, sometimes,
     # so we need to fix it by adding one hour.
     parse_fmt = ParseDateFormat
-    strptime = datetime.strptime
+    strptime = quick_strptime
     parsed = []
 
     # offset = timedelta(minutes=time_offset or 0)
@@ -866,6 +865,24 @@ def _cache_is_recent(report_file, cache_file, script_modified=__last_save):
     cache_modified = os_stat(cache_file).st_mtime
 
     return cache_modified > report_modified and cache_modified > script_modified
+
+
+def tpid_eval_steps_scan(steps_file):
+
+    steps = extract_raw_steps(steps_file)
+    steps = [(quick_strptime(date, ParseDateFormat(date)), step) for _, date, step in steps]
+    steps_iter = iter(steps)
+    tests = []
+    while True:
+        try:
+            test_start = next(time for time, step in steps_iter if 'Set "TempSP(C)"' in step)
+            test_end = next(time for time, step in steps_iter if 'Set "TempSP(C)"' in step)
+
+        except StopIteration:
+            break
+        tests.append((test_start, test_end))
+
+    return tests
 
 
 if __name__ == "__main__":
