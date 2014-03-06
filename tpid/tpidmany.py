@@ -786,7 +786,7 @@ def full_open_data_report(csv_report):
     .csv data report.
 
     This function will probably bug out if filenames passed
-    are identical.
+    are identical, even if paths weren't.
 
     @param csv_report: csv_report of data report
     @type csv_report: str
