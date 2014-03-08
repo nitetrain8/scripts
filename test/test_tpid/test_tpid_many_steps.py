@@ -12,7 +12,7 @@ __author__ = 'Nathan Starkweather'
 
 import unittest
 import scripts.tpid.tpidmany as tpidmany
-import scripts.test.test_tpid.tpid_setup as tpid_setup
+import scripts.test.test_tpid.test_setup as tpid_setup
 from os import makedirs
 from os.path import dirname, join
 
@@ -29,13 +29,14 @@ def copy_list1(to_copy):
 
 
 # noinspection PyProtectedMember
-class TestStepTests(unittest.TestCase):
+class TestStepTests(tpid_setup.TPIDUnittest):
 
     def setUp(self):
         """
         @return:
         @rtype:
         """
+        super().setUp()
         try:
             makedirs(temp_dir)
         except FileExistsError:
@@ -75,6 +76,7 @@ class TestStepTests(unittest.TestCase):
 
     def test_parse_test_dates(self):
         """
+        test parse_test_dates function
         @return:
         @rtype:
         """
@@ -108,6 +110,7 @@ class TestStepTests(unittest.TestCase):
             rmtree(temp_dir)
         except FileNotFoundError:
             pass
+
 
 
 if __name__ == '__main__':

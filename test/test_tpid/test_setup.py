@@ -8,6 +8,13 @@ Created in: PyCharm Community Edition
 """
 __author__ = 'Nathan Starkweather'
 
+
+from pbslib.test.test_batchreport.test_mock_strptime.base_test import MockStrptimeTest
+
+
+class TPIDUnittest(MockStrptimeTest):
+    pass
+
 steps_report1_expected_lines = [
     ['Step Type', 'Date Time', 'Step Name'],
     ['Wait', '2/7/2014 5:08:29 PM', 'Wait 5 seconds'],
@@ -147,7 +154,7 @@ strptime = datetime.strptime
 steps_report1_datetimes = []
 fmt = ''
 for t1, t2, t3 in steps_report1_expected_test_steps:
-    fmt = parse(t1, fmt)
+    fmt = ParseDateFormat(t1, fmt)
 
     tt1 = strptime(t1, fmt)
     tt2 = strptime(t2, fmt)

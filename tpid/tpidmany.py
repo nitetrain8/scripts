@@ -87,7 +87,9 @@ class RampTestResult():
                 end_index=0,
                 test_name="Temp PID Test",
                 x_data=None,
-                y_data=None):
+                y_data=None,
+                start_temp=28,
+                set_point=37):
         """
         @param pgain: pgain value
         @type pgain: float
@@ -107,7 +109,13 @@ class RampTestResult():
         @type x_data: collections.Sequence[datetime.datetime]
         @param y_data: y_data
         @type y_data: collections.Sequence[int | float]
+        @param start_temp: initial temp
+        @type start_temp: float | int
+        @param set_point: set point
+        @type set_point: float | int
         """
+        self.set_point = set_point
+        self.start_temp = start_temp
         self.pgain = pgain
         self.itime = itime
         self.dtime = dtime
@@ -446,30 +454,30 @@ def make_elapsed_times(ref_cell, target_column, rows):
     return [formula for _ in range(rows)]
 
 
-def __prepare_charts_all_tests(ws):
+def _prepare_charts(ws, series_list):
     """
-    @param ws:
+    @param ws: worksheet
     @type ws:
+    @param series_list: collections.Sequence[ChartSeries]
+    @type series_list: collections.Sequence[ChartSeries]
     @return:
-    @rtype:
+    @rtype: dict[str, officelib.xllib.typehint.th0x1x6._Chart._Chart]
     """
 
-    from officelib.xllib.xlcom import CreateChart, FormatChart, FormatAxesScale
+    from officelib.xllib.xlcom import CreateChart, FormatChart
     from officelib.const import xlXYScatterLinesNoMarkers
 
-    chart_full = CreateChart(ws, xlXYScatterLinesNoMarkers)
-    chart_a2a = CreateChart(ws, xlXYScatterLinesNoMarkers)
-    chart_o2a = CreateChart(ws, xlXYScatterLinesNoMarkers)
-    FormatChart(chart_full, None, "Full Test", "Time(min)", "TempPV(C)", True, True)
-    FormatChart(chart_a2a, None, "Auto to Auto Test", "Time(min)", "TempPV(C)", True, True)
-    FormatChart(chart_o2a, None, "Off to Auto Test", "Time(min)", "TempPV(C)", True, True)
-    FormatAxesScale(chart_full, 0, None, 36, 40)
-    FormatAxesScale(chart_a2a, 0, None, 38.8, 39.2)
-    FormatAxesScale(chart_o2a, 0, None, 36.8, 37.2)
-    return chart_a2a, chart_full, chart_o2a
+    chart_names = set(series.chart_name for series in series_list)
+    charts = {}
+    for name in chart_names:
+        chart = CreateChart(ws, xlXYScatterLinesNoMarkers)
+        FormatChart(chart, None, name, "Time(min)", "TempPV(C)", True, True)
+        charts[name] = chart
+
+    return charts
 
 
-def plot_tests(header, column_data, chart_series_list, header_row_offset):
+def plot_tests(header, column_data, chart_series_list, header_row_offset=0):
     """
     @param header: iterable of tuples of header data to plot
     @type header: collections.Sequence[collections.Sequence]
@@ -479,8 +487,8 @@ def plot_tests(header, column_data, chart_series_list, header_row_offset):
     @type chart_series_list: collections.Sequence[ChartSeries]
     @param header_row_offset: move the data down by this # of rows
     @type header_row_offset: int
-    @return: None
-    @rtype: None
+    @return: workbook
+    @rtype: officelib.xllib.typehint.th0x1x6._Workbook._Workbook
 
     Plot all the tests. Header and column data should correspond.
     Function isn't private but is probably very hard to use
@@ -516,18 +524,15 @@ def plot_tests(header, column_data, chart_series_list, header_row_offset):
         cells.Range(header_area).Value = header
         cells.Range(data_area).Value = column_data
 
-        chart_a2a, chart_full, chart_o2a = __prepare_charts_all_tests(ws)
-
-        chart_map = {
-            "Off to Auto": chart_o2a,
-            "Auto to Auto": chart_a2a,
-            "Full Test": chart_full
-        }
+        chart_map = _prepare_charts(ws, chart_series_list)
 
         for series in chart_series_list:
-            chart = chart_map[series.chart_name]
+
+            # Set these to get proper formula from SeriesRange properties
             series.sheet_name = ws_name
             series.series_name = series.series_name % ws_name
+
+            chart = chart_map[series.chart_name]
             CreateDataSeries(chart, series.XSeriesRange, series.YSeriesRange, series.SeriesName)
 
         for name, chart in chart_map.items():
@@ -590,26 +595,21 @@ def _extend_tests_header(header, ramp_test):
     header[1].extend(("Settings:", "P", p_formula, None, None))
     header[2].extend((None, "I", i_formula, None, None))
     header[3].extend((None, "D", d_formula, None, None))
-    header[4].extend((None, "AutoMax%", "50", None, None))
-    header[5].extend((None, "SP", "39", None, None))
+    header[4].extend((None, "AutoMax%", getattr(ramp_test, "auto_max", "50"), None, None))
+    header[5].extend((None, "SP", getattr(ramp_test, "set_point", "39"), None, None))
     header[6].extend((ramp_test.test_name, name_formula2, None, None, None))
     header[7].extend(('Pgain', 'Itime', 'Dtime', None, None))
     header[8].extend((ramp_test.pgain, ramp_test.itime, ramp_test.dtime, None, None))
     header[9].extend(("Test Time", "Elapsed Time", "TempPV(C)", None, None))
 
 
-def process_tests(test_list, data):
+def process_tests(test_list):
     """
     @param test_list: list of tests to process
     @type test_list: list[RampTestResult]
-    @param data: data file corresponding to test list
-    @type data: DataReport
-    @return (xl, wb, ws, cells)
-    @rtype (T, U, V, X)
+    @return: wb
+    @rtype: officelib.xllib.typehint.th0x1x6._Workbook._Workbook
     """
-    temppv = data['TempPV(C)']
-    pv_times = temppv.Times.Datestrings
-    pv_values = temppv.Values
 
     columns_per_test = 5  # including blank spacer
     header_row_offset = 0
@@ -626,8 +626,8 @@ def process_tests(test_list, data):
     for n, ramp_test in enumerate(test_list):
         start_index = ramp_test.start_index
         end_index = ramp_test.end_index
-        times = pv_times[start_index:end_index]
-        values = pv_values[start_index:end_index]
+        times = ramp_test.x_data
+        values = ramp_test.y_data
         column = n * columns_per_test + 1
         ref_cell = (data_row_offset + 1, column)
         rows = end_index - start_index
@@ -637,7 +637,7 @@ def process_tests(test_list, data):
         elapsed_times = make_elapsed_times(ref_cell, column + 1, rows)
         series_info = _make_series_info(column, data_row_offset + 1, rows, ramp_test)
         series_list.append(series_info)
-        column_data.extend((times, elapsed_times, values, (None,), (None,)))  # Need iterable None for zip_longest
+        column_data.extend((times, elapsed_times, values, (None,), (None,)))  # Need empty iterable for zip_longest
         _extend_tests_header(header, ramp_test)
 
     # Transpose data from column to row order
@@ -802,7 +802,6 @@ def full_open_data_report(csv_report):
         csv_report = getFullLibraryPath(csv_report)
         batch = DataReport(csv_report)
         pickle_info(batch, cache)
-
     return batch
 
 
@@ -823,7 +822,7 @@ def full_scan(data_report: str, steps_report: str, steps_time_offset=None):
     all_tests = map_batch_steps(tests, batch)
     all_tests = list(flatten(all_tests))
 
-    return process_tests(all_tests, batch)
+    return process_tests(all_tests)
 
 
 def __profile_code():
@@ -867,15 +866,192 @@ def _cache_is_recent(report_file, cache_file, script_modified=__last_save):
     return cache_modified > report_modified and cache_modified > script_modified
 
 
-def tpid_eval_steps_scan(steps_file):
-
+def tpid_eval_steps_scan(steps_file, time_offset=0):
+    """
+    @param steps_file: steps report file
+    @type steps_file: str
+    @return: list[(start_time, end_time)]
+    @rtype: list[(datetime, datetime)]
+    """
+    offset = timedelta(minutes=time_offset)
     steps = extract_raw_steps(steps_file)
-    tests = [quick_strptime(date, ParseDateFormat(date))
+    steps = [quick_strptime(date, ParseDateFormat(date)) + offset
              for _, date, step in steps if 'Set "TempSP(C)"' in step]
-    # steps_iter = iter(steps)
+
+    tests = [(t_start, t_end)
+             for t_start, t_end in zip(steps[:-1], steps[1:])]
 
     return tests
 
+
+def full_open_eval_steps_report(steps_report, time_offset=0):
+    """
+    @param steps_report: filename of steps report
+    @type steps_report: str
+    @return: list
+    @rtype: list[(datetime, datetime)]
+    """
+    cache_name = _get_cache_name(steps_report)
+
+    if path_exists(cache_name) and _cache_is_recent(steps_report, cache_name):
+        tests = unpickle_info(cache_name)
+    else:
+        steps_report = getFullLibraryPath(steps_report, verbose=False)
+        tests = tpid_eval_steps_scan(steps_report, time_offset)
+        pickle_info(tests, cache_name)
+
+    return tests
+
+
+def tpid_eval_data_scan(data_report, steps):
+    """
+    @param data_report: data file
+    @type data_report: DataReport[Parameter]
+    @param steps: steps from tpd_eval_steps_scan
+    @type steps: list[(datetime, datetime)]
+    @return:
+    @rtype: list[RampTestResult]
+    """
+
+    temppv = data_report['TempPV(C)']
+    pvs = temppv.Values
+    times = temppv.Times
+
+    tempsp = data_report['TempSP(C)']
+
+    pgain = data_report["TempHeatDutyControl.PGain(min)"].Values.Mode
+    itime = data_report["TempHeatDutyControl.ITime(min)"].Values.Mode
+    dtime = data_report["TempHeatDutyControl.DTime(min)"].Values.Mode
+
+    sp_iter = iter(tempsp)
+    times_iter = iter(times)
+    end = -1
+    test_list = []
+    old_sp = 28
+    for t_start, t_end in steps:
+        try:
+            start = next(i for i, time in enumerate(times_iter, start=end + 1) if time > t_start)
+        except StopIteration:
+            break
+
+        end = next((i for i, time in enumerate(times_iter, start=start + 1) if time > t_end), t_end)
+        sp = next((pv for time, pv in sp_iter if time > t_start), 37)
+
+        result = RampTestResult()
+        result.start_index = start
+        result.end_index = end
+        result.end_time = t_end
+        result.start_time = t_start
+        result.x_data = times[start:end]
+        result.y_data = pvs[start:end]
+        result.test_name = "TPID Eval Result"
+        result.pgain = pgain
+        result.itime = itime
+        result.dtime = dtime
+
+        # use SP from previous iteration for start
+        result.start_temp = old_sp
+        result.set_point = sp
+
+        old_sp = sp
+
+        test_list.append(result)
+
+    return test_list
+
+
+def _time_to_sp(ramp_test):
+    """
+    Get time to setpoint by scanning backward through the reversed lists
+    for the first time that temp is *outside* the target.
+
+    return minutes elapsed
+
+    @param ramp_test: RampTestResult
+    @type ramp_test: RampTestResult
+    @return: float
+    @rtype: float | int
+    """
+    sp = ramp_test.set_point
+    ys = ramp_test.y_data
+    xs = ramp_test.x_data
+    d_iter = zip(reversed(xs), reversed(ys))
+
+    start_time = xs[0]
+    end_time = next(time for time, pv in d_iter if abs(pv - sp) > 0.05)
+
+    return (end_time - start_time).total_seconds() / 60
+
+
+def tpid_eval_full_scan(data_file, steps_file, time_offset=0):
+    """
+    @param data_file: data report filename
+    @type data_file: str
+    @param steps_file: steps report filename
+    @type steps_file: str
+    @return:
+    @rtype:
+    """
+    data = full_open_data_report(data_file)
+    steps = full_open_eval_steps_report(steps_file, time_offset)
+    test_list = tpid_eval_data_scan(data, steps)
+
+    # Plot data and make chart, then take wb obj
+    # and do a bit more work
+    wb = process_tests(test_list)
+    ws = wb.Worksheets(1)
+    cell_range = ws.Cells.Range
+    chart = wb.Charts(1)
+
+    from officelib.xllib.xlcom import FormatAxesScale, HiddenXl
+    from officelib.xllib.xladdress import cellRangeStr
+
+    FormatAxesScale(chart, None, None, 29, 39.2)
+
+    # Cleanup on header because we piggyback on process_tests()
+    # to do our heavy lifting, but func was not designed with
+    # eval test in mind.
+    with HiddenXl(wb.Application):
+        for i, test in enumerate(test_list):
+            col = 2 + i * 5
+
+            name_rng = cellRangeStr(
+                (1, col),
+                (1, col)
+            )
+            minmax_pv_rng = cellRangeStr(
+                (3, col),
+                (3, col + 1)
+            )
+            start_tmp_rng = cellRangeStr(
+                (5, col),
+                (5, col + 1)
+            )
+            overshoot_rng = cellRangeStr(
+                (4, col),
+                (4, col + 1),
+            )
+            time_to_sp_rng = cellRangeStr(
+                (2, col),
+                (2, col + 1)
+            )
+
+            if test.start_temp < test.set_point:
+                minmax_pv = max(test.y_data)
+                minmax_lbl = "Max PV:"
+            else:
+                minmax_pv = min(test.y_data)
+                minmax_lbl = "Min PV:"
+
+            start_temp = test.start_temp
+            time_to_sp = _time_to_sp(test)
+
+            cell_range(name_rng).Value = '=CONCATENATE("Start:", R[4]C[%d],"SP:", R[5]C[%d])' % (col, col)
+            cell_range(minmax_pv_rng).Value = (minmax_lbl, minmax_pv)
+            cell_range(start_tmp_rng).Value = ("Start Temp:", start_temp)
+            cell_range(overshoot_rng).Value = ("Overshoot:", minmax_pv - test.set_point)
+            cell_range(time_to_sp_rng).Value = ("Min to SP:", time_to_sp)
+    return wb
 
 if __name__ == "__main__":
 
