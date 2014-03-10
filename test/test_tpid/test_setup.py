@@ -6,13 +6,32 @@ Created in: PyCharm Community Edition
 
 
 """
+from os import mkdir
+from shutil import rmtree
+
 __author__ = 'Nathan Starkweather'
 
 
 from pbslib.test.test_batchreport.test_mock_strptime.base_test import MockStrptimeTest
-
+from scripts.tpid.tpidmany import pickle_cache
 
 class TPIDUnittest(MockStrptimeTest):
+
+    def setUp(self):
+        """
+        @return:
+        @rtype:
+        """
+
+        super().setUp()
+
+        try:
+            rmtree(pickle_cache)
+        except FileNotFoundError:
+            pass
+        else:
+            mkdir(pickle_cache)
+
     pass
 
 steps_report1_expected_lines = [

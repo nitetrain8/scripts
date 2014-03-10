@@ -36,7 +36,8 @@ process_tests(test_list, data) -> process all tests in the list corresponding to
 """
 from itertools import zip_longest, chain
 from datetime import timedelta, datetime
-from os.path import exists as path_exists, split as path_split, splitext as path_splitext
+from os.path import exists as path_exists, split as path_split, splitext as path_splitext, \
+    dirname, join
 
 from pbslib.recipemaker.tpid_recipes import cool_start as _get_recipe_start
 from pbslib.batchreport import DataReport, ParseDateFormat, quick_strptime
@@ -53,7 +54,9 @@ manyfile2 = "C:\\Users\\PBS Biotech\\Downloads\\overnight2.csv"
 manypickle = "C:\\Users\\PBS Biotech\\Documents\\Personal\\PBS_Office\\MSOffice\\scripts\\test_stuff\\manyfile.txt"
 manyfile3 = "C:\\Users\\PBS Biotech\\Downloads\\overweekend.csv"
 manyrecipesteps = "C:\\Users\\PBS Biotech\\Downloads\\weekendsteps.csv"
-pickle_cache = "C:\\Users\\PBS Biotech\\Documents\\Personal\\PBS_Office\\MSOffice\\scripts\\test_stuff\\pickle_cache"
+
+__curdir = dirname(__file__)
+pickle_cache = join(__curdir, "pickle_cache")
 
 
 class RampTestResult():
@@ -330,6 +333,8 @@ def extract_test_steps(steps,
 
     @param steps: list of recipe steps
     @type steps: list[(str, str, str)]
+    @param skip_steps: number of steps to skip at the beginning
+    @type skip_steps: int
     @return: list of tests start and stop time
     @rtype: list[(str, str, str)]
 
@@ -366,12 +371,10 @@ def extract_raw_steps(steps_filename):
     return steps
 
 
-def parse_test_dates(tests, time_offset=0):
+def parse_test_dates(tests):
     """
     @param tests: list of
     @type tests: list[(str, str, str)]
-    @param time_offset: Increment all times by this amount of minutes.
-    @type time_offset: None | int
     @return: list of Off-to-auto start, auto-to-auto start
     @rtype: list[(datetime, datetime, datetime)]
 
@@ -394,10 +397,9 @@ def parse_test_dates(tests, time_offset=0):
     #     auto_end = strptime(auto_end, fmt) + offset
     #     parsed.append((off_start, auto_start, auto_end))
 
-    offset = timedelta(minutes=time_offset or 0)
     fmt = parse_fmt(tests[0][0])  # initial guess
     for test in tests:
-        datetimes = (strptime(time, parse_fmt(time, fmt)) + offset for time in test)
+        datetimes = (strptime(time, parse_fmt(time, fmt)) for time in test)
         parsed.append(tuple(datetimes))
 
     return parsed
@@ -596,7 +598,7 @@ def _extend_tests_header(header, ramp_test):
     header[2].extend((None, "I", i_formula, None, None))
     header[3].extend((None, "D", d_formula, None, None))
     header[4].extend((None, "AutoMax%", getattr(ramp_test, "auto_max", "50"), None, None))
-    header[5].extend((None, "SP", getattr(ramp_test, "set_point", "39"), None, None))
+    header[5].extend((None, "SP", getattr(ramp_test, "set_point", "37"), None, None))
     header[6].extend((ramp_test.test_name, name_formula2, None, None, None))
     header[7].extend(('Pgain', 'Itime', 'Dtime', None, None))
     header[8].extend((ramp_test.pgain, ramp_test.itime, ramp_test.dtime, None, None))
@@ -642,10 +644,11 @@ def process_tests(test_list):
 
     # Transpose data from column to row order
     column_data = list(zip_longest(*column_data))
+
     return plot_tests(header, column_data, series_list, header_row_offset)
 
 
-def map_batch_steps(steps, data):
+def map_batch_steps(steps, data, time_offset=0):
     """
     @param steps: list of steps (start, end1, start2, end2) datetimes
     @type steps: list[(datetime, datetime, datetime)]
@@ -662,10 +665,18 @@ def map_batch_steps(steps, data):
     dtime = data["TempHeatDutyControl.DTime(min)"]
     pvs = data['TempPV(C)'].Values
     times = data['TempPV(C)'].Times
+    sps = iter(data["TempSP(C)"])
     temp_times = iter(times)
     info = []
     auto_end_index = -1  # ensure first loop starts at right enumerate index
+
+    offset = timedelta(minutes=time_offset)
+
     for off_start, auto_start, auto_end in steps:
+
+        off_start += offset
+        auto_start += offset
+        auto_end += offset
 
         try:
             p = next(pv for t, pv in pgain if t > auto_end)
@@ -678,6 +689,9 @@ def map_batch_steps(steps, data):
                                     enumerate(temp_times, start=off_start_index + 1) if t > auto_start)
             auto_end_index = next(i for i, t in
                                   enumerate(temp_times, start=auto_start_index + 1) if t > auto_end)
+
+            o2a_sp = next((pv for t, pv in sps if t > off_start), 37)
+            a2a_sp = next((pv for t, pv in sps if t > auto_start), 39)
         except StopIteration:
             continue
 
@@ -692,6 +706,7 @@ def map_batch_steps(steps, data):
         off_to_auto.start_time = off_start
         off_to_auto.end_time = auto_start
         off_to_auto.test_name = "Off to Auto"
+        off_to_auto.set_point = o2a_sp
 
         auto_to_auto = RampTestResult()
         auto_to_auto.pgain = p
@@ -704,6 +719,7 @@ def map_batch_steps(steps, data):
         auto_to_auto.start_time = auto_start
         auto_to_auto.end_time = auto_end
         auto_to_auto.test_name = "Auto to Auto"
+        auto_to_auto.set_point = a2a_sp
 
         full_test = RampTestResult()
         full_test.pgain = p
@@ -716,6 +732,7 @@ def map_batch_steps(steps, data):
         full_test.start_time = off_start
         full_test.end_time = auto_end
         full_test.test_name = "Full Test"
+        full_test.set_point = a2a_sp
 
         info.append((off_to_auto, auto_to_auto, full_test))
 
@@ -733,12 +750,15 @@ def old_main(filename: str) -> list:
     return info, batch
 
 
-def full_scan_steps(steps_report, time_offset=None):
+def full_scan_steps(steps_report):
     """
+
+    # Bug warning- subsequent scans of the same filename with
+    different time offsets are ignored, as the pickled file
+    already contains time-offset timestamps.
+
     @param steps_report: filename of steps report
     @type steps_report: str
-    @param time_offset: sometimes recipe steps bugs out. Increment all times by this amount of minutes.
-    @type time_offset: None | int
     @return: list
     @rtype: list[(datetime, datetime, datetime)]
     """
@@ -751,7 +771,7 @@ def full_scan_steps(steps_report, time_offset=None):
         steps_report = getFullLibraryPath(steps_report)
         steps = extract_raw_steps(steps_report)
         tests = extract_test_steps(steps)
-        tests = parse_test_dates(tests, time_offset)
+        tests = parse_test_dates(tests)
         pickle_info(tests, cache)
 
     return tests
@@ -769,6 +789,18 @@ def _get_cache_name(filename):
     name, _ = path_splitext(tail)
     cache = '\\'.join((pickle_cache, name + '.pickle'))
     return cache
+
+
+def _clear_cache(filename):
+    """
+    @param filename:
+    @type filename:
+    @return:
+    @rtype:
+    """
+    cache_name = _get_cache_name(filename)
+    from os import remove
+    remove(cache_name)
 
 
 def full_open_data_report(csv_report):
@@ -805,21 +837,21 @@ def full_open_data_report(csv_report):
     return batch
 
 
-def full_scan(data_report: str, steps_report: str, steps_time_offset=None):
+def full_scan(data_report, steps_report, time_offset=0):
     """
     @param data_report: filename of data report
     @type data_report: str
     @param steps_report: filename of steps report
     @type steps_report: str
-    @param steps_time_offset: minutes to add to steps report times (to fix RIO bug, not our fault)
-    @type steps_time_offset: None | int
+    @param time_offset: minutes to add to steps report times (to fix RIO bug, not our fault)
+    @type time_offset: None | int
     @return: workbook
     @rtype: officelib.xllib.typehint.th0x1x6._Workbook._Workbook
     """
 
     batch = full_open_data_report(data_report)
-    tests = full_scan_steps(steps_report, steps_time_offset)
-    all_tests = map_batch_steps(tests, batch)
+    tests = full_scan_steps(steps_report)
+    all_tests = map_batch_steps(tests, batch, time_offset)
     all_tests = list(flatten(all_tests))
 
     return process_tests(all_tests)
@@ -844,7 +876,6 @@ def __profile_code():
 
 
 from os import stat as os_stat
-
 __last_save = os_stat(__file__).st_mtime
 
 
@@ -866,16 +897,15 @@ def _cache_is_recent(report_file, cache_file, script_modified=__last_save):
     return cache_modified > report_modified and cache_modified > script_modified
 
 
-def tpid_eval_steps_scan(steps_file, time_offset=0):
+def tpid_eval_steps_scan(steps_file):
     """
     @param steps_file: steps report file
     @type steps_file: str
     @return: list[(start_time, end_time)]
     @rtype: list[(datetime, datetime)]
     """
-    offset = timedelta(minutes=time_offset)
     steps = extract_raw_steps(steps_file)
-    steps = [quick_strptime(date, ParseDateFormat(date)) + offset
+    steps = [quick_strptime(date, ParseDateFormat(date))
              for _, date, step in steps if 'Set "TempSP(C)"' in step]
 
     tests = [(t_start, t_end)
@@ -884,8 +914,13 @@ def tpid_eval_steps_scan(steps_file, time_offset=0):
     return tests
 
 
-def full_open_eval_steps_report(steps_report, time_offset=0):
+def full_open_eval_steps_report(steps_report):
     """
+
+    # Bug warning- subsequent scans of the same filename with
+    different time offsets are ignored, as the pickled file
+    already contains time-offset timestamps.
+
     @param steps_report: filename of steps report
     @type steps_report: str
     @return: list
@@ -897,13 +932,13 @@ def full_open_eval_steps_report(steps_report, time_offset=0):
         tests = unpickle_info(cache_name)
     else:
         steps_report = getFullLibraryPath(steps_report, verbose=False)
-        tests = tpid_eval_steps_scan(steps_report, time_offset)
+        tests = tpid_eval_steps_scan(steps_report)
         pickle_info(tests, cache_name)
 
     return tests
 
 
-def tpid_eval_data_scan(data_report, steps):
+def tpid_eval_data_scan(data_report, steps, time_offset=0):
     """
     @param data_report: data file
     @type data_report: DataReport[Parameter]
@@ -928,14 +963,19 @@ def tpid_eval_data_scan(data_report, steps):
     end = -1
     test_list = []
     old_sp = 28
+    offset = timedelta(minutes=time_offset)
     for t_start, t_end in steps:
+
+        t_start += offset
+        t_end += offset
+
         try:
             start = next(i for i, time in enumerate(times_iter, start=end + 1) if time > t_start)
         except StopIteration:
             break
 
         end = next((i for i, time in enumerate(times_iter, start=start + 1) if time > t_end), t_end)
-        sp = next((pv for time, pv in sp_iter if time > t_start), 37)
+        sp = next((sp for time, sp in sp_iter if time > t_start), 37)
 
         result = RampTestResult()
         result.start_index = start
@@ -993,8 +1033,8 @@ def tpid_eval_full_scan(data_file, steps_file, time_offset=0):
     @rtype:
     """
     data = full_open_data_report(data_file)
-    steps = full_open_eval_steps_report(steps_file, time_offset)
-    test_list = tpid_eval_data_scan(data, steps)
+    steps = full_open_eval_steps_report(steps_file)
+    test_list = tpid_eval_data_scan(data, steps, time_offset)
 
     # Plot data and make chart, then take wb obj
     # and do a bit more work
@@ -1017,24 +1057,19 @@ def tpid_eval_full_scan(data_file, steps_file, time_offset=0):
 
             name_rng = cellRangeStr(
                 (1, col),
-                (1, col)
-            )
+                (1, col))
             minmax_pv_rng = cellRangeStr(
                 (3, col),
-                (3, col + 1)
-            )
+                (3, col + 1))
             start_tmp_rng = cellRangeStr(
                 (5, col),
-                (5, col + 1)
-            )
+                (5, col + 1))
             overshoot_rng = cellRangeStr(
                 (4, col),
-                (4, col + 1),
-            )
+                (4, col + 1))
             time_to_sp_rng = cellRangeStr(
                 (2, col),
-                (2, col + 1)
-            )
+                (2, col + 1))
 
             if test.start_temp < test.set_point:
                 minmax_pv = max(test.y_data)
@@ -1047,10 +1082,10 @@ def tpid_eval_full_scan(data_file, steps_file, time_offset=0):
             time_to_sp = _time_to_sp(test)
 
             cell_range(name_rng).Value = '=CONCATENATE("Start:", R[4]C[%d],"SP:", R[5]C[%d])' % (col, col)
-            cell_range(minmax_pv_rng).Value = (minmax_lbl, minmax_pv)
-            cell_range(start_tmp_rng).Value = ("Start Temp:", start_temp)
-            cell_range(overshoot_rng).Value = ("Overshoot:", minmax_pv - test.set_point)
             cell_range(time_to_sp_rng).Value = ("Min to SP:", time_to_sp)
+            cell_range(minmax_pv_rng).Value = (minmax_lbl, minmax_pv)
+            cell_range(overshoot_rng).Value = ("Overshoot:", minmax_pv - test.set_point)
+            cell_range(start_tmp_rng).Value = ("Start Temp:", start_temp)
     return wb
 
 if __name__ == "__main__":

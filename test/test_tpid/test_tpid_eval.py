@@ -106,14 +106,25 @@ class TestEvalSteps(TPIDUnittest):
             rmtree(temp_dir)
         except FileNotFoundError:
             pass
-
+        e = None
         for xl in self.xl_need_closing:
+            for wb in xl.Workbooks:
+                try:
+                    wb.Close(False)
+                except:
+                    pass
             try:
-                xl.Quit(False)
-            except:
+                xl.Quit()
+            except Exception as e:
                 try:
                     xl.Visible = True
                 except:
                     pass
+
+        del self.xl_need_closing
+
+        if e:
+            raise e
+
 if __name__ == '__main__':
     unittest.main()
