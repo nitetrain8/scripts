@@ -15,24 +15,25 @@ __author__ = 'Nathan Starkweather'
 from pbslib.test.test_batchreport.test_mock_strptime.base_test import MockStrptimeTest
 from scripts.tpid.tpidmany import pickle_cache
 
+
 class TPIDUnittest(MockStrptimeTest):
 
-    def setUp(self):
+    @classmethod
+    def setUpClass(cls):
         """
         @return:
         @rtype:
         """
 
-        super().setUp()
+        super().setUpClass()
 
         try:
             rmtree(pickle_cache)
         except FileNotFoundError:
             pass
-        else:
-            mkdir(pickle_cache)
 
-    pass
+        mkdir(pickle_cache)
+
 
 steps_report1_expected_lines = [
     ['Step Type', 'Date Time', 'Step Name'],

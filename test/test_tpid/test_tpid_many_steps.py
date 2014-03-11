@@ -31,19 +31,20 @@ def copy_list1(to_copy):
 # noinspection PyProtectedMember
 class TestStepTests(tpid_setup.TPIDUnittest):
 
-    def setUp(self):
+    @classmethod
+    def setUpClass(cls):
         """
         @return:
         @rtype:
         """
-        super().setUp()
+        super().setUpClass()
         try:
             makedirs(temp_dir)
         except FileExistsError:
             pass
 
-        self.steps_report1 = join(data_dir, "full_scan_steps_input.csv")
-        self.data_report1 = join(data_dir, "full_scan_data_input.csv")
+        cls.steps_report1 = join(data_dir, "full_scan_steps_input.csv")
+        cls.data_report1 = join(data_dir, "full_scan_data_input.csv")
 
     def test_extract_raw_steps(self):
         """
@@ -101,7 +102,8 @@ class TestStepTests(tpid_setup.TPIDUnittest):
                     for in_str, exp_dt, res_dt in zip(in_line, exp_line, res_line):
                         assertEqual(exp_dt, res_dt, msg="Invalid result from input str '%s'" % in_str)
 
-    def tearDown(self):
+    @classmethod
+    def tearDownClass(cls):
         """
         @return:
         @rtype:
