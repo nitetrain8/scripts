@@ -7,12 +7,18 @@ Created in: PyCharm Community Edition
 Functions to analyze long tpid recipes containing many
 individual tpid tests.
 
-Public functions:
+Main functions:
 
-full_scan(data_report_filename, steps_report_filename, report_time_diff) ->
+
+tpid_eval_full_scan(data_report, steps_report, time_offset) -> excel Workbook
+            Analyze a tpid set point evalutation recipe (rt-37-31-33-37-35-37-39-37).
+
+full_scan(data_report, steps_report, time_offset) -> excel Workbook
             Analyze everything and plot in  excel. This function binds together everything
             from below.
 
+
+Other functions (intermediate calls used by the above):
 
 open_batch(filename) -> DataReport instance derived from the filename
 
@@ -39,10 +45,10 @@ from datetime import timedelta, datetime
 from os.path import exists as path_exists, split as path_split, splitext as path_splitext, \
     dirname, join
 
-from pbslib.recipemaker.tpid_recipes import cool_start as _get_recipe_start
+from pbslib.recipemaker.tpid_recipes import get_cool_start as _get_recipe_start
 from pbslib.batchreport import DataReport, ParseDateFormat, quick_strptime
 from officelib.xllib.xladdress import cellStr, cellRangeStr
-from officelib.olutils import getFullLibraryPath
+from officelib.olutils import getFullFilename
 
 
 def flatten(iterable):
@@ -762,13 +768,13 @@ def full_scan_steps(steps_report):
     @return: list
     @rtype: list[(datetime, datetime, datetime)]
     """
-
+    steps_report = getFullFilename(steps_report)
     cache = _get_cache_name(steps_report)
 
     if path_exists(cache) and _cache_is_recent(steps_report, cache):
         tests = unpickle_info(cache)
     else:
-        steps_report = getFullLibraryPath(steps_report)
+        steps_report = getFullFilename(steps_report)
         steps = extract_raw_steps(steps_report)
         tests = extract_test_steps(steps)
         tests = parse_test_dates(tests)
@@ -826,12 +832,13 @@ def full_open_data_report(csv_report):
     @rtype: DataReport
     """
 
+    csv_report = getFullFilename(csv_report)
     cache = _get_cache_name(csv_report)
 
     if path_exists(cache) and _cache_is_recent(csv_report, cache):
         batch = unpickle_info(cache)
     else:
-        csv_report = getFullLibraryPath(csv_report)
+        csv_report = getFullFilename(csv_report)
         batch = DataReport(csv_report)
         pickle_info(batch, cache)
     return batch
@@ -931,7 +938,7 @@ def full_open_eval_steps_report(steps_report):
     if path_exists(cache_name) and _cache_is_recent(steps_report, cache_name):
         tests = unpickle_info(cache_name)
     else:
-        steps_report = getFullLibraryPath(steps_report, verbose=False)
+        steps_report = getFullFilename(steps_report, verbose=False)
         tests = tpid_eval_steps_scan(steps_report)
         pickle_info(tests, cache_name)
 
@@ -1015,10 +1022,10 @@ def _time_to_sp(ramp_test):
     sp = ramp_test.set_point
     ys = ramp_test.y_data
     xs = ramp_test.x_data
-    d_iter = zip(reversed(xs), reversed(ys))
+    rev_data = zip(reversed(xs), reversed(ys))
 
     start_time = xs[0]
-    end_time = next(time for time, pv in d_iter if abs(pv - sp) > 0.05)
+    end_time = next(time for time, pv in rev_data if abs(pv - sp) > 0.05)
 
     return (end_time - start_time).total_seconds() / 60
 
@@ -1098,14 +1105,16 @@ if __name__ == "__main__":
 # xl = wb.Parent
 # xl.Visible = True
 
-    steps = "C:\\Users\\PBS Biotech\\Downloads\\p40i6evalsteps.csv"
-    tests = tpid_eval_steps_scan(steps)
+    steps = "C:\\Users\\PBS Biotech\\Downloads\\evalhalfhalfsteps (1).csv"
+    data = "C:\\Users\\PBS Biotech\\Downloads\\evalhalfhalfdata (1).csv"
 
-    for i, t in enumerate(tests):
-        try:
-            print("Start: ", t)
-            print("End: ", tests[i + 1], '\n')
-        except IndexError:
-            pass
+    # tests = tpid_eval_steps_scan(steps)
+
+    # for i, t in enumerate(tests):
+    #     try:
+    #         print("Start: ", t)
+    #         print("End: ", tests[i + 1], '\n')
+    #     except IndexError:
+    #         pass
 
 

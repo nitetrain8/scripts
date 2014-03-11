@@ -10,8 +10,8 @@ from officelib.xllib.xladdress import cellRangeStr
 from officelib.xllib.xlcom import ChangeBorders, \
                             FormatChart, CreateChart, XL_PIXEL_TO_POINT, \
                             xlObjs
-from officelib.olutils import getUniqueName
 from re import sub as re_sub
+from pysrc.snippets.unique import unique_name
 
 FUNC_TEST_FOLDER = "C:\\Users\\Public\Documents\\PBSSS\\Functional Testing"
 
@@ -828,7 +828,7 @@ class CalibrationPrompt():
                                  '.xlsx'
                                  ))
     
-        filename = getUniqueName(filename)
+        filename = unique_name(filename)
     
         wb.SaveAs(Filename=filename)
     
