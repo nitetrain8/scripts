@@ -21,25 +21,25 @@ full_scan_result1 = join(data_dir, "full_scan_expected_output.xlsx")
 
 class FullTpidManyTest(unittest.TestCase):
 
-    @classmethod
-    def setUpClass(cls):
+
+    def setUp(self):
         """
         @return:
         @rtype:
         """
-        cls.data_input = data_input1
-        cls.steps_input = steps_input1
-        cls.temp_dir = join(dirname(curdir), "temp", "tpid_full_scan_temp")
+        self.data_input = data_input1
+        self.steps_input = steps_input1
+        self.temp_dir = join(dirname(curdir), "temp", "tpid_full_scan_temp")
         outfile = full_scan_result1
 
         from officelib.xllib.xlcom import xlObjs
-        cls.xl, cls.wb, cls.ws, cls.cells = xlObjs(outfile, visible=False, verbose=False)
-        cls.expected_output = cls.wb.Worksheets("Sheet1").UsedRange.Value2
+        self.xl, self.wb, self.ws, self.cells = xlObjs(outfile, visible=False, verbose=False)
+        self.expected_output = self.wb.Worksheets("Sheet1").UsedRange.Value2
 
-        cls.wb.Close(False)
-        cls.xl.Quit()
-        del cls.wb
-        del cls.xl
+        self.wb.Close(False)
+        self.xl.Quit()
+        del self.wb
+        del self.xl
 
     def test_full_scan(self):
         """
@@ -58,33 +58,32 @@ class FullTpidManyTest(unittest.TestCase):
         for exp_line, res_line in zip(self.expected_output, result_output):
             self.assertEqual(exp_line, res_line)
 
-    @classmethod
-    def tearDownClass(cls):
+    def tearDown(self):
         """
         Close excel, wb instances
         @return:
         @rtype:
         """
         try:
-            cls.cells = None
-            cls.ws = None
-            cls.wb = None
+            self.cells = None
+            self.ws = None
+            self.wb = None
 
-            for wb in cls.xl.Workbooks:
+            for wb in self.xl.Workbooks:
                 try:
                     wb.Close(False)
                 except:
                     pass
-            cls.xl.Quit()
-            cls.xl = None
+            self.xl.Quit()
+            self.xl = None
         except:
             try:
-                 cls.xl.Visible = True
+                 self.xl.Visible = True
             except:
                 pass
 
         try:
-            rmtree(cls.temp_dir)
+            rmtree(self.temp_dir)
         except FileNotFoundError:
             pass
 

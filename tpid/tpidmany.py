@@ -912,11 +912,19 @@ def tpid_eval_steps_scan(steps_file):
     @rtype: list[(datetime, datetime)]
     """
     steps = extract_raw_steps(steps_file)
-    steps = [quick_strptime(date, ParseDateFormat(date))
+    step_times = [quick_strptime(date, ParseDateFormat(date))
              for _, date, step in steps if 'Set "TempSP(C)"' in step]
 
     tests = [(t_start, t_end)
-             for t_start, t_end in zip(steps[:-1], steps[1:])]
+             for t_start, t_end in zip(step_times[:-1], step_times[1:])]
+
+    # Because the last step ends after a wait step, add it manually to the end
+    _, end_date, _ = steps[-1]
+    end_time = quick_strptime(end_date, ParseDateFormat(end_date))
+    last_start = tests[-1][1]
+
+    tests.append((last_start, end_time))
+    s, e = tests[-1]
 
     return tests
 
@@ -1025,7 +1033,7 @@ def _time_to_sp(ramp_test):
     rev_data = zip(reversed(xs), reversed(ys))
 
     start_time = xs[0]
-    end_time = next(time for time, pv in rev_data if abs(pv - sp) > 0.05)
+    end_time = next((time for time, pv in rev_data if abs(pv - sp) > 0.05), xs[-1])
 
     return (end_time - start_time).total_seconds() / 60
 

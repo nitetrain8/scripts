@@ -9,6 +9,7 @@ Functions: test_functions
 
 """
 from datetime import datetime
+from itertools import zip_longest
 import unittest
 from os import makedirs
 from os.path import dirname, join, exists
@@ -30,7 +31,8 @@ test_input = join(curdir, "data")
 
 class TestEvalSteps(TPIDUnittest):
 
-    def setUp(self):
+    @classmethod
+    def setUpClass(cls):
         """
         @return: None
         @rtype: None
@@ -40,12 +42,12 @@ class TestEvalSteps(TPIDUnittest):
         except FileExistsError:
             pass
 
-        self.data_csv = join(test_input, 'eval_data_input.csv')
-        self.data_report = DataReport(self.data_csv)
-        self.steps_csv = join(test_input, 'eval_steps_input.csv')
-        self.exp_full_result = join(test_input, 'eval_full_scan_result.xlsx')
+        cls.data_csv = join(test_input, 'eval_data_input.csv')
+        cls.data_report = DataReport(cls.data_csv)
+        cls.steps_csv = join(test_input, 'eval_steps_input.csv')
+        cls.exp_full_result = join(test_input, 'eval_full_scan_result.xlsx')
 
-        self.xl_need_closing = []
+        cls.xl_need_closing = []
 
     def test_tpid_eval_data_scan(self):
         """
@@ -61,6 +63,8 @@ class TestEvalSteps(TPIDUnittest):
 
     def test_tpid_eval_full_scan(self):
         """
+        Test the full scan
+
         @return:
         @rtype:
         """
@@ -79,8 +83,8 @@ class TestEvalSteps(TPIDUnittest):
         # Include excel cell address of any mismatch
         # start = 1 for 1 based index
         addr = cellStr
-        for r, (exp_row, result_row) in enumerate(zip(result, expected), 1):
-            for c, (exp_cell, result_cell) in enumerate(zip(exp_row, result_row), 1):
+        for r, (exp_row, result_row) in enumerate(zip_longest(result, expected), 1):
+            for c, (exp_cell, result_cell) in enumerate(zip_longest(exp_row, result_row), 1):
                 self.assertEqual(exp_cell, result_cell, msg=addr(r, c))
 
     def test_tpid_eval_steps_scan(self):
@@ -97,7 +101,8 @@ class TestEvalSteps(TPIDUnittest):
             self.assertIsInstance(start, datetime)
             self.assertIsInstance(end, datetime)
 
-    def tearDown(self):
+    @classmethod
+    def tearDownClass(cls):
         """
         @return: None
         @rtype: None
@@ -106,25 +111,26 @@ class TestEvalSteps(TPIDUnittest):
             rmtree(temp_dir)
         except FileNotFoundError:
             pass
-        e = None
-        for xl in self.xl_need_closing:
-            for wb in xl.Workbooks:
-                try:
-                    wb.Close(False)
-                except:
-                    pass
-            try:
-                xl.Quit()
-            except Exception as e:
-                try:
-                    xl.Visible = True
-                except:
-                    pass
+        # e = None
+        for xl in cls.xl_need_closing:
+            xl.Visible = True
+        #     for wb in xl.Workbooks:
+        #         try:
+        #             wb.Close(False)
+        #         except:
+        #             pass
+        #     try:
+        #         xl.Quit()
+        #     except Exception as e:
+        #         try:
+        #             xl.Visible = True
+        #         except:
+        #             pass
+        #
+        # del cls.xl_need_closing
 
-        del self.xl_need_closing
-
-        if e:
-            raise e
+        # if e:
+        #     raise e
 
 if __name__ == '__main__':
     unittest.main()
