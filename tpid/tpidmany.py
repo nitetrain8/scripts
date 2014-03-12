@@ -666,17 +666,29 @@ def map_batch_steps(steps, data, time_offset=0):
     This process is rather different than the Auto2Auto settings finder,
     so needs its own implementation despite identical code in some places.
     """
-    pgain = data["TempHeatDutyControl.PGain(min)"]
-    itime = data["TempHeatDutyControl.ITime(min)"]
-    dtime = data["TempHeatDutyControl.DTime(min)"]
-    pvs = data['TempPV(C)'].Values
-    times = data['TempPV(C)'].Times
+
+    # Single use iterators- don't restart scan from
+    # beginning for each thing
+    pgain = iter(data["TempHeatDutyControl.PGain(min)"])
+    itime = iter(data["TempHeatDutyControl.ITime(min)"])
+    dtime = iter(data["TempHeatDutyControl.DTime(min)"])
+    pvs = iter(data['TempPV(C)'].Values)
+    times = iter(data['TempPV(C)'].Times)
     sps = iter(data["TempSP(C)"])
     temp_times = iter(times)
+
     info = []
     auto_end_index = -1  # ensure first loop starts at right enumerate index
-
+    default_end = len(data["TempPV(C)"])
     offset = timedelta(minutes=time_offset)
+
+    # boilerplate to avoid unbound locals first iteration
+    # through the loop
+    p = 0
+    i = 0
+    d = 0
+    o2a_sp = 0
+    a2a_sp = 0
 
     for off_start, auto_start, auto_end in steps:
 
@@ -684,22 +696,28 @@ def map_batch_steps(steps, data, time_offset=0):
         auto_start += offset
         auto_end += offset
 
+        # Only break on StopIteration for those vars where a reasonable default
+        # value cannot be estimated
         try:
-            p = next(pv for t, pv in pgain if t > auto_end)
-            i = next(pv for t, pv in itime if t > auto_end)
-            d = next(pv for t, pv in dtime if t > auto_end)
-
             off_start_index = next(i for i, t in
-                                   enumerate(temp_times, start=auto_end_index + 1) if t > off_start)
+                                   enumerate(temp_times, start=auto_end_index + 1)
+                                   if t > off_start)
             auto_start_index = next(i for i, t in
-                                    enumerate(temp_times, start=off_start_index + 1) if t > auto_start)
-            auto_end_index = next(i for i, t in
-                                  enumerate(temp_times, start=auto_start_index + 1) if t > auto_end)
-
-            o2a_sp = next((pv for t, pv in sps if t > off_start), 37)
-            a2a_sp = next((pv for t, pv in sps if t > auto_start), 39)
+                                    enumerate(temp_times, start=off_start_index + 1)
+                                    if t > auto_start)
         except StopIteration:
-            continue
+            break
+
+        auto_end_index = next((i for i, t in
+                              enumerate(temp_times, start=auto_start_index + 1)
+                              if t > auto_end), default_end)
+
+        p = next((pv for t, pv in pgain if t > auto_end), p)
+        i = next((pv for t, pv in itime if t > auto_end), i)
+        d = next((pv for t, pv in dtime if t > auto_end), d)
+
+        o2a_sp = next((pv for t, pv in sps if t > off_start), o2a_sp)
+        a2a_sp = next((pv for t, pv in sps if t > auto_start), a2a_sp)
 
         off_to_auto = RampTestResult()
         off_to_auto.pgain = p
@@ -882,8 +900,8 @@ def __profile_code():
         stats.print_stats('MSOffice')
 
 
-from os import stat as os_stat
-__last_save = os_stat(__file__).st_mtime
+from os import stat as _os_stat
+__last_save = _os_stat(__file__).st_mtime
 
 
 def _cache_is_recent(report_file, cache_file, script_modified=__last_save):
@@ -898,8 +916,8 @@ def _cache_is_recent(report_file, cache_file, script_modified=__last_save):
     @rtype: bool
     """
 
-    report_modified = os_stat(report_file).st_mtime
-    cache_modified = os_stat(cache_file).st_mtime
+    report_modified = _os_stat(report_file).st_mtime
+    cache_modified = _os_stat(cache_file).st_mtime
 
     return cache_modified > report_modified and cache_modified > script_modified
 
@@ -919,12 +937,13 @@ def tpid_eval_steps_scan(steps_file):
              for t_start, t_end in zip(step_times[:-1], step_times[1:])]
 
     # Because the last step ends after a wait step, add it manually to the end
+    # don't forget to add the wait time itself!
     _, end_date, _ = steps[-1]
     end_time = quick_strptime(end_date, ParseDateFormat(end_date))
+    end_time += timedelta(seconds=3600)
     last_start = tests[-1][1]
 
     tests.append((last_start, end_time))
-    s, e = tests[-1]
 
     return tests
 
@@ -975,10 +994,14 @@ def tpid_eval_data_scan(data_report, steps, time_offset=0):
 
     sp_iter = iter(tempsp)
     times_iter = iter(times)
-    end = -1
+    last_time_index = len(times)
+    end_sp = tempsp.Values[-1]
     test_list = []
-    old_sp = 28
     offset = timedelta(minutes=time_offset)
+
+    # local var boilerplate
+    end = -1
+    old_sp = 28
     for t_start, t_end in steps:
 
         t_start += offset
@@ -989,8 +1012,8 @@ def tpid_eval_data_scan(data_report, steps, time_offset=0):
         except StopIteration:
             break
 
-        end = next((i for i, time in enumerate(times_iter, start=start + 1) if time > t_end), t_end)
-        sp = next((sp for time, sp in sp_iter if time > t_start), 37)
+        end = next((i for i, time in enumerate(times_iter, start=start + 1) if time > t_end), last_time_index)
+        sp = next((sp for time, sp in sp_iter if time > t_start), end_sp)
 
         result = RampTestResult()
         result.start_index = start
@@ -1015,7 +1038,7 @@ def tpid_eval_data_scan(data_report, steps, time_offset=0):
     return test_list
 
 
-def _time_to_sp(ramp_test):
+def _time_to_sp(ramp_test, col):
     """
     Get time to setpoint by scanning backward through the reversed lists
     for the first time that temp is *outside* the target.
@@ -1024,18 +1047,27 @@ def _time_to_sp(ramp_test):
 
     @param ramp_test: RampTestResult
     @type ramp_test: RampTestResult
+    @param col: column of first column of test data.
     @return: float
     @rtype: float | int
     """
     sp = ramp_test.set_point
     ys = ramp_test.y_data
-    xs = ramp_test.x_data
-    rev_data = zip(reversed(xs), reversed(ys))
+    y_len = len(ys)
+    rev_data = reversed(ys)
 
-    start_time = xs[0]
-    end_time = next((time for time, pv in rev_data if abs(pv - sp) > 0.05), xs[-1])
+    end = next((i for i, pv in enumerate(rev_data) if abs(pv - sp) > 0.05), 1)
 
-    return (end_time - start_time).total_seconds() / 60
+    # if end was in middle of list, use the next index.
+    # if end was the last time in the list (0), bump it up
+    # to 1
+    if not end:
+        end = 1
+
+    end_index = y_len - end + 11
+
+    magic = "=" + cellStr(end_index, col)
+    return magic
 
 
 def tpid_eval_full_scan(data_file, steps_file, time_offset=0):
@@ -1094,10 +1126,10 @@ def tpid_eval_full_scan(data_file, steps_file, time_offset=0):
                 minmax_lbl = "Min PV:"
 
             start_temp = test.start_temp
-            time_to_sp = _time_to_sp(test)
+            time_to_sp = _time_to_sp(test, col)
 
             cell_range(name_rng).Value = '=CONCATENATE("Start:", R[4]C[%d],"SP:", R[5]C[%d])' % (col, col)
-            cell_range(time_to_sp_rng).Value = ("Min to SP:", time_to_sp)
+            cell_range(time_to_sp_rng).Formula = ("Min to SP:", time_to_sp)
             cell_range(minmax_pv_rng).Value = (minmax_lbl, minmax_pv)
             cell_range(overshoot_rng).Value = ("Overshoot:", minmax_pv - test.set_point)
             cell_range(start_tmp_rng).Value = ("Start Temp:", start_temp)

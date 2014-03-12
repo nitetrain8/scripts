@@ -31,6 +31,7 @@ test_input = join(curdir, "data")
 
 class TestEvalSteps(TPIDUnittest):
 
+    xl_need_closing = []
     @classmethod
     def setUpClass(cls):
         """
