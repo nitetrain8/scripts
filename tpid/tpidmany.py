@@ -667,13 +667,14 @@ def map_batch_steps(steps, data, time_offset=0):
     so needs its own implementation despite identical code in some places.
     """
 
+    pvs = data['TempPV(C)'].Values
+    times = data['TempPV(C)'].Times
+
     # Single use iterators- don't restart scan from
     # beginning for each thing
     pgain = iter(data["TempHeatDutyControl.PGain(min)"])
     itime = iter(data["TempHeatDutyControl.ITime(min)"])
     dtime = iter(data["TempHeatDutyControl.DTime(min)"])
-    pvs = iter(data['TempPV(C)'].Values)
-    times = iter(data['TempPV(C)'].Times)
     sps = iter(data["TempSP(C)"])
     temp_times = iter(times)
 
