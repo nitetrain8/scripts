@@ -142,19 +142,20 @@ class RampTestResult():
         @rtype: str
         """
 
-        out = """
-        {7}:
-        P gain: {0} I time: {1} D time: {2}
+        out = """{7}:
 
-        Start time: {3}
-        End time: {4}
-
-        Excel line index:
-        Start: {5}, End: {6}
-        """.format(self.pgain, self.itime, self.dtime,
-                         self.start_time, self.end_time,
-                         self.start_index + 2, self.end_index + 2,
-                         self.test_name)
+Pgain: {0}
+Itime: {1}
+Dtime: {2}
+Start time: {3}
+End time: {4}
+Start temp: {5}
+Set point: {6}
+DataReport start index: {8}
+DataReport end index: {9}
+""".format(self.pgain, self.itime, self.dtime,
+           self.start_time, self.end_time, self.start_temp,
+           self.set_point, self.test_name, self.start_index, self.end_index)
         return out
 
 
@@ -1002,7 +1003,7 @@ def tpid_eval_data_scan(data_report, steps, time_offset=0):
 
     # local var boilerplate
     end = -1
-    old_sp = 28
+    old_sp = int(pvs[0])
     for t_start, t_end in steps:
 
         t_start += offset
@@ -1135,6 +1136,13 @@ def tpid_eval_full_scan(data_file, steps_file, time_offset=0):
             cell_range(overshoot_rng).Value = ("Overshoot:", minmax_pv - test.set_point)
             cell_range(start_tmp_rng).Value = ("Start Temp:", start_temp)
     return wb
+
+
+def _debug_tpid_eval_full_scan(data_file, steps_file, time_offset):
+    data = full_open_data_report(data_file)
+    steps = full_open_eval_steps_report(steps_file)
+    test_list = tpid_eval_data_scan(data, steps, time_offset)
+    return test_list
 
 if __name__ == "__main__":
 
