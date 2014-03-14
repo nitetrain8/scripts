@@ -429,7 +429,7 @@ def unpickle_info(filename):
 def pickle_info(info, filename):
     """
     @param info: object
-    @type info: T
+    @type info: DataReport | list
     @param filename: filename
     @type filename: str
     @return: None
@@ -791,7 +791,7 @@ def full_scan_steps(steps_report):
     steps_report = getFullFilename(steps_report)
     cache = _get_cache_name(steps_report)
 
-    if path_exists(cache) and _cache_is_recent(steps_report, cache):
+    if path_exists(cache) and _cache_valid(steps_report, cache):
         tests = unpickle_info(cache)
     else:
         steps_report = getFullFilename(steps_report)
@@ -855,7 +855,7 @@ def full_open_data_report(csv_report):
     csv_report = getFullFilename(csv_report)
     cache = _get_cache_name(csv_report)
 
-    if path_exists(cache) and _cache_is_recent(csv_report, cache):
+    if path_exists(cache) and _cache_valid(csv_report, cache):
         batch = unpickle_info(cache)
     else:
         csv_report = getFullFilename(csv_report)
@@ -906,7 +906,7 @@ from os import stat as _os_stat
 __last_save = _os_stat(__file__).st_mtime
 
 
-def _cache_is_recent(report_file, cache_file, script_modified=__last_save):
+def _cache_valid(report_file, cache_file, script_modified=__last_save):
     """
     @param report_file: the file to check cache for
     @type report_file: str
@@ -964,7 +964,7 @@ def full_open_eval_steps_report(steps_report):
     """
     cache_name = _get_cache_name(steps_report)
 
-    if path_exists(cache_name) and _cache_is_recent(steps_report, cache_name):
+    if path_exists(cache_name) and _cache_valid(steps_report, cache_name):
         tests = unpickle_info(cache_name)
     else:
         steps_report = getFullFilename(steps_report, verbose=False)
@@ -1003,7 +1003,7 @@ def tpid_eval_data_scan(data_report, steps, time_offset=0):
 
     # local var boilerplate
     end = -1
-    old_sp = int(pvs[0])
+    old_sp = round(pvs[0])
     for t_start, t_end in steps:
 
         t_start += offset
