@@ -524,7 +524,7 @@ class CalibrationPrompt():
         data = []
         pts = 0
         
-        '''Need to use external counter so it fails to increment on
+        '''Need to use external counter so it fails to step on
         ValueError. Throw error for anything that would result in
         failure to convert to float.'''
                 

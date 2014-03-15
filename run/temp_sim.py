@@ -189,18 +189,92 @@ class TempSim():
     default_increment = Decimal(1)
 
     def __init__(self, tstart, tenv, heat_duty, cool_rate=None, heat_rate=None):
+        """
+        @param tstart: start temp
+        @type tstart: numbers.Number
+        @param tenv: env temp
+        @type tenv: numbers.Number
+        @param heat_duty: heat duty
+        @type heat_duty: numbers.Number
+        @param cool_rate: cooling rate constant in degC/sec/dt
+        @type cool_rate: numbers.Number
+        @param heat_rate: heat rate constant in degC/sec/%heatduty
+        @type heat_rate: numbers.Number
+        """
 
-        self._start_temp = Decimal(tstart)
-        self.current_temp = Decimal(tstart)
-        self.env_temp = Decimal(tenv)
+        self.start_temp = tstart
+        self.current_temp = tstart
+        self.env_temp = tenv
         self._env_start_temp = self.env_temp
+
+        self.cool_rate = cool_rate or self.passive_cooling_rate
+        self.heat_rate = heat_rate or self.active_heating_rate
         if cool_rate is not None:
             self.passive_cooling_rate = Decimal(cool_rate)
         if heat_rate is not None:
             self.active_heating_rate = Decimal(heat_rate)
-        self.seconds = Decimal(0)
+        self.seconds = 0
+        self.heat_duty = heat_duty
 
-        self.heat_duty = Decimal(heat_duty)
+    @property
+    def heat_duty(self):
+        return self._heat_duty
+
+    @heat_duty.setter
+    def heat_duty(self, val, D=Decimal, isinst=isinstance):
+        if not isinst(val, D):
+            val = D(val)
+        self._heat_duty = val
+
+    @property
+    def heat_rate(self):
+        return self._heat_rate
+
+    @heat_rate.setter
+    def heat_rate(self, val, D=Decimal, isinst=isinstance):
+        if not isinst(val, D):
+            val = D(val)
+        self._heat_rate = val
+
+    @property
+    def cool_rate(self):
+        return self._cool_rate
+
+    @cool_rate.setter
+    def cool_rate(self, val, D=Decimal, isinst=isinstance):
+        if not isinst(val, D):
+            val = D(val)
+        self._cool_rate = val
+
+    @property
+    def env_temp(self):
+        return self._env_temp
+
+    @env_temp.setter
+    def env_temp(self, val, D=Decimal, isinst=isinstance):
+        if not isinst(val, D):
+            val = D(val)
+        self._env_temp = val
+
+    @property
+    def current_temp(self):
+        return self._current_temp
+
+    @current_temp.setter
+    def current_temp(self, val, D=Decimal, isinst=isinstance):
+        if not isinst(val, D):
+            val = D(val)
+        self._current_temp = val
+
+    @property
+    def seconds(self):
+        return self._seconds
+
+    @seconds.setter
+    def seconds(self, val, D=Decimal, isinst=isinstance):
+        if not isinst(val, D):
+            val = D(val)
+        self._seconds = val
 
     def cool_diff(self, seconds=default_increment):
         tdiff = self.current_temp - self.env_temp
@@ -209,22 +283,35 @@ class TempSim():
 
     def heat_diff(self, seconds=default_increment):
         tdiff = self.current_temp - self.env_temp
-        incr = reduce(mul, (self.active_heating_rate, tdiff, seconds, self.heat_duty))
+        incr = self.active_heating_rate * tdiff * seconds * self.heat_duty
         return incr
 
-    def increment(self, seconds=default_increment):
+    def step(self, seconds=default_increment):
         cool_diff = self.cool_diff(seconds)
         heat_diff = self.heat_diff(seconds)
         self.current_temp += cool_diff + heat_diff
         self.seconds += seconds
         return self.current_temp
 
+    def __iter__(self):
+        # warning, infinite iteration! use break
+        return self
+
+    def __next__(self):
+        return self.step()
+
     def iterate(self, n, sec_per_iter=default_increment):
-        rv = (self.increment(sec_per_iter) for _ in range(n))
+        rv = (self.step(sec_per_iter) for _ in range(n))
         return rv
+
+def main():
+    sim = TempSim(25, 20, 50)
+
+    steps = sim.iterate(100000)
+    print(sim.current_temp)
 
 
 if __name__ == '__main__':
     # plot_fourier()
-    pass
+    main()
 
