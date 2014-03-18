@@ -8,15 +8,14 @@ Created in: PyCharm Community Edition
 """
 from decimal import Decimal
 from datetime import timedelta
-from math import fsum
 from scripts.tpid.tpidmany import full_open_data_report, full_open_eval_steps_report
-from scripts.tpid.tpidmany import _debug_tpid_eval_full_scan as debug_scan
 from scripts.tpid.tpidmany import tpid_eval_data_scan
-from functools import reduce
-from operator import mul
+
+from collections import deque
 
 __author__ = 'Nathan Starkweather'
 
+exhaust = deque(maxlen=0).extend
 
 # Constant in units of 1/sec(?)
 HEAT_DECAY_CONSTANT = Decimal("-0.00006351534757675651529022629111")
@@ -43,7 +42,7 @@ class DecayResult():
         """
         diff = Decimal(self.end_temp - self.start_temp)
         tdiff = self.end_time - self.start_time
-        tdiff = Decimal(tdiff.total_seconds()) / 3600
+        tdiff = Decimal(tdiff.total_seconds())
         return diff / tdiff
 
     def __str__(self):
@@ -73,6 +72,7 @@ def calc_ave_c(tests, room_temp):
     ave_c = sum(all_c) / len(all_c)
     assert isinstance(ave_c, Decimal)
     return ave_c
+
 
 def calc_heats(data, test_list, delay=0):
     """
@@ -119,7 +119,7 @@ def get_stuff():
 def find_c(rt=25):
 
     data, test_list = get_stuff()
-    heats = calc_heats(data, test_list)
+    # heats = calc_heats(data, test_list)
 
     # for h in heats:
         # d = calc_c(h.decay(), h.start_temp - 25)
@@ -134,7 +134,6 @@ def find_c(rt=25):
         many_c.append(c)
 
     ave_c = sum(many_c) / len(many_c)
-    ave_c /= 3600
     # print(ave_c)
     return ave_c
 
@@ -158,7 +157,7 @@ def plot_fourier(start_temp='37.01', c=HEAT_DECAY_CONSTANT):
     d_range.Value = data
 
 
-def main():
+def print_ave_heats():
     data, test_list = get_stuff()
     td = timedelta(minutes=45)
     heatpv = data['TempHeatDutyActual(%)']
@@ -183,7 +182,7 @@ class TempSim():
     passive_cooling_rate = Decimal('-0.00004428785379999')
 
     # Degrees C per sec per % heat duty
-    active_heating_rate = Decimal('0.012489')
+    active_heating_rate = Decimal('0.0001110589653')
 
     # in seconds
     default_increment = Decimal(1)
@@ -205,7 +204,6 @@ class TempSim():
         self.start_temp = tstart
         self.current_temp = tstart
         self.env_temp = tenv
-        self._env_start_temp = self.env_temp
 
         self.cool_rate = cool_rate or self.passive_cooling_rate
         self.heat_rate = heat_rate or self.active_heating_rate
@@ -215,6 +213,11 @@ class TempSim():
             self.active_heating_rate = Decimal(heat_rate)
         self.seconds = 0
         self.heat_duty = heat_duty
+
+    # Properties used to simplify the process of ensuring that all internal
+    # numeric processing is done via Decimal. Use setters to automatically
+    # check type of newly assigned value. Use getters because you can't
+    # use a setter by itself.
 
     @property
     def heat_duty(self):
@@ -267,6 +270,18 @@ class TempSim():
         self._current_temp = val
 
     @property
+    def minutes(self):
+        return self._seconds / 60
+
+    @property
+    def hours(self):
+        return self._seconds / 3600
+
+    @property
+    def days(self):
+        return self._seconds / 86400
+
+    @property
     def seconds(self):
         return self._seconds
 
@@ -277,13 +292,12 @@ class TempSim():
         self._seconds = val
 
     def cool_diff(self, seconds=default_increment):
-        tdiff = self.current_temp - self.env_temp
+        tdiff = self._current_temp - self._env_temp
         incr = self.passive_cooling_rate * tdiff * seconds
         return incr
 
     def heat_diff(self, seconds=default_increment):
-        tdiff = self.current_temp - self.env_temp
-        incr = self.active_heating_rate * tdiff * seconds * self.heat_duty
+        incr = self.active_heating_rate * seconds * self._heat_duty
         return incr
 
     def step(self, seconds=default_increment):
@@ -298,16 +312,75 @@ class TempSim():
         return self
 
     def __next__(self):
-        return self.step()
+        return self.seconds, self.step()
 
     def iterate(self, n, sec_per_iter=default_increment):
-        rv = (self.step(sec_per_iter) for _ in range(n))
-        return rv
+        steps = [self.step(sec_per_iter) for _ in range(n)]
+        return steps
+
+    def __str__(self):
+        msg = """Start: %.1f HeatDuty: %.1f Current: %.3f Elapsed %d""" % (self.start_temp,
+                                                                        self.heat_duty,
+                                                                        self.current_temp,
+                                                                        self.seconds)
+        return msg
+
+    def quietstep(self, seconds=default_increment):
+        self.step(seconds)
+
+    def quietiter(self, n, sec_per_iter=default_increment):
+        step = self.step
+        for _ in range(n):
+            step(sec_per_iter)
+
+    def step_till(self, temp):
+        if not isinstance(temp, Decimal):
+            temp = Decimal(temp)
+        if self.current_temp > temp:
+            return
+        next(i for i, t in self if t > temp)
+
+
+def est_tp(hd1, hd2):
+    sim = TempSim(20, 20, hd1)
+    exhaust(sim.step() for _ in range(200000))
+    temp1 = sim.current_temp
+    print('temp1', temp1)
+    print(sim)
+    sim.heat_duty = hd2
+    bump_steps = sim.iterate(200000)
+    temp2 = sim.current_temp
+    dt = temp2 - temp1
+    t63 = temp1 + dt * Decimal('0.63')
+    tend = next(i for i, t in enumerate(bump_steps, start=1) if t > t63)
+    del bump_steps
+    _l = list(locals().items())
+    print("After Simulation Run:")
+    for k, v in _l:
+        print(k, v)
+    return tend
+
+
+def est_kp(hd1, hd2):
+    hd1 = Decimal(hd1)
+    hd2 = Decimal(hd2)
+    sim = TempSim(25, 20, hd1)
+    sim.quietiter(500000)
+    temp1 = sim.current_temp
+    sim.heat_duty = hd2
+    sim.quietiter(500000)
+    temp2 = sim.current_temp
+
+    dPV = temp2 - temp1
+    dCO = hd2 - hd1
+
+    return dPV / dCO
+
 
 def main():
     sim = TempSim(25, 20, 50)
 
-    steps = sim.iterate(100000)
+    sim.iterate(100000)
     print(sim.current_temp)
 
 
