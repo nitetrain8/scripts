@@ -8,8 +8,7 @@ Created in: PyCharm Community Edition
 """
 from decimal import Decimal
 from datetime import timedelta
-from scripts.tpid.tpidmany import full_open_data_report, full_open_eval_steps_report
-from scripts.tpid.tpidmany import tpid_eval_data_scan
+
 
 from collections import deque
 
@@ -106,6 +105,8 @@ def calc_heats(data, test_list, delay=0):
 
 
 def get_stuff():
+    from scripts.tpid.tpidmany import full_open_data_report, full_open_eval_steps_report
+    from scripts.tpid.tpidmany import tpid_eval_data_scan
 
     data_file = "C:\\Users\\PBS Biotech\\Downloads\\evalfulldata.csv"
     steps_file = "C:\\Users\\PBS Biotech\\Downloads\\evalfullsteps.csv"
