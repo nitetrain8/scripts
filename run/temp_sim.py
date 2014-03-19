@@ -341,6 +341,57 @@ class TempSim():
         next(i for i, t in self if t > temp)
 
 
+class Link():
+
+    __slots__ = ("val", "next")
+
+    def __init__(self, val=0):
+        """
+        @type val: int
+        """
+        self.val = val
+        self.next = None
+
+
+class CircleBuf():
+
+    def __init__(self, size=30):
+        """
+        @param size: size of buffer
+        @type size: int
+        """
+        if not size or size < 0:
+            raise ValueError("Size must be >0")
+        self._size = size
+        first = Link()
+        next = prev = first
+        self.current = first
+        for _ in range(size - 1):
+            next = Link()
+            prev.next = next
+            prev = next
+        next.next = first
+
+    def test_iter(self):
+        first = self.current
+        print(first.val)
+        next = self.current.next
+        while next is not first:
+            print(next.val)
+            next = next.next
+
+    def __del__(self, *_):
+        """
+         Del method to free circular refs in the buffer
+        """
+        next = self.current
+        prev = next
+        while next is not None:
+            next = next.next
+            prev.next = None
+            prev = next
+
+
 def est_tp(hd1, hd2):
     sim = TempSim(20, 20, hd1)
     exhaust(sim.step() for _ in range(200000))
