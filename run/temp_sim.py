@@ -206,8 +206,6 @@ class TempSim():
         self.current_temp = tstart
         self.env_temp = tenv
 
-        self.cool_rate = cool_rate or self.passive_cooling_rate
-        self.heat_rate = heat_rate or self.active_heating_rate
         if cool_rate is not None:
             self.passive_cooling_rate = Decimal(cool_rate)
         if heat_rate is not None:
