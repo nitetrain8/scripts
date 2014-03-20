@@ -306,14 +306,14 @@ class TempSim():
         heat_diff = self.heat_diff(seconds)
         self.current_temp += cool_diff + heat_diff
         self.seconds += seconds
-        return self.current_temp
+        return self.seconds, self.current_temp
 
     def __iter__(self):
         # warning, infinite iteration! use break
         return self
 
     def __next__(self):
-        return self.seconds, self.step()
+        return self.step()
 
     def iterate(self, n, sec_per_iter=default_increment):
         steps = [self.step(sec_per_iter) for _ in range(n)]
@@ -339,7 +339,7 @@ class TempSim():
             temp = Decimal(temp)
         if self.current_temp > temp:
             return
-        next(i for i, t in self if t > temp)
+        next(i for i, t in self if t[1] > temp)
 
 
 class Link():
@@ -428,6 +428,25 @@ def est_kp(hd1, hd2):
 
     return dPV / dCO
 
+
+def est_both(hd1, hd2):
+    hd1 = Decimal(hd1)
+    hd2 = Decimal(hd2)
+    sim = TempSim(25, 20, hd1)
+    sim.quietiter(500000)
+    temp1 = sim.current_temp
+    tstart = sim.seconds
+    sim.heat_duty = hd2
+    bump_steps = sim.iterate(500000)
+    temp2 = sim.current_temp
+    dt = temp2 - temp1
+    t63 = temp1 + dt * Decimal('0.63')
+    tend = next(i for i, t in bump_steps if t > t63)
+
+    dPV = temp2 - temp1
+    dCO = hd2 - hd1
+
+    return tend - tstart, dPV / dCO
 
 def main():
     sim = TempSim(25, 20, 50)
