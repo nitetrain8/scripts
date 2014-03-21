@@ -95,8 +95,7 @@ def calc_heats(data, test_list, delay=0):
         next(_ for time, _ in heat_iter if time >= start)
         end_time = next(time for time, pv in heat_iter if pv)
         end_time, end_pv = next(((time, pv) for time, pv in pv_iter
-                                 if ((time - start).total_seconds() >= 1800
-                                     or time >= end_time)), end_time)
+                                 if time >= end_time), end_time)
 
         # if t.start_temp == 37 and t.set_point == 33:
         #     print((end_time-start).total_seconds())
@@ -179,16 +178,15 @@ def print_ave_heats():
     print("ave", sum(heats) / len(heats))
 
 
+# noinspection PyRedeclaration
 class TempSim():
 
     # Degrees C per sec per tcur - tenv
     passive_cooling_rate = Decimal('-0.00004428785379999')
+    # passive_cooling_rate = Decimal('-0.0000615198895')
 
     # Degrees C per sec per % heat duty
     active_heating_rate = Decimal('0.0001110589653')
-    _rate2 = Decimal('0.000114817')
-    # noinspection PyRedeclaration
-    active_heating_rate = _rate2
 
     # in seconds
     default_increment = Decimal(1)
@@ -407,7 +405,8 @@ class TempSim():
 
 class PIDController():
 
-    def __init__(self, set_point=0, pgain=25, itime=5, dtime=0, automax=50, out_high=100, out_low=0, l=1, b=1):
+    def __init__(self, set_point=0, pgain=25, itime=5, dtime=0, automax=50, auto_min=0, out_high=100, out_low=0, l=1, b=1):
+        self.auto_min = auto_min
         self.out_low = out_low
         self.out_high = out_high
         self.set_point = D(set_point)
@@ -419,14 +418,10 @@ class PIDController():
         self.L = l
         self.B = b
 
-        self.max_error = self.out_high / self.pgain * self.itime
-        self.min_error = -self.max_error
-
         self.abs_limit = abs(self.out_high)
         self.accumulated_error = Decimal(0)
         self.seconds = Decimal(0)
         self.current_output = Decimal(0)
-
 
 
     @property
@@ -477,28 +472,27 @@ class PIDController():
     def accumulated_error(self, val, D=Decimal, isinst=isinstance):
         if not isinst(val, D):
             val = D(val)
-        if val > self.max_error:
-            val = self.max_error
-        elif val < self.min_error:
-            val = self.min_error
         self._accumulated_error = val
 
     def process_error(self, pv, dt):
         e_t = self.set_point - pv
         self.accumulated_error += dt * e_t
         self.seconds += dt
+        # DEBUG
+        self._last_error = e_t
         return e_t
 
     def calc_output(self, error):
 
         Up = self.pgain * error
-        Ui = (self.pgain / self.itime) * self.accumulated_error
+        Ui = (1 / self.itime) * self.accumulated_error
 
         Uk = Up + Ui
+        # Uk = Ui
         if Uk > self.automax:
             Uk = self.automax
-        elif Uk < self.out_low:
-            Uk = self.out_low
+        elif Uk < self.auto_min:
+            Uk = self.auto_min
         return Uk
 
             # Derivative control not yet implemented
@@ -529,7 +523,7 @@ class PIDController():
 
 def est_tp(hd1, hd2):
     sim = TempSim(20, 20, hd1)
-    exhaust(sim.step() for _ in range(200000))
+    sim.quietiter(200000)
     temp1 = sim.current_temp
     print('temp1', temp1)
     print(sim)
@@ -538,7 +532,7 @@ def est_tp(hd1, hd2):
     temp2 = sim.current_temp
     dt = temp2 - temp1
     t63 = temp1 + dt * Decimal('0.63')
-    tend = next(i for i, t in enumerate(bump_steps, start=1) if t > t63)
+    tend = next(i for i, t in enumerate(bump_steps, start=1) if t[1] > t63)
     del bump_steps
     _l = list(locals().items())
     print("After Simulation Run:")
@@ -575,11 +569,15 @@ def est_both(hd1, hd2):
     temp2 = sim.current_temp
     dt = temp2 - temp1
     t63 = temp1 + dt * Decimal('0.63')
-    tend = next(i for i, t in bump_steps if t > t63)
+    if dt > 0:
+        cmp = lambda t: t > t63
+    else:
+        cmp = lambda t: t < t63
+    tend = next(i for i, t in bump_steps if cmp(t))
 
     dPV = temp2 - temp1
     dCO = hd2 - hd1
-
+    print(sim)
     return tend - tstart, dPV / dCO
 
 

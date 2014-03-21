@@ -83,23 +83,46 @@ def run_pidtest(pid, sim, n=1000):
 
 
 def plotpid(n=15000):
+    import sys
+    try:
+        del sys.modules['scripts.run.temp_sim']
+    except KeyError:
+        pass
     from scripts.run.temp_sim import TempSim, PIDController
 
-    sim = TempSim(25, 20, 0)
+    sim = TempSim(D('28.183533'), 19, 0)
     pid = PIDController(37, 40, 6)
 
     pv = sim.current_temp
-    steps = []
+    steps = [('0', '0', '0', '0', '0') for _ in range(11)]
     for _ in range(n):
         hd = pid.step_output(pv)
         t, pv = sim.step_heat(hd)
-        steps.append((t, pv, hd))
+        # noinspection PyTypeChecker
+        steps.append((t, pv, pid._last_error, pid.accumulated_error, hd))
 
     from officelib.xllib.xlcom import xlBook2
-    xl, wb = xlBook2('tpidsim.xlsx')
+    xl, wb = xlBook2('PID.xlsx')
     ws = wb.Worksheets(2)
     cells = ws.Cells
-    cell_range = cells.Range
 
-    cell_range(cells(1, 9), cells(len(steps), 11)).Value = [[float(arg) for arg in stuff] for stuff in steps]
+    cells.Range(cells(2, 14), cells(len(steps) + 1, len(steps[0]) + 13)).Value = \
+        [[str(x) for x in data] for data in steps]
+
+
+def plotsim(n=7200):
+    try:
+        import sys
+        del sys.modules['scripts.run.temp_sim']
+    except KeyError:
+        pass
+    from scripts.run.temp_sim import TempSim
+    sim = TempSim(D('37.04'), 19, 0)
+    steps = sim.iterate(n)
+    from officelib.xllib.xlcom import xlBook2
+    xl, wb = xlBook2('PID.xlsx')
+
+    ws = wb.Worksheets(2)
+    cells = ws.Cells
+    cells.Range(cells(2, 14), cells(len(steps) + 1, 15)).Value = [(str(t), str(v)) for t, v in steps]
 
