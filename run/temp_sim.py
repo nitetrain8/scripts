@@ -7,10 +7,12 @@ Created in: PyCharm Community Edition
 
 """
 from decimal import Decimal
+D = Decimal
 from datetime import timedelta
 
 
 from collections import deque
+from itertools import repeat, starmap
 
 __author__ = 'Nathan Starkweather'
 
@@ -184,6 +186,9 @@ class TempSim():
 
     # Degrees C per sec per % heat duty
     active_heating_rate = Decimal('0.0001110589653')
+    _rate2 = Decimal('0.000114817')
+    # noinspection PyRedeclaration
+    active_heating_rate = _rate2
 
     # in seconds
     default_increment = Decimal(1)
@@ -314,81 +319,212 @@ class TempSim():
         return self.step()
 
     def iterate(self, n, sec_per_iter=default_increment):
-        steps = [self.step(sec_per_iter) for _ in range(n)]
+
+        # optimize slightly, similar methodology to quietiter()
+        # see quietiter() for details/assumptions
+        sec_per_iter = Decimal(sec_per_iter)
+
+        naive_heat_per_iter = self.heat_diff(sec_per_iter)
+        naive_cool_const = self.passive_cooling_rate * sec_per_iter
+        env_temp = self.env_temp
+
+        args = (sec_per_iter, naive_heat_per_iter, naive_cool_const, env_temp)
+        steps = list(starmap(self._naive_step, repeat(args, n)))
         return steps
 
-    def __str__(self):
+    def _naive_step(self, sec, heat_per_iter, cool_const, env):
+        """
+        Slightly optimized inner loop helper for iterate() function
+        @param sec:
+        @type sec:
+        @param heat_per_iter:
+        @type heat_per_iter:
+        @param cool_const:
+        @type cool_const:
+        @param env:
+        @type env:
+        @return:
+        @rtype:
+        """
+        ct = self._current_temp
+        ct += heat_per_iter + cool_const * (ct - env)
+        self._current_temp = ct
+        self._seconds += sec
+
+        return self._seconds, ct
+
+    def __repr__(self):
         msg = """Start: %.1f HeatDuty: %.1f Current: %.3f Elapsed %d""" % (self.start_temp,
                                                                         self.heat_duty,
                                                                         self.current_temp,
                                                                         self.seconds)
         return msg
 
+    __str__ = __repr__
+
     def quietstep(self, seconds=default_increment):
         self.step(seconds)
 
     def quietiter(self, n, sec_per_iter=default_increment):
-        step = self.step
+        # inline step() and cool diff/heat diff for speed
+        # If the increment and heat duty never change, then
+        # heat per iter is constant, so we only need calculate it once.
+        # cool_per_sec with constant increment only needs to
+        # recalculate tdiff.
+
+        # ASSUMPTIONS:
+        # constant sec_per_iter
+        # constant heating and cooling constants
+        # constant env temperature
+        # constant heat duty
+
+        sec_per_iter = Decimal(sec_per_iter)
+
+        heat_per_iter = self.heat_diff(sec_per_iter)
+        cool_const = self.passive_cooling_rate * sec_per_iter
+
+        env_temp = self.env_temp
+        current_temp = self.current_temp
+
         for _ in range(n):
-            step(sec_per_iter)
+            cool_diff = cool_const * (current_temp - env_temp)
+            current_temp += cool_diff + heat_per_iter
+
+        self.seconds += n * sec_per_iter
+        self.current_temp = current_temp
 
     def step_till(self, temp):
         if not isinstance(temp, Decimal):
             temp = Decimal(temp)
         if self.current_temp > temp:
             return
-        next(i for i, t in self if t[1] > temp)
+        next(v for v in self if v[1] > temp)
+
+    def step_heat(self, hd, sec=default_increment):
+        self.heat_duty = hd
+        return self.step(sec)
 
 
-class Link():
+class PIDController():
 
-    __slots__ = ("val", "next")
+    def __init__(self, set_point=0, pgain=25, itime=5, dtime=0, automax=50, out_high=100, out_low=0, l=1, b=1):
+        self.out_low = out_low
+        self.out_high = out_high
+        self.set_point = D(set_point)
+        self.automax = Decimal(automax)
+        self.pgain = D(pgain)
+        self.itime = D(itime) * D('60')  # put itime in seconds
+        self.dtime = D(dtime)
 
-    def __init__(self, val=0):
+        self.L = l
+        self.B = b
+
+        self.max_error = self.out_high / self.pgain * self.itime
+        self.min_error = -self.max_error
+
+        self.abs_limit = abs(self.out_high)
+        self.accumulated_error = Decimal(0)
+        self.seconds = Decimal(0)
+        self.current_output = Decimal(0)
+
+
+
+    @property
+    def pgain(self):
+        return self._pgain
+
+    @pgain.setter
+    def pgain(self, val, D=Decimal, isinst=isinstance):
+        if not isinst(val, D):
+            val = D(val)
+        self._pgain = val
+
+    @property
+    def itime(self):
+        return self._itime
+
+    @itime.setter
+    def itime(self, val, D=Decimal, isinst=isinstance):
+        if not isinst(val, D):
+            val = D(val)
+        self._itime = val
+
+    @property
+    def dtime(self):
+        return self._dtime
+
+    @dtime.setter
+    def dtime(self, val, D=Decimal, isinst=isinstance):
+        if not isinst(val, D):
+            val = D(val)
+        self._dtime = val
+
+    @property
+    def set_point(self):
+        return self._set_point
+
+    @set_point.setter
+    def set_point(self, val, D=Decimal, isinst=isinstance):
+        if not isinst(val, D):
+            val = D(val)
+        self._set_point = val
+
+    @property
+    def accumulated_error(self):
+        return self._accumulated_error
+
+    @accumulated_error.setter
+    def accumulated_error(self, val, D=Decimal, isinst=isinstance):
+        if not isinst(val, D):
+            val = D(val)
+        if val > self.max_error:
+            val = self.max_error
+        elif val < self.min_error:
+            val = self.min_error
+        self._accumulated_error = val
+
+    def process_error(self, pv, dt):
+        e_t = self.set_point - pv
+        self.accumulated_error += dt * e_t
+        self.seconds += dt
+        return e_t
+
+    def calc_output(self, error):
+
+        Up = self.pgain * error
+        Ui = (self.pgain / self.itime) * self.accumulated_error
+
+        Uk = Up + Ui
+        if Uk > self.automax:
+            Uk = self.automax
+        elif Uk < self.out_low:
+            Uk = self.out_low
+        return Uk
+
+            # Derivative control not yet implemented
+
+    def step_output(self, pv, dt=D(1)):
         """
-        @type val: int
+        Side effects: increases accumulated error
+        @param pv: pv
+        @type pv: Decimal
+        @param dt: time difference
+        @type dt: Decimal
+        @return: new process output
+        @rtype: Decimal
         """
-        self.val = val
-        self.next = None
+        e_t = self.process_error(pv, dt)
+        output = self.calc_output(e_t)
+        self.current_output = min(output, self.automax)
+        return self.current_output
 
-
-class CircleBuf():
-
-    def __init__(self, size=30):
-        """
-        @param size: size of buffer
-        @type size: int
-        """
-        if not size or size < 0:
-            raise ValueError("Size must be >0")
-        self._size = size
-        first = Link()
-        next = prev = first
-        self.current = first
-        for _ in range(size - 1):
-            next = Link()
-            prev.next = next
-            prev = next
-        next.next = first
-
-    def test_iter(self):
-        first = self.current
-        print(first.val)
-        next = self.current.next
-        while next is not first:
-            print(next.val)
-            next = next.next
-
-    def __del__(self, *_):
-        """
-         Del method to free circular refs in the buffer
-        """
-        next = self.current
-        prev = next
-        while next is not None:
-            next = next.next
-            prev.next = None
-            prev = next
+    def __repr__(self):
+        return "Output: %.2f Pgain: %.1f Itime: %.2f AccumError: %.4f" % (self.current_output,
+                                                                          self.pgain,
+                                                                          self.itime,
+                                                                          self.accumulated_error
+                                                                          )
+    __str__ = __repr__
 
 
 def est_tp(hd1, hd2):
@@ -446,14 +582,22 @@ def est_both(hd1, hd2):
 
     return tend - tstart, dPV / dCO
 
+
 def main():
-    sim = TempSim(25, 20, 50)
-
-    sim.iterate(100000)
-    print(sim.current_temp)
-
+    pv = sim.current_temp
+    sec = D('1')
+    try:
+        while True:
+            hd = pid.step_output(pv, sec)
+            pv = sim.step_heat(hd, sec)[1]
+    except KeyboardInterrupt:
+        pass
 
 if __name__ == '__main__':
     # plot_fourier()
-    main()
+    sim = TempSim(25, 20, 0)
+    pid = PIDController(37, 40, 6)
+    pv = sim.current_temp
+    sec = D('1')
 
+    main()
