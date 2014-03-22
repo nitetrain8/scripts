@@ -12,7 +12,6 @@ from datetime import timedelta
 
 
 from collections import deque
-from itertools import repeat, starmap
 
 __author__ = 'Nathan Starkweather'
 
@@ -182,37 +181,38 @@ def print_ave_heats():
 class TempSim():
 
     # Degrees C per sec per tcur - tenv
-    passive_cooling_rate = Decimal('-0.00004428785379999')
-    # passive_cooling_rate = Decimal('-0.0000615198895')
+    # cooling_constant = Decimal('-0.00004428785379999')
+    cooling_constant = Decimal('-0.00004679011328')
+    # cooling_constant = Decimal('-0.0000615198895')
 
     # Degrees C per sec per % heat duty
-    active_heating_rate = Decimal('0.0001110589653')
+    heating_constant = Decimal('0.0001110589653')
 
     # in seconds
     default_increment = Decimal(1)
 
-    def __init__(self, tstart, tenv, heat_duty, cool_rate=None, heat_rate=None):
+    def __init__(self, start_temp, env_temp, heat_duty, cool_constant=None, heat_constant=None):
         """
-        @param tstart: start temp
-        @type tstart: numbers.Number
-        @param tenv: env temp
-        @type tenv: numbers.Number
+        @param start_temp: start temp
+        @type start_temp: numbers.Number
+        @param env_temp: env temp
+        @type env_temp: numbers.Number
         @param heat_duty: heat duty
         @type heat_duty: numbers.Number
-        @param cool_rate: cooling rate constant in degC/sec/dt
-        @type cool_rate: numbers.Number
-        @param heat_rate: heat rate constant in degC/sec/%heatduty
-        @type heat_rate: numbers.Number
+        @param cool_constant: cooling rate constant in degC/(sec*dt)
+        @type cool_constant: numbers.Number
+        @param heat_constant: heat rate constant in degC/(sec*%heatduty)
+        @type heat_constant: numbers.Number
         """
 
-        self.start_temp = tstart
-        self.current_temp = tstart
-        self.env_temp = tenv
+        self.start_temp = start_temp
+        self.current_temp = start_temp
+        self.env_temp = env_temp
 
-        if cool_rate is not None:
-            self.passive_cooling_rate = Decimal(cool_rate)
-        if heat_rate is not None:
-            self.active_heating_rate = Decimal(heat_rate)
+        if cool_constant is not None:
+            self.cooling_constant = Decimal(cool_constant)
+        if heat_constant is not None:
+            self.heating_constant = Decimal(heat_constant)
         self.seconds = 0
         self.heat_duty = heat_duty
 
@@ -295,14 +295,19 @@ class TempSim():
 
     def cool_diff(self, seconds=default_increment):
         tdiff = self._current_temp - self._env_temp
-        incr = self.passive_cooling_rate * tdiff * seconds
+        incr = self.cooling_constant * tdiff * seconds
         return incr
 
     def heat_diff(self, seconds=default_increment):
-        incr = self.active_heating_rate * seconds * self._heat_duty
+        incr = self.heating_constant * seconds * self._heat_duty
         return incr
 
     def step(self, seconds=default_increment):
+        """
+        @type seconds: decimal.Decimal
+        @return: decimal.Decimal
+        @rtype: (decimal.Decimal, decimal.Decimal)
+        """
         cool_diff = self.cool_diff(seconds)
         heat_diff = self.heat_diff(seconds)
         self.current_temp += cool_diff + heat_diff
@@ -323,35 +328,26 @@ class TempSim():
         sec_per_iter = Decimal(sec_per_iter)
 
         naive_heat_per_iter = self.heat_diff(sec_per_iter)
-        naive_cool_const = self.passive_cooling_rate * sec_per_iter
+        naive_cool_const = self.cooling_constant * sec_per_iter
         env_temp = self.env_temp
 
-        args = (sec_per_iter, naive_heat_per_iter, naive_cool_const, env_temp)
-        steps = list(starmap(self._naive_step, repeat(args, n)))
+        ct = self.current_temp
+        sec = self.seconds
+        steps = []
+        append = steps.append
+
+        for _ in range(n):
+            ct += naive_heat_per_iter + naive_cool_const * (ct - env_temp)
+            sec += sec_per_iter
+            append((sec, ct))
+
+        self.current_temp = ct
+        self.seconds = sec
+
         return steps
 
-    def _naive_step(self, sec, heat_per_iter, cool_const, env):
-        """
-        Slightly optimized inner loop helper for iterate() function
-        @param sec:
-        @type sec:
-        @param heat_per_iter:
-        @type heat_per_iter:
-        @param cool_const:
-        @type cool_const:
-        @param env:
-        @type env:
-        @return:
-        @rtype:
-        """
-        ct = self._current_temp
-        ct += heat_per_iter + cool_const * (ct - env)
-        self._current_temp = ct
-        self._seconds += sec
-
-        return self._seconds, ct
-
     def __repr__(self):
+        # noinspection PyStringFormat
         msg = """Start: %.1f HeatDuty: %.1f Current: %.3f Elapsed %d""" % (self.start_temp,
                                                                         self.heat_duty,
                                                                         self.current_temp,
@@ -379,7 +375,7 @@ class TempSim():
         sec_per_iter = Decimal(sec_per_iter)
 
         heat_per_iter = self.heat_diff(sec_per_iter)
-        cool_const = self.passive_cooling_rate * sec_per_iter
+        cool_const = self.cooling_constant * sec_per_iter
 
         env_temp = self.env_temp
         current_temp = self.current_temp
@@ -413,16 +409,25 @@ class PIDController():
         self.automax = Decimal(automax)
         self.pgain = D(pgain)
         self.itime = D(itime) * D('60')  # put itime in seconds
+        self.oneoveritime = 1 / self.itime  # used to calc integral time
         self.dtime = D(dtime)
 
         self.L = l
         self.B = b
 
-        self.abs_limit = abs(self.out_high)
         self.accumulated_error = Decimal(0)
         self.seconds = Decimal(0)
         self.current_output = Decimal(0)
 
+    @property
+    def oneoveritime(self):
+        return self._oneoveritime
+
+    @oneoveritime.setter
+    def oneoveritime(self, val, D=Decimal, isinst=isinstance):
+        if not isinst(val, D):
+            val = D(val)
+        self._oneoveritime = val
 
     @property
     def pgain(self):
@@ -485,7 +490,9 @@ class PIDController():
     def calc_output(self, error):
 
         Up = self.pgain * error
-        Ui = (1 / self.itime) * self.accumulated_error
+        Ui = self.oneoveritime * self.accumulated_error
+
+        # Derivative control not yet implemented
 
         Uk = Up + Ui
         # Uk = Ui
@@ -494,8 +501,6 @@ class PIDController():
         elif Uk < self.auto_min:
             Uk = self.auto_min
         return Uk
-
-            # Derivative control not yet implemented
 
     def step_output(self, pv, dt=D(1)):
         """
@@ -509,8 +514,8 @@ class PIDController():
         """
         e_t = self.process_error(pv, dt)
         output = self.calc_output(e_t)
-        self.current_output = min(output, self.automax)
-        return self.current_output
+        self.current_output = output
+        return output
 
     def __repr__(self):
         return "Output: %.2f Pgain: %.1f Itime: %.2f AccumError: %.4f" % (self.current_output,

@@ -6,6 +6,7 @@ Created in: PyCharm Community Edition
 
 
 """
+
 __author__ = 'Nathan Starkweather'
 
 
@@ -117,7 +118,7 @@ def plotsim(n=7200):
     except KeyError:
         pass
     from scripts.run.temp_sim import TempSim
-    sim = TempSim(D('37.04'), 19, 0)
+    sim = TempSim(D('37.115'), 19, 0)
     steps = sim.iterate(n)
     from officelib.xllib.xlcom import xlBook2
     xl, wb = xlBook2('PID.xlsx')
@@ -126,3 +127,90 @@ def plotsim(n=7200):
     cells = ws.Cells
     cells.Range(cells(2, 14), cells(len(steps) + 1, 15)).Value = [(str(t), str(v)) for t, v in steps]
 
+
+from officelib.xllib.xladdress import cellRangeStr
+from officelib.const import xlDown
+
+
+def get_regression(cells, startrow, startcol):
+
+    end_row = cells(startrow, startcol).End(xlDown).Row
+    xrange = cellRangeStr((startrow, startcol), (end_row, startcol))
+    yrange = cellRangeStr((startrow, startcol + 1), (end_row, startcol + 1))
+    linest_formula = "=linest(%s, %s)" % (yrange, xrange)
+    cells.Range(cells(startrow, startcol + 2), cells(startrow, startcol + 3)).FormulaArray = linest_formula
+    m = cells(startrow, startcol + 2).Value2
+    b = cells(startrow, startcol + 3).Value2
+    m = D(m)
+    b = D(b)
+    return m, b
+
+
+def supermath():
+    from officelib.xllib.xlcom import xlBook2
+
+    xl, wb = xlBook2("PID.xlsx")
+    ws = wb.Worksheets(2)
+    cells = ws.Cells
+    xl.Visible = False
+    n = 5400
+
+    # use excel to do regression work for us.
+    ref_m, ref_b = get_regression(cells, 2, 20)
+    refdata = [ref_m * i + ref_b for i in range(1, n + 1)]  # start at 1
+
+    print("ref m: %.6f" % ref_m, "ref b: %.6f" % ref_b)
+
+    c = D('-0.0000615198895')
+    start_temp = D('37.04')
+    best_diff = 9999999999
+    try:
+        while True:
+
+            steps = run_decay_test(n, start_temp, c)
+            strsteps = [(str(t), str(v)) for t, v in steps]
+            ws = wb.Worksheets(3)
+            cells = ws.Cells
+            cell_range = cells.Range
+
+            ls = len(steps)
+            cell_range(cells(1, 1), cells(ls, 2)).Value = strsteps
+            m, b = get_regression(cells, 1, 1)
+
+            print("c: %s" % c, "m: %.8f" % m, "b:  %.8f" % b)
+
+            pvs = [tpl[1] for tpl in steps]
+
+            diffs = map(D.__sub__, refdata, pvs)
+            totaldiff = sum(diffs)
+
+            if totaldiff < best_diff:
+                best_diff = totaldiff
+            else:
+                start_temp += totaldiff / len(pvs)
+
+            print("totaldiff: %.8f" % totaldiff)
+
+            c = (ref_m / m) * c
+            # start_temp += ref_b - b
+
+    except:
+        return c, m, b, start_temp
+    finally:
+        xl.Visible = True
+
+    return c, m, b, start_temp
+
+
+from scripts.run.temp_sim import TempSim
+
+
+def run_decay_test(n=5400, start_temp=D('37.04'), c=TempSim.cooling_constant):
+    """
+    @return:
+    @rtype:
+    """
+    sim = TempSim(start_temp, 19, 0, D(c))
+    steps = sim.iterate(n)
+
+    return steps

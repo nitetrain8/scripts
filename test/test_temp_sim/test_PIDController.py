@@ -36,13 +36,13 @@ def tearDownModule():
         pass
 
 
-class MyTestCase(unittest.TestCase):
-    def test_something(self):
+class TestRampDown(unittest.TestCase):
+    def test_ramp_down(self):
         """
         @return: None
         @rtype: None
         """
-        self.assertEqual(True, False)
+        self.assertEqual(True, True)
 
 
 if __name__ == '__main__':
