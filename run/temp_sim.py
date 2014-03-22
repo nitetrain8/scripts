@@ -186,8 +186,10 @@ class TempSim():
     # cooling_constant = Decimal('-0.0000615198895')
 
     # Degrees C per sec per % heat duty
-    heating_constant = Decimal('0.0001110589653')
+    heating_constant = Decimal('0.0001140')
 
+    # cooling_constant = Decimal('-0.00011')
+    heating_constant = Decimal('0.00010')
     # in seconds
     default_increment = Decimal(1)
 
@@ -402,7 +404,7 @@ class TempSim():
 class PIDController():
 
     def __init__(self, set_point=0, pgain=25, itime=5, dtime=0, automax=50, auto_min=0, out_high=100, out_low=0, l=1, b=1):
-        self.auto_min = auto_min
+        self.auto_min = D(auto_min)
         self.out_low = out_low
         self.out_high = out_high
         self.set_point = D(set_point)
@@ -418,6 +420,18 @@ class PIDController():
         self.accumulated_error = Decimal(0)
         self.seconds = Decimal(0)
         self.current_output = Decimal(0)
+
+    def auto_mode(self, pv):
+        """
+        Turn the reactor on in auto mode at pv
+
+        @param pv:
+        @type pv: decimal.Decimal
+        @return:
+        @rtype:
+        """
+        e_t = self.set_point - pv
+        self.accumulated_error = - e_t * self.pgain * self.itime
 
     @property
     def oneoveritime(self):
@@ -484,14 +498,16 @@ class PIDController():
         self.accumulated_error += dt * e_t
         self.seconds += dt
         # DEBUG
-        self._last_error = e_t
+        self.last_error = e_t
         return e_t
 
     def calc_output(self, error):
 
         Up = self.pgain * error
-        Ui = self.oneoveritime * self.accumulated_error
 
+        # nonlinear = 1 + (10 * error * error) / 10000
+        # Ui = self.oneoveritime * self.accumulated_error / nonlinear
+        Ui = self.oneoveritime * self.accumulated_error
         # Derivative control not yet implemented
 
         Uk = Up + Ui
@@ -565,7 +581,7 @@ def est_kp(hd1, hd2):
 def est_both(hd1, hd2):
     hd1 = Decimal(hd1)
     hd2 = Decimal(hd2)
-    sim = TempSim(25, 20, hd1)
+    sim = TempSim(37, 19, hd1)
     sim.quietiter(500000)
     temp1 = sim.current_temp
     tstart = sim.seconds

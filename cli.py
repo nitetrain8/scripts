@@ -92,15 +92,17 @@ def plotpid(n=15000):
     from scripts.run.temp_sim import TempSim, PIDController
 
     sim = TempSim(D('28.183533'), 19, 0)
-    pid = PIDController(37, 40, 6)
+    pid = PIDController(37, 40, D('0.55'))
+    # pid = PIDController(37, 40, 0.5)
+    pid.auto_mode(sim.current_temp)
 
     pv = sim.current_temp
+    #: @type: list[tuple[D]]
     steps = [('0', '0', '0', '0', '0') for _ in range(11)]
     for _ in range(n):
         hd = pid.step_output(pv)
         t, pv = sim.step_heat(hd)
-        # noinspection PyTypeChecker
-        steps.append((t, pv, pid._last_error, pid.accumulated_error, hd))
+        steps.append((t, pv, pid.last_error, pid.accumulated_error, hd))
 
     from officelib.xllib.xlcom import xlBook2
     xl, wb = xlBook2('PID.xlsx')
