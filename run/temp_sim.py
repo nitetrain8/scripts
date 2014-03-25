@@ -189,11 +189,12 @@ class TempSim():
     heating_constant = Decimal('0.0001140')
 
     # cooling_constant = Decimal('-0.00011')
-    heating_constant = Decimal('0.00010')
+    # heating_constant = Decimal('0.00010')
     # in seconds
     default_increment = Decimal(1)
 
-    def __init__(self, start_temp, env_temp, heat_duty, cool_constant=None, heat_constant=None):
+    def __init__(self, start_temp, env_temp, heat_duty,
+                 cool_constant=None, heat_constant=None):
         """
         @param start_temp: start temp
         @type start_temp: numbers.Number
@@ -420,6 +421,7 @@ class PIDController():
         self.accumulated_error = Decimal(0)
         self.seconds = Decimal(0)
         self.current_output = Decimal(0)
+        self.bump = Decimal(0)
 
     def auto_mode(self, pv):
         """
@@ -431,7 +433,17 @@ class PIDController():
         @rtype:
         """
         e_t = self.set_point - pv
-        self.accumulated_error = - e_t * self.pgain * self.itime
+        self.bump = - e_t * self.pgain
+
+    @property
+    def bump(self):
+        return self._bump
+
+    @bump.setter
+    def bump(self, val, D=Decimal, isinst=isinstance):
+        if not isinst(val, D):
+            val = D(val)
+        self._bump = val
 
     @property
     def oneoveritime(self):
@@ -505,12 +517,12 @@ class PIDController():
 
         Up = self.pgain * error
 
-        # nonlinear = 1 + (10 * error * error) / 10000
+        nonlinear = 1 + (10 * error * error) / 10000
         # Ui = self.oneoveritime * self.accumulated_error / nonlinear
         Ui = self.oneoveritime * self.accumulated_error
         # Derivative control not yet implemented
 
-        Uk = Up + Ui
+        Uk = Up + Ui + self.bump
         # Uk = Ui
         if Uk > self.automax:
             Uk = self.automax
@@ -578,27 +590,32 @@ def est_kp(hd1, hd2):
     return dPV / dCO
 
 
-def est_both(hd1, hd2):
+def est_both(hd1, hd2, st=D('37.115'), n=500000):
+
     hd1 = Decimal(hd1)
     hd2 = Decimal(hd2)
-    sim = TempSim(37, 19, hd1)
-    sim.quietiter(500000)
+    sim = TempSim(st, 19, hd1, D('-0.00004679011328'))
+
+    sim.quietiter(n)
     temp1 = sim.current_temp
     tstart = sim.seconds
     sim.heat_duty = hd2
-    bump_steps = sim.iterate(500000)
+
+    bump_steps = sim.iterate(n)
     temp2 = sim.current_temp
     dt = temp2 - temp1
     t63 = temp1 + dt * Decimal('0.63')
+
     if dt > 0:
-        cmp = lambda t: t > t63
+        cmp = t63.__lt__
     else:
-        cmp = lambda t: t < t63
+        cmp = t63.__gt__
+
     tend = next(i for i, t in bump_steps if cmp(t))
 
     dPV = temp2 - temp1
     dCO = hd2 - hd1
-    print(sim)
+
     return tend - tstart, dPV / dCO
 
 

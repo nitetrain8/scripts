@@ -224,6 +224,165 @@ class TestRampDownAccuracy(TempSimTestBase):
             diffs.append(abs_diff)
             self.assertLess(abs_diff, diff_limit)
 
+Decimal = D
+
+
+class SimArgs():
+
+    def __init__(self, start_temp, env_temp, heat_duty,
+                 cool_constant=TempSim.cooling_constant,
+                 heat_constant=TempSim.heating_constant,
+                 step_increment=0, nsteps=3000):
+
+        self.nsteps = nsteps
+        self.step_increment = step_increment
+        self.heating_constant = heat_constant
+        self.cooling_constant = cool_constant
+        self.heat_duty = heat_duty
+        self.env_temp = env_temp
+        self.start_temp = start_temp
+
+    @property
+    def start_temp(self):
+        return self._start_temp
+
+    @start_temp.setter
+    def start_temp(self, val, D=Decimal, isinst=isinstance):
+        if not isinst(val, D):
+            val = D(val)
+        self._start_temp = val
+
+    @property
+    def env_temp(self):
+        return self._env_temp
+
+    @env_temp.setter
+    def env_temp(self, val, D=Decimal, isinst=isinstance):
+        if not isinst(val, D):
+            val = D(val)
+        self._env_temp = val
+
+    @property
+    def heat_duty(self):
+        return self._heat_duty
+
+    @heat_duty.setter
+    def heat_duty(self, val, D=Decimal, isinst=isinstance):
+        if not isinst(val, D):
+            val = D(val)
+        self._heat_duty = val
+
+    @property
+    def cooling_constant(self):
+        return self._cooling_constant
+
+    @cooling_constant.setter
+    def cooling_constant(self, val, D=Decimal, isinst=isinstance):
+        if not isinst(val, D):
+            val = D(val)
+        self._cooling_constant = val
+
+    @property
+    def heating_constant(self):
+        return self._heating_constant
+
+    @heating_constant.setter
+    def heating_constant(self, val, D=Decimal, isinst=isinstance):
+        if not isinst(val, D):
+            val = D(val)
+        self._heating_constant = val
+
+    @property
+    def step_increment(self):
+        return self._step_increment
+
+    @step_increment.setter
+    def step_increment(self, val, D=Decimal, isinst=isinstance):
+        if not isinst(val, D):
+            val = D(val)
+        self._step_increment = val
+
+    def get_args(self):
+        return (self.start_temp, self.env_temp, self.heat_duty,
+                self.cooling_constant, self.heating_constant)
+
+    def get_step(self):
+        return self.nsteps, self.step_increment
+
+
+class RegressionTest(TempSimTestBase):
+
+    @classmethod
+    def setUpClass(cls):
+        """
+        @return:
+        @rtype:
+        """
+
+        cls.sim_args = [
+            SimArgs(25, 19, 7),
+            SimArgs(37, 19, 0),
+            SimArgs(25, 19, 7, '-0.0004'),
+            SimArgs(25, 19, 7, '-0.0007'),
+            SimArgs(25, 19, 7, "-0.0004", "0.0001"),
+            SimArgs(25, 19, 7, '-0.0007', '0.00014'),
+            SimArgs(25, 19, 7, step_increment=3)
+        ]
+
+        cls.regression_file = test_input + '\\regression\\regression_op.pickle'
+        from pickle import load
+
+        with open(cls.regression_file, 'rb') as f:
+            #: @type: list[SimArgs, list[D, D]]
+            cls.exp = load(f)
+
+        cls.cmp_prec = 8
+
+    def test_regression_output(self):
+        """
+        @return:
+        @rtype:
+        """
+
+        self.addTypeEqualityFunc(D, self.assertRoundDecimalEqual)
+
+        for args, result in self.exp:
+            init_args = args.get_args()
+            nsteps, step_size = args.get_step()
+            sim = TempSim(*init_args)
+
+            if step_size:
+                steps = sim.iterate(nsteps, step_size)
+            else:
+                steps = sim.iterate(nsteps)
+
+            self.assertEqual(result, steps)
+
+            # use SimArgs as a dummy TempSim to compare.
+            # Fill in missing attrs using steps data
+            args.seconds, args.current_temp = steps[-1]
+
+            # noinspection PyTypeChecker
+            self.assertTempSimEqual(args, sim)
+
+    def assertRoundDecimalEqual(self, exp, result, msg=None):
+        """
+        @param exp:
+        @type exp:
+        @param result:
+        @type result:
+        @param msg:
+        @type msg:
+        @return:
+        @rtype:
+        """
+        prec = self.cmp_prec
+        round_exp = round(exp, prec)
+        round_result = round(result, prec)
+
+        if not round_exp == round_result:
+            self.fail(msg)
+
 
 if __name__ == '__main__':
     unittest.main()

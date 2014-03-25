@@ -109,25 +109,159 @@ def plotpid(n=15000):
     ws = wb.Worksheets(2)
     cells = ws.Cells
 
-    cells.Range(cells(2, 14), cells(len(steps) + 1, len(steps[0]) + 13)).Value = \
-        [[str(x) for x in data] for data in steps]
+    firstcol = 19
+
+    cells.Range(cells(1, firstcol), cells(1, firstcol + 4)).Value = ("Time", "Temp", "LastErr", "AccumErr", "HeatDuty%")
+    cells.Range(cells(2, firstcol), cells(len(steps) + 1, len(steps[0]) + firstcol - 1)).Value = \
+        [tuple(map(str, data)) for data in steps]
 
 
-def plotsim(n=7200):
+def plotpid2(n=15000):
+    import sys
+
+    try:
+        del sys.modules['scripts.run.temp_sim']
+    except KeyError:
+        pass
+    from scripts.run.temp_sim import TempSim, PIDController
+
+    sim = TempSim(D('28.183533'), 19, 0)
+    pid = PIDController(37, 40, D('0.55'))
+    # pid = PIDController(37, 40, 0.5)
+    pid.auto_mode(sim.current_temp)
+
+    pv = sim.current_temp
+    #: @type: list[tuple[D]]
+    steps = [('0', '0', '0', '0', '0') for _ in range(11)]
+    for _ in range(n):
+        hd = pid.step_output(pv)
+        t, pv = sim.step_heat(hd)
+        steps.append((t, pv, pid.last_error, pid.accumulated_error, hd))
+
+    from officelib.xllib.xlcom import xlBook2
+
+    xl, wb = xlBook2('PID.xlsx')
+    ws = wb.Worksheets(2)
+    cells = ws.Cells
+
+    firstcol = 30
+
+    cells.Range(cells(1, firstcol), cells(1, firstcol + 4)).Value = (
+        "Time", "Temp", "LastErr", "AccumErr", "HeatDuty%")
+    cells.Range(cells(2, firstcol), cells(len(steps) + 1, len(steps[0]) + firstcol - 1)).Value = \
+        [tuple(map(str, data)) for data in steps]
+
+
+def plotpid3(n=7202 - 11, p=40, i=D('6'), d=0):
+    import sys
+
+    try:
+        del sys.modules['scripts.run.temp_sim']
+    except KeyError:
+        pass
+    from scripts.run.temp_sim import TempSim, PIDController
+
+    sim = TempSim(D('28.183533'), 19, 0)
+    pid = PIDController(37, p, i, d)
+    # pid = PIDController(37, 40, 0.5)
+    pid.auto_mode(sim.current_temp)
+
+    pv = sim.current_temp
+    #: @type: list[tuple[D]]
+    steps = [('0', '0', '0', '0', '0') for _ in range(11)]
+    for _ in range(n):
+        hd = pid.step_output(pv)
+        t, pv = sim.step_heat(hd)
+        steps.append((t, pv, pid.last_error, pid.accumulated_error, hd))
+
+    from officelib.xllib.xlcom import xlBook2
+
+    xl, wb = xlBook2('PID.xlsx')
+    ws = wb.Worksheets(2)
+    cells = ws.Cells
+
+    firstcol = 44
+
+    cells.Range(cells(1, firstcol), cells(1, firstcol + 4)).Value = (
+        "Time", "Tempp%di%.1f" % (p, i), "LastErr", "AccumErr", "HeatDuty%")
+    cells.Range(cells(2, firstcol), cells(len(steps) + 1, len(steps[0]) + firstcol - 1)).Value = \
+        [tuple(map(str, data)) for data in steps]
+
+    print(sim)
+    print(pid)
+
+def check():
+    import sys
+    n = 15000
+    try:
+        del sys.modules['scripts.run.temp_sim']
+    except KeyError:
+        pass
+    from scripts.run.temp_sim import TempSim, PIDController
+
+    sim = TempSim(D('28.183533'), 19, 0)
+    pid = PIDController(37, 40, D('0.55'))
+
+    pid.auto_mode(sim.current_temp)
+
+    pv = sim.current_temp
+    #: @type: list[tuple[D]]
+    steps1 = []
+    ap = steps1.append
+    for _ in range(n):
+        hd = pid.step_output(pv)
+        t, pv = sim.step_heat(hd)
+        ap((t, pv))
+
+    sim = TempSim(D('28.183533'), 19, 0)
+
+    def auto_mode(self, pv):
+        e_t = self.set_point - pv
+        self.accumulated_error = - e_t * self.pgain * self.itime
+
+    PIDController.auto_mode = auto_mode
+
+    pid = PIDController(37, 40, D('0.55'))
+
+    pid.auto_mode(sim.current_temp)
+
+    pv = sim.current_temp
+    #: @type: list[tuple[D]]
+    steps2 = []
+    ap = steps2.append
+    for _ in range(n):
+        hd = pid.step_output(pv)
+        t, pv = sim.step_heat(hd)
+        ap((t, pv))
+
+    from decimal import Context
+    ctxt = Context(prec=3)
+
+    def eq(one, two, ctxt=ctxt, compare=D.compare):
+        return not (compare(one[0], two[0], ctxt) and compare(one[1], two[1], ctxt))
+
+    diff = [(i, one, two) for i, (one, two) in enumerate(zip(steps1, steps2)) if not eq(one, two)]
+    return diff
+
+
+def plotsim(n=7200, c=D('-0.00004679011328')):
     try:
         import sys
         del sys.modules['scripts.run.temp_sim']
     except KeyError:
         pass
     from scripts.run.temp_sim import TempSim
-    sim = TempSim(D('37.115'), 19, 0)
+    sim = TempSim(D('37.115'), 19, 0, c)
     steps = sim.iterate(n)
     from officelib.xllib.xlcom import xlBook2
     xl, wb = xlBook2('PID.xlsx')
 
     ws = wb.Worksheets(2)
     cells = ws.Cells
-    cells.Range(cells(2, 14), cells(len(steps) + 1, 15)).Value = [(str(t), str(v)) for t, v in steps]
+
+    firstcol = 19
+
+    cells.Range(cells(2, firstcol), cells(len(steps) + 1, firstcol + 1)).Value = [(str(t), str(v)) for t, v in steps]
 
 
 from officelib.xllib.xladdress import cellRangeStr
@@ -216,3 +350,137 @@ def run_decay_test(n=5400, start_temp=D('37.04'), c=TempSim.cooling_constant):
     steps = sim.iterate(n)
 
     return steps
+
+
+def manyboth():
+    import sys
+    try:
+        del sys.modules['scripts.run.temp_sim']
+    except KeyError:
+        pass
+    from scripts.run.temp_sim import TempSim
+    from random import uniform
+    Decimal = D
+    rnd_2_const = Decimal('-1e-5')
+    repr_quant = Decimal("1.00000000000")
+    tcs = []
+    kps = []
+    cs = []
+
+    hd1 = Decimal(6.8)
+    hd2 = Decimal(0)
+
+    try:
+        while True:
+
+            rnd = uniform(4, 7.5)
+            cconst = Decimal(rnd) * rnd_2_const
+            sim = TempSim(D('37.114'), 19, hd1, cconst)
+
+            sim.quietiter(250000)
+            temp1 = sim.current_temp
+            tstart = sim.seconds
+            sim.heat_duty = hd2
+
+            bump_steps = sim.iterate(250000)
+            temp2 = sim.current_temp
+            dt = temp2 - temp1
+
+            t63 = temp1 + dt * Decimal('0.63')
+            if dt > 0:
+                cmp = t63.__lt__
+            else:
+                cmp = t63.__gt__
+
+            tend = next(i for i, t in bump_steps if cmp(t))
+            dPV = temp2 - temp1
+            dCO = hd2 - hd1
+
+            tc = tend - tstart
+            kp = dPV / dCO
+            tcs.append(tc)
+            kps.append(kp)
+            cs.append(sim.cooling_constant)
+
+            print("Const:", sim.cooling_constant.quantize(repr_quant), "Ti:", int(tc), "Kp:", kp.quantize(repr_quant))
+    except KeyboardInterrupt:
+        return list(zip(cs, tcs, kps))
+        # pass
+
+
+def howlong(n=0, ref_n=1000000, st=D("37.115")):
+    import sys
+    try:
+        del sys.modules['scripts.run.temp_sim']
+    except KeyError:
+        pass
+    from scripts.run.temp_sim import est_both
+
+    print("Generating ref data...")
+    ref_ti, _ = est_both(6.8, 0, st, ref_n)
+    ti = 0
+
+    print("Ref info: Ti: %d with %d iterations" % (ref_ti, ref_n))
+
+    while ti < ref_ti:
+        n += 50000
+        print("Testing %d iterations" % n)
+        ti, _ = est_both(6.8, 0, st, n)
+        print("Result: %d" % ti)
+
+    print("Minimum estimated iterations for accuracy: %d" % n)
+
+
+def supermath2():
+    import sys
+    try:
+        del sys.modules['scripts.run.temp_sim']
+    except KeyError:
+        pass
+    from officelib.xllib.xlcom import xlBook2
+    xl, wb = xlBook2("PID.xlsx")
+
+    ws = wb.Worksheets(2)
+    #: @type: officelib.xllib.typehint.th0x1x6.Range.Range
+    cells = ws.Cells
+    cell_range = cells.Range
+    startcell = cells(2, 11)
+    endcell = cells(startcell.End(xlDown).Row, 12)
+    refdata = cell_range(startcell, endcell).Value2
+
+    end = int(refdata[-1][0])
+    testdata = [None] * end
+    i = 0
+    rd = iter(refdata)
+    t_last, pv_last = next(rd)
+    t_next, pv_next = next(rd)
+
+    t_last = int(t_last)
+    pv_last = float(pv_last)
+    t_next = int(t_next)
+    pv_next = float(pv_next)
+
+    testdata[0] = t_last
+
+    while i < end:
+        t_diff = t_next - t_last
+        pv_diff = pv_next - pv_last
+        while i < t_next - 1:
+            try:
+                testdata[i] = ((i - t_last) / t_diff) * pv_diff + pv_last
+            except IndexError:
+                print(i, len(testdata), len(refdata), t_next)
+                raise
+            i += 1
+        if i >= end:
+            break
+        i += 1
+        testdata[i] = t_next
+        t_last, pv_last = t_next, pv_next
+        t_next, pv_next = next(rd)
+
+    return testdata
+
+
+
+
