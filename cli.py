@@ -352,6 +352,196 @@ def run_decay_test(n=5400, start_temp=D('37.04'), c=TempSim.cooling_constant):
     return steps
 
 
+def nextlinething():
+    lines = ["foo", '', '', "bar", '', "baz", 0, "bob"]
+    liter = iter(lines)
+    line = ''
+    lineno = 0
+
+    def next_line():
+        nonlocal line, lineno, liter
+        line = next(liter, None)
+        while not line:
+            line = next(liter, None)
+            lineno += 1
+        return line is not None
+
+    while next_line():
+        print(line, lineno)
+
+
+def reload():
+    import sys
+    try:
+        del sys.modules['scripts.cli']
+    except:
+        pass
+    g = sys.modules['__main__'].__dict__
+    exec("from scripts.cli import*", g, g)
+
+
+
+# globalconst- iter, range, next, StopIteration, Decimal (D), print
+
+
+def trycontext(n=100000):
+
+    while True:
+        from time import perf_counter as timer
+        i = iter(range(n))
+        t1 = timer()
+        while True:
+            try:
+                next(i)
+            except StopIteration:
+                break
+        t2 = timer()
+        # print("small try", t2 - t1)
+        i = iter(range(n))
+        t3 = timer()
+        try:
+            while True:
+                next(i)
+        except StopIteration:
+            pass
+        t4 = timer()
+
+        tsmall = D(t2) - D(t1)
+        tbig = D(t4) - D(t3)
+
+        fastest = "Small Try" if tsmall < tbig else "Big Try"
+
+        print("small try %.8f" % tsmall, "big try %.8f" % tbig, "fastest:", fastest, "%%%.1f" % ((tsmall-tbig)/tsmall * 100))
+
+
+import ast
+import opcode
+import dis
+
+class MyVisitor(ast.NodeVisitor):
+    def generic_visit(self, node):
+        print(node)
+        for attr in dir(node):
+            try:
+                print(getattr(node, attr))
+            except Exception as e:
+                print("Getattr exception", e)
+
+
+def hackee(foo):
+    length = len(foo)
+    print(length)
+    bar = next(foo)
+    foo.baz()
+    return bar
+
+
+def hack(f=hackee):
+    """
+    @type f: types.FunctionType
+    """
+    print(f)
+    #: @type: types.CodeType
+    code = f.__code__
+    for attr in dir(code):
+        if not attr.startswith('__'):
+            print(attr, getattr(code, attr))
+
+    LOAD_FAST = dis.opmap['LOAD_FAST']
+    i = 0
+    # for x in code.co_code:
+    #     if x == LOAD_FAST:
+    #         print(code)
+    #         name = code.co_consts[code.co_code[i + 1]]
+    #         print(x, dis.opname[x], name)
+    #     i += 1
+
+
+def c1(_len=len):
+    a = [1, 2, 3]
+    b = (1, 2, 3)
+    _len(b)
+    return a
+
+
+
+a = b = c = None
+
+
+def disassemble(co, lasti=-1):
+    """Disassemble a code object."""
+    code = co.co_code
+    labels = dis.findlabels(code)
+    linestarts = dict(dis.findlinestarts(co))
+    n = len(code)
+    i = 0
+    extended_arg = 0
+    free = None
+    while i < n:
+        print("DEBUG I IS", i, end='')
+        op = code[i]
+        if i in linestarts:
+            if i > 0:
+                print()
+            print("%3d" % linestarts[i], end=' ')
+        else:
+            print('   ', end=' ')
+
+        if i == lasti: print('-->', end=' ')
+        else: print('   ', end=' ')
+        if i in labels: print('>>', end=' ')
+        else: print('  ', end=' ')
+        print(repr(i).rjust(4), end=' ')
+        print(opcode.opname[op].ljust(20), end=' ')
+        i = i+1
+        if op >= opcode.HAVE_ARGUMENT:
+            oparg = code[i] + code[i+1]*256 + extended_arg
+            extended_arg = 0
+            i = i+2
+            if op == opcode.EXTENDED_ARG:
+                extended_arg = oparg*65536
+            print(repr(oparg).rjust(5), end=' ')
+            if op in opcode.hasconst:
+                print('(' + repr(co.co_consts[oparg]) + ')', end=' ')
+            elif op in opcode.hasname:
+                print('(' + co.co_names[oparg] + ')', end=' ')
+            elif op in opcode.hasjrel:
+                print('(to ' + repr(i + oparg) + ')', end=' ')
+            elif op in opcode.haslocal:
+                print('(' + co.co_varnames[oparg] + ')', end=' ')
+            elif op in opcode.hascompare:
+                print('(' + opcode.cmp_op[oparg] + ')', end=' ')
+            elif op in opcode.hasfree:
+                if free is None:
+                    free = co.co_cellvars + co.co_freevars
+                print('(' + free[oparg] + ')', end=' ')
+            elif op in opcode.hasnargs:
+                print('(%d positional, %d keyword pair)'
+                      % (code[i-2], code[i-1]), end=' ')
+        print()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 def manyboth():
     import sys
     try:
