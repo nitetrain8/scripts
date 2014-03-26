@@ -431,12 +431,16 @@ def howlong(n=0, ref_n=1000000, st=D("37.115")):
     print("Minimum estimated iterations for accuracy: %d" % n)
 
 
+def fudge(i, pv_next, pv_prev, t_next, t_prev):
+    return (D(i - t_prev) / D(t_next - t_prev)) * D(pv_next - pv_prev) + pv_prev
+
+
 def supermath2():
     import sys
-    try:
-        del sys.modules['scripts.run.temp_sim']
-    except KeyError:
-        pass
+    # try:
+    #     del sys.modules['scripts.run.temp_sim']
+    # except KeyError:
+    #     pass
     from officelib.xllib.xlcom import xlBook2
     xl, wb = xlBook2("PID.xlsx")
 
@@ -448,39 +452,243 @@ def supermath2():
     endcell = cells(startcell.End(xlDown).Row, 12)
     refdata = cell_range(startcell, endcell).Value2
 
-    end = int(refdata[-1][0])
-    testdata = [None] * end
-    i = 0
-    rd = iter(refdata)
-    t_last, pv_last = next(rd)
-    t_next, pv_next = next(rd)
+    times, pvs = zip(*refdata)
+    times = tuple(map(int, times))
+    pvs = tuple(map(D, pvs))
 
-    t_last = int(t_last)
-    pv_last = float(pv_last)
-    t_next = int(t_next)
-    pv_next = float(pv_next)
+    t_start = times[0]
+    t_end = times[-1]
+    pv_start = pvs[0]
 
-    testdata[0] = t_last
+    testdata = [pv_start for _ in range(t_start)]
+    testdata.extend(0 for _ in range(t_end - t_start + 1))
 
-    while i < end:
-        t_diff = t_next - t_last
-        pv_diff = pv_next - pv_last
-        while i < t_next - 1:
-            try:
-                testdata[i] = ((i - t_last) / t_diff) * pv_diff + pv_last
-            except IndexError:
-                print(i, len(testdata), len(refdata), t_next)
-                raise
+    data = zip(times, pvs)
+    t_prev, pv_prev = next(data)
+    i = t_prev
+    testdata[i] = pv_prev
+
+    for t_next, pv_next in data:
+        i = t_prev
+        testdata[i] = pv_prev
+
+        while i < t_next:
             i += 1
-        if i >= end:
-            break
-        i += 1
-        testdata[i] = t_next
-        t_last, pv_last = t_next, pv_next
-        t_next, pv_next = next(rd)
+            testdata[i] = fudge(i, pv_next, pv_prev, t_next, t_prev)
+
+        t_prev = t_next
+        pv_prev = pv_next
 
     return testdata
 
 
+def superplot2():
+    testdata = supermath2()
+    xldata = tuple((t, pv) for t, pv in enumerate(map(str, testdata)))
+    ltd = len(testdata)
+
+    from pickle import load
+    with open("C:\\\\Users\\PBS Biotech\\Documents\\Personal\\PBS_Office\\MSOffice\\scripts\\run\\data\\ref_real.pickle", 'rb') as f:
+        cached = load(f)
+
+    print(all(a == b for a, b in zip(testdata, cached)))
+
+    # from officelib.xllib.xlcom import xlBook2
+    # xl, wb = xlBook2("PID.xlsx")
+    # ws = wb.Worksheets(3)
+    # cells = ws.Cells
+
+    firstcol = 1
+    # print("Function disabled to avoid overriding data")
+    # cells.Range(cells(2, firstcol), cells(ltd + 1, firstcol + 1)).Value = testdata
+
+from itertools import repeat
 
 
+def plot(x, y, *args):
+    from matplotlib import pyplot as plt
+    plt.scatter(x, y)
+    errors = []
+    if args:
+        for arg in args:
+            try:
+                plt.plot(arg)
+            except Exception as e:
+                errors.append(e)
+    if errors:
+        print("Errors found:")
+        print(*errors, sep='\n')
+
+    plt.show()
+
+
+def manyplot(n=100, temp=37):
+
+    from matplotlib import pyplot as plt
+    from scripts.run.temp_sim import HeatSink
+
+    xdata = tuple(range(n))
+    ydata = tuple(temp for _ in range(n))
+
+    plt.scatter(xdata, ydata, label='ref')
+    step = HeatSink.step
+
+    for rate100 in range(2, 10, 1):
+
+        rate = rate100 / 100
+        sink = HeatSink(rate)
+
+        ydata = [step(sink, temp) for _ in range(n)]
+        plt.plot(ydata, label='%d' % rate100)
+        print(sink.current)
+
+    plt.show()
+
+
+def process(sim, pid, n=9532):
+    """
+    @param sim:
+    @type sim: scripts.run.temp_sim.TempSim
+    @param pid:
+    @type pid: scripts.run.temp_sim.PIDController
+    @param n:
+    @type n:
+    @return:
+    @rtype:
+    """
+    pv = sim.current_temp
+    pid.auto_mode(pv)
+
+    simstep = sim.step_heat
+    pidstep = pid.step_output
+
+    times = [None] * n
+    pvs = [None] * n
+    hds = [None] * n
+
+    for i in range(n):
+        hd = pidstep(pv)
+        t, pv = simstep(hd)
+        times[i] = t
+        pvs[i] = pv
+        hds[i] = hd
+
+    return times, pvs
+
+
+ref_data = None
+
+
+def supermath3(delay=0, leak_max=1):
+    import sys
+    try:
+        del sys.modules['scripts.run.temp_sim']
+    except KeyError:
+        pass
+    from scripts.run.temp_sim import TempSim, PIDController
+
+    from pickle import load
+    reffile = "C:\\Users\\PBS Biotech\\Documents\\Personal\\PBS_Office\\MSOffice\\scripts\\run\\data\\ref_real.pickle"
+    global ref_data
+    if ref_data is None:
+        with open(reffile, 'rb') as f:
+            ref_data = load(f)
+
+    pid_kwargs = {
+        'pgain' : 40,
+        'itime' : .5,
+        }
+
+    sim_kwargs = {
+        'start_temp' : (D('28.18353')),
+        'env_temp' : 19,
+        'cool_constant' : TempSim.cooling_constant,
+        'heat_constant' : TempSim.heating_constant,
+        'delay' : delay,
+        'leak_max' : leak_max
+    }
+
+    sim = TempSim(**sim_kwargs)
+    pid = PIDController(37, **pid_kwargs)
+
+    times, pvs = process(sim, pid)
+    return times, pvs
+    # xldata = tuple(zip(map(str, times), map(str, pvs)))
+    # plotxl(19, xldata)
+    #
+    # sub = D.__sub__
+    #
+    # totaldiff = sum(map(abs, map(sub, ref_data, pvs)))
+    # print("Delay:", sim_kwargs['delay'], end=' ')
+    # print("Totaldiff:", totaldiff, end=' ')
+    # print("Ave_diff:", totaldiff / len(ref_data))
+    #
+    # return totaldiff
+
+
+    # plot(times, pvs, ref_data)
+
+def plotxl(firstcol, data):
+    from officelib.xllib.xlcom import xlBook2
+    xl, wb = xlBook2("PID.xlsx")
+    ws = wb.Worksheets(2)
+    cells = ws.Cells
+
+    startcell = cells(2, firstcol)
+    endcell = cells(len(data) + 1, firstcol + 1)
+
+    cells.Range(startcell, endcell).Value = data
+
+
+def profile(cmd):
+    from cProfile import run
+    from pstats import Stats
+
+    from tempfile import NamedTemporaryFile
+    tmpfile = NamedTemporaryFile().name
+
+    from os.path import dirname
+    statsfile = dirname(__file__) + "\\stats.txt"
+
+    run(cmd, tmpfile)
+    with open(statsfile, 'w') as f:
+        s = Stats(tmpfile, stream=f)
+
+        s.sort_stats('time')
+        s.print_stats(0.2)
+
+    from os import startfile, remove
+    startfile(statsfile)
+    remove(statsfile)
+
+
+def manysuper3():
+    d = 0
+    last = 99999999999
+    totaldiff = 0
+    from officelib.xllib.xlcom import xlBook2
+    xl, wb = xlBook2("PID.xlsx")
+    cell = wb.Worksheets(1).Cells.Range("C8")
+    try:
+        while True:
+            totaldiff = supermath3(d)
+            cell.Value = d
+            d += 10
+    except KeyboardInterrupt:
+        pass
+
+    return d, totaldiff
+
+
+def test_leak():
+    data = []
+
+    times, pvs = supermath3(leak_max=0)
+    data.append(times)
+    data.append(pvs)
+    for r in range(1, 11):
+        rate = D(r) / 10
+        _, pvs = supermath3(leak_max=rate)
+        data.append(pvs)
+
+    plot(*data)

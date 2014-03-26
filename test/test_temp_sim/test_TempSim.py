@@ -37,7 +37,7 @@ def tearDownModule():
         pass
 
 
-from scripts.run.temp_sim import TempSim
+from scripts.run.temp_sim import TempSim, PIDController
 
 
 class TempSimTestBase(unittest.TestCase):
@@ -232,8 +232,9 @@ class SimArgs():
     def __init__(self, start_temp, env_temp, heat_duty,
                  cool_constant=TempSim.cooling_constant,
                  heat_constant=TempSim.heating_constant,
-                 step_increment=0, nsteps=3000):
+                 delay=0, step_increment=0, nsteps=3000):
 
+        self.delay = delay
         self.nsteps = nsteps
         self.step_increment = step_increment
         self.heating_constant = heat_constant
@@ -304,7 +305,7 @@ class SimArgs():
 
     def get_args(self):
         return (self.start_temp, self.env_temp, self.heat_duty,
-                self.cooling_constant, self.heating_constant)
+                self.cooling_constant, self.heating_constant, self.delay)
 
     def get_step(self):
         return self.nsteps, self.step_increment
@@ -329,6 +330,7 @@ class RegressionTest(TempSimTestBase):
             SimArgs(25, 19, 7, step_increment=3)
         ]
 
+        cls.regression_folder = test_input + '\\regression'
         cls.regression_file = test_input + '\\regression\\regression_op.pickle'
         from pickle import load
 
@@ -346,7 +348,9 @@ class RegressionTest(TempSimTestBase):
 
         self.addTypeEqualityFunc(D, self.assertRoundDecimalEqual)
 
+        # results = []
         for args, result in self.exp:
+            args.delay = 0
             init_args = args.get_args()
             nsteps, step_size = args.get_step()
             sim = TempSim(*init_args)
@@ -357,6 +361,7 @@ class RegressionTest(TempSimTestBase):
                 steps = sim.iterate(nsteps)
 
             self.assertEqual(result, steps)
+            # results.append((args, steps))
 
             # use SimArgs as a dummy TempSim to compare.
             # Fill in missing attrs using steps data
@@ -364,6 +369,9 @@ class RegressionTest(TempSimTestBase):
 
             # noinspection PyTypeChecker
             self.assertTempSimEqual(args, sim)
+
+        # from pysrc.snippets import safe_pickle
+        # safe_pickle(results, self.regression_file)
 
     def assertRoundDecimalEqual(self, exp, result, msg=None):
         """
@@ -382,6 +390,51 @@ class RegressionTest(TempSimTestBase):
 
         if not round_exp == round_result:
             self.fail(msg)
+
+    def run_process(self, sim, pid, n):
+        pv = sim.current_temp
+        pid.auto_mode(pv)
+        result = []
+        ap = result.append
+        for _ in range(n):
+            hd = pid.step_output(pv)
+            t, pv = sim.step_heat(pv)
+            ap((t, pv, hd))
+        return result
+
+
+    def test_delay_buf_sink(self):
+        """
+        make sure that delay of 0 and heat sink of 100% leak rate
+        both result in identical results as old thingy.
+        @return:
+        @rtype:
+        """
+        ref = self.regression_folder + '\\ref_delay1.pickle'
+
+        from pickle import load as pload
+
+        with open(ref, 'rb') as f:
+            exp = pload(f)
+
+        sim = TempSim(28, 19, 0, delay=0)
+        pid = PIDController(37, 40, 0.5)
+
+        result = self.run_process(sim, pid, 9500)
+
+        for exp_pt, res_pt in zip(exp, result):
+            self.assertEqual(exp_pt, res_pt)
+
+        sim = TempSim(28, 19, 0, delay=0)
+        pid = PIDController(37, 40, 0.5)
+
+        # result = self.run_process(sim, pid, 9500)
+
+        # from pysrc.snippets import safe_pickle
+        # safe_pickle(result, test_input + '\\regression\\ref_delay.pickle')
+
+
+
 
 
 if __name__ == '__main__':

@@ -32,6 +32,7 @@ test_input = join(curdir, "data")
 class TestEvalSteps(TPIDUnittest):
 
     xl_need_closing = []
+
     @classmethod
     def setUpClass(cls):
         """
@@ -75,7 +76,7 @@ class TestEvalSteps(TPIDUnittest):
         res_wb = tpidmany.tpid_eval_full_scan(data, steps, 7)
         self.xl_need_closing.append(res_wb.Parent)
 
-        xl, wb, ws, cells = xlObjs(self.exp_full_result, visible=False, verbose=False)
+        xl, wb, ws, cells = xlObjs(self.exp_full_result, visible=False)
         self.xl_need_closing.append(xl)
 
         result = res_wb.Worksheets(1).UsedRange.Value2

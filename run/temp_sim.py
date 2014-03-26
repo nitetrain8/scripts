@@ -9,6 +9,7 @@ Created in: PyCharm Community Edition
 from decimal import Decimal
 D = Decimal
 from datetime import timedelta
+from itertools import repeat
 
 
 from collections import deque
@@ -177,6 +178,46 @@ def print_ave_heats():
     print("ave", sum(heats) / len(heats))
 
 
+class DelayBuffer(deque):
+
+    def __init__(self, delay=30):
+        super().__init__(repeat(D(0), delay + 1))
+
+    def cycle(self, hd):
+        self[0] = hd
+        self.rotate(1)
+        return self[0]
+
+
+class HeatSink():
+
+    dbg_buf = []
+
+    def __init__(self, leak_max=D('0.8')):
+        # if not 0 <= leak_rate <= 1:
+        #     raise ValueError("leak_rate invalid")
+        # self.leak_rate = D(leak_rate)
+        self.current = D(0)
+        self.max = leak_max
+
+    def step(self, val):
+        self.current += val
+        leak = self.current * self.leak_rate
+        self.current -= leak
+        return leak
+
+    def step2(self, val):
+        c = self.current
+        raw_incr = c + val
+        m = self.magic
+        calc_incr = m(raw_incr) - m(c)
+        self.current += calc_incr
+        return max(val - calc_incr, 0)
+
+    def magic(self, t):
+        return t / (t + 1) * self.max
+
+
 # noinspection PyRedeclaration
 class TempSim():
 
@@ -193,8 +234,9 @@ class TempSim():
     # in seconds
     default_increment = Decimal(1)
 
-    def __init__(self, start_temp, env_temp, heat_duty,
-                 cool_constant=None, heat_constant=None):
+    def __init__(self, start_temp=25, env_temp=19, heat_duty=0,
+                 cool_constant=cooling_constant, heat_constant=heating_constant,
+                 delay=0, leak_max=100):
         """
         @param start_temp: start temp
         @type start_temp: numbers.Number
@@ -212,12 +254,14 @@ class TempSim():
         self.current_temp = start_temp
         self.env_temp = env_temp
 
-        if cool_constant is not None:
-            self.cooling_constant = Decimal(cool_constant)
-        if heat_constant is not None:
-            self.heating_constant = Decimal(heat_constant)
+        self.cooling_constant = Decimal(cool_constant)
+        self.heating_constant = Decimal(heat_constant)
+
         self.seconds = 0
         self.heat_duty = heat_duty
+
+        self.delay_buf = DelayBuffer(delay)
+        self.sink = HeatSink(leak_max)
 
     # Properties used to simplify the process of ensuring that all internal
     # numeric processing is done via Decimal. Use setters to automatically
@@ -303,6 +347,7 @@ class TempSim():
 
     def heat_diff(self, seconds=default_increment):
         incr = self.heating_constant * seconds * self._heat_duty
+        incr = self.sink.step2(incr)
         return incr
 
     def step(self, seconds=default_increment):
@@ -398,13 +443,15 @@ class TempSim():
         next(v for v in self if v[1] > temp)
 
     def step_heat(self, hd, sec=default_increment):
+        hd = self.delay_buf.cycle(hd)
         self.heat_duty = hd
         return self.step(sec)
 
 
 class PIDController():
 
-    def __init__(self, set_point=0, pgain=25, itime=5, dtime=0, automax=50, auto_min=0, out_high=100, out_low=0, l=1, b=1):
+    def __init__(self, set_point=0, pgain=25, itime=5, dtime=0, automax=50,
+                 auto_min=0, out_high=100, out_low=0, l=None, b=None):
         self.auto_min = D(auto_min)
         self.out_low = out_low
         self.out_high = out_high
@@ -415,6 +462,8 @@ class PIDController():
         self.oneoveritime = 1 / self.itime  # used to calc integral time
         self.dtime = D(dtime)
 
+        assert l is None, "Not Implemented"
+        assert b is None, "Not Implemented"
         self.L = l
         self.B = b
 

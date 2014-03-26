@@ -967,7 +967,7 @@ def full_open_eval_steps_report(steps_report):
     if path_exists(cache_name) and _cache_valid(steps_report, cache_name):
         tests = unpickle_info(cache_name)
     else:
-        steps_report = getFullFilename(steps_report, verbose=False)
+        steps_report = getFullFilename(steps_report)
         tests = tpid_eval_steps_scan(steps_report)
         pickle_info(tests, cache_name)
 

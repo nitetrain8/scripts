@@ -33,7 +33,7 @@ class FullTpidManyTest(unittest.TestCase):
         outfile = full_scan_result1
 
         from officelib.xllib.xlcom import xlObjs
-        xl, wb, ws, cells = xlObjs(outfile, visible=False, verbose=False)
+        xl, wb, ws, cells = xlObjs(outfile, visible=False)
         self.expected_output = wb.Worksheets("Sheet1").UsedRange.Value2
 
         wb.Close(False)
