@@ -6,12 +6,22 @@ Created in: PyCharm Community Edition
 
 
 """
+from officelib.const.const import xlByRows
 
 __author__ = 'Nathan Starkweather'
 
-
 from decimal import Decimal as D
 from time import perf_counter as _timer
+
+
+def reload_wrapper(f):
+
+    from functools import wraps
+    @wraps(f)
+    def func(*args, **kwargs):
+        reload()
+        return f(*args, **kwargs)
+    return func
 
 
 def y_of_t(tf, y0=D(25), incr=D(1), Kp=D('2.47938'), A=D('5'), tp=D(22000)):
@@ -27,7 +37,7 @@ def y_of_t(tf, y0=D(25), incr=D(1), Kp=D('2.47938'), A=D('5'), tp=D(22000)):
     while t < tf:
         e_exp = -t / tp
         parg = one - e_exp.exp()
-        yt = A*Kp*parg
+        yt = A * Kp * parg
         yt += y0
         yield t, yt
         t += incr
@@ -35,7 +45,6 @@ def y_of_t(tf, y0=D(25), incr=D(1), Kp=D('2.47938'), A=D('5'), tp=D(22000)):
 
 def test1(tf):
     return [(int(t), str(v)) for t, v in y_of_t(tf)]
-
 
 
 def iter1(sim, loops):
@@ -85,6 +94,7 @@ def run_pidtest(pid, sim, n=1000):
 
 def plotpid(n=15000):
     import sys
+
     try:
         del sys.modules['scripts.run.temp_sim']
     except KeyError:
@@ -105,6 +115,7 @@ def plotpid(n=15000):
         steps.append((t, pv, pid.last_error, pid.accumulated_error, hd))
 
     from officelib.xllib.xlcom import xlBook2
+
     xl, wb = xlBook2('PID.xlsx')
     ws = wb.Worksheets(2)
     cells = ws.Cells
@@ -190,8 +201,10 @@ def plotpid3(n=7202 - 11, p=40, i=D('6'), d=0):
     print(sim)
     print(pid)
 
+
 def check():
     import sys
+
     n = 15000
     try:
         del sys.modules['scripts.run.temp_sim']
@@ -235,6 +248,7 @@ def check():
         ap((t, pv))
 
     from decimal import Context
+
     ctxt = Context(prec=3)
 
     def eq(one, two, ctxt=ctxt, compare=D.compare):
@@ -247,13 +261,16 @@ def check():
 def plotsim(n=7200, c=D('-0.00004679011328')):
     try:
         import sys
+
         del sys.modules['scripts.run.temp_sim']
     except KeyError:
         pass
     from scripts.run.temp_sim import TempSim
+
     sim = TempSim(D('37.115'), 19, 0, c)
     steps = sim.iterate(n)
     from officelib.xllib.xlcom import xlBook2
+
     xl, wb = xlBook2('PID.xlsx')
 
     ws = wb.Worksheets(2)
@@ -269,7 +286,6 @@ from officelib.const import xlDown
 
 
 def get_regression(cells, startrow, startcol):
-
     end_row = cells(startrow, startcol).End(xlDown).Row
     xrange = cellRangeStr((startrow, startcol), (end_row, startcol))
     yrange = cellRangeStr((startrow, startcol + 1), (end_row, startcol + 1))
@@ -300,6 +316,7 @@ def supermath():
     c = D('-0.0000615198895')
     start_temp = D('37.04')
     best_diff = 9999999999
+    m = b = None
     try:
         while True:
 
@@ -372,6 +389,7 @@ def nextlinething():
 
 def reload():
     import sys
+
     try:
         del sys.modules['scripts.cli']
     except:
@@ -380,14 +398,13 @@ def reload():
     exec("from scripts.cli import*", g, g)
 
 
-
 # globalconst- iter, range, next, StopIteration, Decimal (D), print
 
 
 def trycontext(n=100000):
-
     while True:
         from time import perf_counter as timer
+
         i = iter(range(n))
         t1 = timer()
         while True:
@@ -411,12 +428,15 @@ def trycontext(n=100000):
 
         fastest = "Small Try" if tsmall < tbig else "Big Try"
 
-        print("small try %.8f" % tsmall, "big try %.8f" % tbig, "fastest:", fastest, "%%%.1f" % ((tsmall-tbig)/tsmall * 100))
+        # noinspection PyStringFormat
+        print("small try %.8f" % tsmall, "big try %.8f" % tbig, "fastest:", fastest,
+              "%%%.1f" % ((tsmall - tbig) / tsmall * 100))
 
 
 import ast
 import opcode
 import dis
+
 
 class MyVisitor(ast.NodeVisitor):
     def generic_visit(self, node):
@@ -436,6 +456,7 @@ def hackee(foo):
     return bar
 
 
+# noinspection PyUnusedLocal
 def hack(f=hackee):
     """
     @type f: types.FunctionType
@@ -464,7 +485,6 @@ def c1(_len=len):
     return a
 
 
-
 a = b = c = None
 
 
@@ -487,19 +507,23 @@ def disassemble(co, lasti=-1):
         else:
             print('   ', end=' ')
 
-        if i == lasti: print('-->', end=' ')
-        else: print('   ', end=' ')
-        if i in labels: print('>>', end=' ')
-        else: print('  ', end=' ')
+        if i == lasti:
+            print('-->', end=' ')
+        else:
+            print('   ', end=' ')
+        if i in labels:
+            print('>>', end=' ')
+        else:
+            print('  ', end=' ')
         print(repr(i).rjust(4), end=' ')
         print(opcode.opname[op].ljust(20), end=' ')
-        i = i+1
+        i += 1
         if op >= opcode.HAVE_ARGUMENT:
-            oparg = code[i] + code[i+1]*256 + extended_arg
+            oparg = code[i] + code[i + 1] * 256 + extended_arg
             extended_arg = 0
-            i = i+2
+            i += 2
             if op == opcode.EXTENDED_ARG:
-                extended_arg = oparg*65536
+                extended_arg = oparg * 65536
             print(repr(oparg).rjust(5), end=' ')
             if op in opcode.hasconst:
                 print('(' + repr(co.co_consts[oparg]) + ')', end=' ')
@@ -517,39 +541,20 @@ def disassemble(co, lasti=-1):
                 print('(' + free[oparg] + ')', end=' ')
             elif op in opcode.hasnargs:
                 print('(%d positional, %d keyword pair)'
-                      % (code[i-2], code[i-1]), end=' ')
+                      % (code[i - 2], code[i - 1]), end=' ')
         print()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 def manyboth():
     import sys
+
     try:
         del sys.modules['scripts.run.temp_sim']
     except KeyError:
         pass
     from scripts.run.temp_sim import TempSim
     from random import uniform
+
     Decimal = D
     rnd_2_const = Decimal('-1e-5')
     repr_quant = Decimal("1.00000000000")
@@ -600,6 +605,7 @@ def manyboth():
 
 def howlong(n=0, ref_n=1000000, st=D("37.115")):
     import sys
+
     try:
         del sys.modules['scripts.run.temp_sim']
     except KeyError:
@@ -626,12 +632,9 @@ def fudge(i, pv_next, pv_prev, t_next, t_prev):
 
 
 def supermath2():
-    import sys
-    # try:
-    #     del sys.modules['scripts.run.temp_sim']
-    # except KeyError:
-    #     pass
+
     from officelib.xllib.xlcom import xlBook2
+
     xl, wb = xlBook2("PID.xlsx")
 
     ws = wb.Worksheets(2)
@@ -672,13 +675,17 @@ def supermath2():
     return testdata
 
 
+# noinspection PyUnusedLocal
 def superplot2():
     testdata = supermath2()
     xldata = tuple((t, pv) for t, pv in enumerate(map(str, testdata)))
     ltd = len(testdata)
 
     from pickle import load
-    with open("C:\\\\Users\\PBS Biotech\\Documents\\Personal\\PBS_Office\\MSOffice\\scripts\\run\\data\\ref_real.pickle", 'rb') as f:
+
+    with open(
+            "C:\\\\Users\\PBS Biotech\\Documents\\Personal\\PBS_Office\\MSOffice\\scripts\\run\\data\\ref_real.pickle",
+            'rb') as f:
         cached = load(f)
 
     print(all(a == b for a, b in zip(testdata, cached)))
@@ -692,11 +699,10 @@ def superplot2():
     # print("Function disabled to avoid overriding data")
     # cells.Range(cells(2, firstcol), cells(ltd + 1, firstcol + 1)).Value = testdata
 
-from itertools import repeat
-
 
 def plot(x, y, *args):
     from matplotlib import pyplot as plt
+
     plt.scatter(x, y)
     errors = []
     if args:
@@ -713,7 +719,6 @@ def plot(x, y, *args):
 
 
 def manyplot(n=100, temp=37):
-
     from matplotlib import pyplot as plt
     from scripts.run.temp_sim import HeatSink
 
@@ -766,45 +771,63 @@ def process(sim, pid, n=9532):
     return times, pvs
 
 
-ref_data = None
+_ref_data = None
 
 
+def get_ref_data():
+
+    global _ref_data
+    if _ref_data is None:
+        reffile = "C:\\Users\\PBS Biotech\\Documents\\Personal\\PBS_Office\\MSOffice\\scripts\\run\\data\\ref_real.pickle"
+        from pickle import load
+        with open(reffile, 'rb') as f:
+            _ref_data = load(f)
+    return _ref_data.copy()
+
+
+# noinspection PyUnusedLocal
 def supermath3(delay=0, leak_max=1):
+    """
+    @param delay:
+    @type delay: int | Decimal
+    @param leak_max:
+    @type leak_max: int | Decimal
+    @return:
+    @rtype:
+    """
     import sys
+
     try:
         del sys.modules['scripts.run.temp_sim']
     except KeyError:
         pass
     from scripts.run.temp_sim import TempSim, PIDController
 
-    from pickle import load
-    reffile = "C:\\Users\\PBS Biotech\\Documents\\Personal\\PBS_Office\\MSOffice\\scripts\\run\\data\\ref_real.pickle"
-    global ref_data
-    if ref_data is None:
-        with open(reffile, 'rb') as f:
-            ref_data = load(f)
+    ref_data = get_ref_data()
 
     pid_kwargs = {
-        'pgain' : 40,
-        'itime' : .5,
-        }
+        'pgain': 40,
+        'itime': .5,
+    }
 
     sim_kwargs = {
-        'start_temp' : (D('28.18353')),
-        'env_temp' : 19,
-        'cool_constant' : TempSim.cooling_constant,
-        'heat_constant' : TempSim.heating_constant,
-        'delay' : delay,
-        'leak_max' : leak_max
+        'start_temp': (D('28.18353')),
+        'env_temp': 19,
+        'cool_constant': TempSim.cooling_constant,
+        'heat_constant': TempSim.heating_constant,
+        'delay': delay,
+        'leak_max': leak_max
     }
 
     sim = TempSim(**sim_kwargs)
     pid = PIDController(37, **pid_kwargs)
 
     times, pvs = process(sim, pid)
-    return times, pvs
-    # xldata = tuple(zip(map(str, times), map(str, pvs)))
-    # plotxl(19, xldata)
+    minus_one = D('-1')
+    fix = minus_one.__add__
+    times = map(str, map(fix, times))
+    xldata = tuple(zip(times, map(str, pvs)))
+    plotxl(xldata, 32, 2, "SimDataP%di%.1f" % (pid_kwargs['pgain'], pid_kwargs['itime']))
     #
     # sub = D.__sub__
     #
@@ -818,16 +841,22 @@ def supermath3(delay=0, leak_max=1):
 
     # plot(times, pvs, ref_data)
 
-def plotxl(firstcol, data):
+
+def plotxl(data, firstcol=1, firstrow=2, y_header="SimData", wb_name="PID.xlsx", ws_num=3):
+
     from officelib.xllib.xlcom import xlBook2
-    xl, wb = xlBook2("PID.xlsx")
-    ws = wb.Worksheets(2)
+    xl, wb = xlBook2(wb_name)
+    ws = wb.Worksheets(ws_num)
     cells = ws.Cells
 
-    startcell = cells(2, firstcol)
-    endcell = cells(len(data) + 1, firstcol + 1)
+    startcell = cells(firstrow, firstcol)
+    endcell = cells(len(data) + firstrow - 1, firstcol + len(data[0]) - 1)
 
+    if firstrow > 1:
+        cells(firstrow - 1, firstcol + 1).Value = y_header
     cells.Range(startcell, endcell).Value = data
+
+    return startcell, endcell
 
 
 def profile(cmd):
@@ -835,9 +864,11 @@ def profile(cmd):
     from pstats import Stats
 
     from tempfile import NamedTemporaryFile
+
     tmpfile = NamedTemporaryFile().name
 
     from os.path import dirname
+
     statsfile = dirname(__file__) + "\\stats.txt"
 
     run(cmd, tmpfile)
@@ -848,15 +879,18 @@ def profile(cmd):
         s.print_stats(0.2)
 
     from os import startfile, remove
+
     startfile(statsfile)
     remove(statsfile)
 
 
+# noinspection PyUnusedLocal
 def manysuper3():
     d = 0
     last = 99999999999
     totaldiff = 0
     from officelib.xllib.xlcom import xlBook2
+
     xl, wb = xlBook2("PID.xlsx")
     cell = wb.Worksheets(1).Cells.Range("C8")
     try:
@@ -882,3 +916,180 @@ def test_leak():
         data.append(pvs)
 
     plot(*data)
+
+
+def fix_typehint():
+    th_path = "C:\\Users\\PBS Biotech\\Documents\\Personal\\PBS_Office\\MSOffice\\typehint.py"
+    from io import StringIO, SEEK_END
+    # buf = StringIO()
+    with open(th_path, 'r') as f:
+        buf = StringIO(f.read())
+
+    buf.seek(0, SEEK_END)
+
+    write = buf.write
+
+    write("\n\n")
+
+    th_dir = "C:\\Users\\PBS Biotech\\Documents\\Personal\\PBS_Office\\MSOffice\\officelib\\xllib\\typehint"
+    from os import listdir
+    from os.path import splitext
+    from importlib import import_module
+
+    import_str = "officelib.xllib.typehint.%s.%s"
+
+    for f in listdir(th_dir):
+        path = '\\'.join((th_dir, f))
+        try:
+            for module in listdir(path):
+
+                module = splitext(module)[0]
+                mod_str = import_str % (f, module)
+                if "__" in mod_str:
+                    continue
+                m = import_module(mod_str)
+                cls_list = [attr for attr in dir(m) if not "__" in attr and isinstance(getattr(m, attr), type)]
+                try:
+                    cls_list.remove("DispatchBaseClass")
+                except:
+                    pass
+                attr_str = ', '.join(cls_list)
+                if attr_str:
+
+                    write("# noinspection PyUnresolvedReferences\n")
+                    write("".join(("from ", mod_str, " import ", attr_str, '\n')))
+
+        except NotADirectoryError:
+            continue
+
+    new = buf.getvalue()
+
+    derp = False
+
+    if derp:
+        stream = open(th_path, 'w')
+    else:
+        import sys
+        stream = sys.stdout
+
+    print(new, file=stream)
+
+    if derp:
+        stream.close()
+
+
+def get_test_data(name_cell):
+
+    from scripts.tpid.tpidmany import RampTestResult
+    # from officelib.xllib.xladdress import cellStr
+    cells = name_cell.Parent.Cells
+    start_row = name_cell.Row
+    start_col = name_cell.Column
+    # x_range = cells.Range(cells(start_row + 7, start_col + 1), cells(start_row + 7, start_col + 1).End(xlDown))
+    # y_range = cells.Range(cells(start_row + 7, start_col + 3), cells(start_row + 7, start_col + 3).End(xlDown))
+
+    def getval(row, col):
+        row += start_row
+        col += start_col
+        return cells(row, col).Value
+    # print("getting data")
+    r = RampTestResult(
+        getval(1, 2),
+        getval(2, 2),
+        0,
+        None,
+        None,
+        0,
+        0,
+        getval(0, 1),
+    )
+
+    # x_data = tuple(x[0] for x in x_range.Value)
+    # y_data = tuple(y[0] for y in y_range.Value)
+    #
+    # if type(x_data[0]) is not float:
+    #     raise TypeError(type(x_data[0]), cellStr(row, col))
+    # if type(y_data[0]) is not float:
+    #     raise TypeError(type(y_data[0]), cellStr(row, col))
+    # r.x_data = x_data
+    # r.y_data = y_data
+    return r
+
+
+# noinspection PyUnresolvedReferences
+def xl_2_data():
+
+    from officelib.xllib.xlcom import xlBook2, HiddenXl
+    from officelib.xllib.xladdress import cellStr
+
+    fpath = "C:\\users\\public\\documents\\pbsss\\temp pid\\pbs 3 thick sleeve\\compiled.xlsx"
+    xl, wb = xlBook2(fpath)
+
+    ws = wb.Worksheets("ProcedureEx")
+    #: @type: typehint.Range
+    cells = ws.Cells
+
+    found = set()
+    # tests = []
+    def cell_hash(cell):
+        to_hash = (cell.Row, cell.Column)
+        print(to_hash)
+        return hash(to_hash)
+    with HiddenXl(xl):
+        match = cells.Find("Name:", cells(1, 1), SearchOrder=xlByRows)
+        h = cell_hash(match)
+        found.add(h)
+        tests = [get_test_data(match)]
+        while True:
+            match = cells.FindNext(match)
+            h = cell_hash(match)
+            if h in found:
+                break
+            else:
+                found.add(h)
+            test = get_test_data(match)
+            tests.append(test)
+
+    return tests
+
+
+def cli_store(data, name="Cli_data"):
+    from pysrc.snippets import safe_pickle, unique_name
+    from os.path import dirname
+    save_dir = dirname(__file__) + '\\cli_data\\'
+    save_name = save_dir + unique_name(name + ".pickle")
+    safe_pickle(data, save_name)
+    return save_name
+
+
+class xlData():
+    def __init__(self, name, x_data, y_data):
+        self.name = name
+
+        self.x_data = tuple(map(round, x_data))
+        self.y_data = y_data
+
+
+def get_xl_data():
+    from officelib.xllib.xlcom import xlBook2
+    xl, wb = xlBook2('PID.xlsx')
+    ws = wb.Worksheets(3)
+    cells = ws.Cells
+
+    cell = cells(2, 6)
+    row = 2
+    col = 6
+
+    all_dat = []
+    ap = all_dat.append
+    while cell.Value:
+        xldat = cells.Range(cells(row, col - 1), cells(2, col).End(xlDown)).Value
+        name = cells(1, col).Value
+        data = filter(lambda x: x[0], xldat)
+        x, y = tuple(zip(*data))
+        ap(xlData(name, x, y))
+
+        col += 4
+        cell = cells(2, col)
+
+    return all_dat

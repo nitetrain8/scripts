@@ -194,6 +194,10 @@ class HeatSink():
     dbg_buf = []
 
     def __init__(self, leak_max=D('0.8')):
+        """
+        @param leak_max:
+        @type leak_max: int | Decimal
+        """
         # if not 0 <= leak_rate <= 1:
         #     raise ValueError("leak_rate invalid")
         # self.leak_rate = D(leak_rate)
