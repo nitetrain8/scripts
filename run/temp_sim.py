@@ -193,33 +193,22 @@ class HeatSink():
 
     dbg_buf = []
 
-    def __init__(self, leak_max=D('0.8')):
+    def __init__(self, leak_const=D('20')):
         """
-        @param leak_max:
-        @type leak_max: int | Decimal
+        @param leak_const:
+        @type leak_const: int | Decimal
         """
         # if not 0 <= leak_rate <= 1:
         #     raise ValueError("leak_rate invalid")
         # self.leak_rate = D(leak_rate)
         self.current = D(0)
-        self.max = leak_max
+        self.leak_rate = D(1) / D(1 + D(leak_const))
 
     def step(self, val):
         self.current += val
         leak = self.current * self.leak_rate
         self.current -= leak
         return leak
-
-    def step2(self, val):
-        c = self.current
-        raw_incr = c + val
-        m = self.magic
-        calc_incr = m(raw_incr) - m(c)
-        self.current += calc_incr
-        return max(val - calc_incr, 0)
-
-    def magic(self, t):
-        return t / (t + 1) * self.max
 
 
 # noinspection PyRedeclaration
@@ -351,7 +340,7 @@ class TempSim():
 
     def heat_diff(self, seconds=default_increment):
         incr = self.heating_constant * seconds * self._heat_duty
-        incr = self.sink.step2(incr)
+        incr = self.sink.step(incr)
         return incr
 
     def step(self, seconds=default_increment):
@@ -569,18 +558,19 @@ class PIDController():
     def calc_output(self, error):
 
         Up = self.pgain * error
-
-        nonlinear = 1 + (10 * error * error) / 10000
-        # Ui = self.oneoveritime * self.accumulated_error / nonlinear
         Ui = self.oneoveritime * self.accumulated_error
+
+        # nonlinear = 1 + (10 * error * error) / 10000
+        # Ui = self.oneoveritime * self.accumulated_error / nonlinear
         # Derivative control not yet implemented
 
         Uk = Up + Ui + self.bump
-        # Uk = Ui
+
         if Uk > self.automax:
             Uk = self.automax
         elif Uk < self.auto_min:
             Uk = self.auto_min
+
         return Uk
 
     def step_output(self, pv, dt=D(1)):

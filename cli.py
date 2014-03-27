@@ -14,16 +14,6 @@ from decimal import Decimal as D
 from time import perf_counter as _timer
 
 
-def reload_wrapper(f):
-
-    from functools import wraps
-    @wraps(f)
-    def func(*args, **kwargs):
-        reload()
-        return f(*args, **kwargs)
-    return func
-
-
 def y_of_t(tf, y0=D(25), incr=D(1), Kp=D('2.47938'), A=D('5'), tp=D(22000)):
     tf = D(tf)
     y0 = D(y0)
@@ -700,21 +690,51 @@ def superplot2():
     # cells.Range(cells(2, firstcol), cells(ltd + 1, firstcol + 1)).Value = testdata
 
 
-def plot(x, y, *args):
+def plot(x, y, y_data=(), names=()):
     from matplotlib import pyplot as plt
+    from itertools import count, cycle
+    from random import randrange, random
 
-    plt.scatter(x, y)
+    cnt = count(1)
+    markers = (',', '.', 'o', 'v', '^', '<', '>', '1', '2', '3', '4', '8', 's', 'p', '*', 'h', 'H', '+', 'x', 'D', 'd', '|', '_')
+    start = randrange(0, len(markers))
+    next_marker = cycle(markers).__next__
+
+    for _ in range(start):
+        next_marker()
+
+    def next_name(n_iter=iter(names)):
+        # can't use next(iter, fallback)
+        # with count, need to make sure
+        # next(count) is evaluated lazily
+        nxt = next(n_iter, None)
+        if nxt is None:
+            return "Series " + str(next(cnt))
+        return nxt
+
+    def rand_color():
+        return random(), random(), random()
+
+    plts = [plt.scatter(x, y, 20, color=rand_color(), marker=next_marker())]
+    good_names = [next_name()]
+
     errors = []
-    if args:
-        for arg in args:
+    if y_data:
+        for y in y_data:
             try:
-                plt.plot(arg)
+                plts.append(plt.scatter(x, y, 20, color=rand_color(), marker=next_marker()))
             except Exception as e:
                 errors.append(e)
+                next_name()  # dump unused name
+            else:
+                good_names.append(next_name())
     if errors:
         print("Errors found:")
         print(*errors, sep='\n')
 
+    if good_names:
+        plt.legend(plts, names,
+                   scatterpoints=1)
     plt.show()
 
 
@@ -783,80 +803,6 @@ def get_ref_data():
         with open(reffile, 'rb') as f:
             _ref_data = load(f)
     return _ref_data.copy()
-
-
-# noinspection PyUnusedLocal
-def supermath3(delay=0, leak_max=1):
-    """
-    @param delay:
-    @type delay: int | Decimal
-    @param leak_max:
-    @type leak_max: int | Decimal
-    @return:
-    @rtype:
-    """
-    import sys
-
-    try:
-        del sys.modules['scripts.run.temp_sim']
-    except KeyError:
-        pass
-    from scripts.run.temp_sim import TempSim, PIDController
-
-    ref_data = get_ref_data()
-
-    pid_kwargs = {
-        'pgain': 40,
-        'itime': .5,
-    }
-
-    sim_kwargs = {
-        'start_temp': (D('28.18353')),
-        'env_temp': 19,
-        'cool_constant': TempSim.cooling_constant,
-        'heat_constant': TempSim.heating_constant,
-        'delay': delay,
-        'leak_max': leak_max
-    }
-
-    sim = TempSim(**sim_kwargs)
-    pid = PIDController(37, **pid_kwargs)
-
-    times, pvs = process(sim, pid)
-    minus_one = D('-1')
-    fix = minus_one.__add__
-    times = map(str, map(fix, times))
-    xldata = tuple(zip(times, map(str, pvs)))
-    plotxl(xldata, 32, 2, "SimDataP%di%.1f" % (pid_kwargs['pgain'], pid_kwargs['itime']))
-    #
-    # sub = D.__sub__
-    #
-    # totaldiff = sum(map(abs, map(sub, ref_data, pvs)))
-    # print("Delay:", sim_kwargs['delay'], end=' ')
-    # print("Totaldiff:", totaldiff, end=' ')
-    # print("Ave_diff:", totaldiff / len(ref_data))
-    #
-    # return totaldiff
-
-
-    # plot(times, pvs, ref_data)
-
-
-def plotxl(data, firstcol=1, firstrow=2, y_header="SimData", wb_name="PID.xlsx", ws_num=3):
-
-    from officelib.xllib.xlcom import xlBook2
-    xl, wb = xlBook2(wb_name)
-    ws = wb.Worksheets(ws_num)
-    cells = ws.Cells
-
-    startcell = cells(firstrow, firstcol)
-    endcell = cells(len(data) + firstrow - 1, firstcol + len(data[0]) - 1)
-
-    if firstrow > 1:
-        cells(firstrow - 1, firstcol + 1).Value = y_header
-    cells.Range(startcell, endcell).Value = data
-
-    return startcell, endcell
 
 
 def profile(cmd):
@@ -1031,10 +977,12 @@ def xl_2_data():
 
     found = set()
     # tests = []
+
     def cell_hash(cell):
         to_hash = (cell.Row, cell.Column)
         print(to_hash)
         return hash(to_hash)
+
     with HiddenXl(xl):
         match = cells.Find("Name:", cells(1, 1), SearchOrder=xlByRows)
         h = cell_hash(match)
@@ -1065,9 +1013,18 @@ def cli_store(data, name="Cli_data"):
 class xlData():
     def __init__(self, name, x_data, y_data):
         self.name = name
-
         self.x_data = tuple(map(round, x_data))
         self.y_data = y_data
+
+    @classmethod
+    def copy(cls, obj):
+        """ This is necessary to allow instances of xlData
+        to persist across module reloads at the interactive
+        prompt, so that the method
+        can be called on existing instances to return a picklable
+        copy; otherwise type(inst) == xlData returns false.
+        """
+        return cls(obj.name, obj.x_data, obj.y_data)
 
 
 def get_xl_data():
@@ -1093,3 +1050,113 @@ def get_xl_data():
         cell = cells(2, col)
 
     return all_dat
+
+
+# noinspection PyUnusedLocal
+def supermath3(delay=0, leak_max=1):
+    """
+    @param delay:
+    @type delay: int | Decimal
+    @param leak_max:
+    @type leak_max: int | Decimal
+    @return:
+    @rtype:
+    """
+    import sys
+
+    try:
+        del sys.modules['scripts.run.temp_sim']
+    except KeyError:
+        pass
+    from scripts.run.temp_sim import TempSim, PIDController
+
+    ref_data = get_ref_data()
+
+    pid_kwargs = {
+        'pgain': 40,
+        'itime': .5,
+        }
+
+    sim_kwargs = {
+        'start_temp': (D('28.18353')),
+        'env_temp': 19,
+        'cool_constant': TempSim.cooling_constant,
+        'heat_constant': TempSim.heating_constant,
+        'delay': delay,
+        'leak_max': leak_max
+    }
+
+    sim = TempSim(**sim_kwargs)
+    pid = PIDController(37, **pid_kwargs)
+
+    times, pvs = process(sim, pid)
+    fix = D('-1').__add__
+    times = map(str, map(fix, times))
+    xldata = tuple(zip(times, map(str, pvs)))
+    plotxl(xldata, 32, 2, "SimDataP%di%.1f" % (pid_kwargs['pgain'], pid_kwargs['itime']))
+    #
+    # sub = D.__sub__
+    #
+    # totaldiff = sum(map(abs, map(sub, ref_data, pvs)))
+    # print("Delay:", sim_kwargs['delay'], end=' ')
+    # print("Totaldiff:", totaldiff, end=' ')
+    # print("Ave_diff:", totaldiff / len(ref_data))
+    #
+    # return totaldiff
+
+    # plot(times, pvs, ref_data)
+    return times, pvs
+
+from officelib.xllib.xlcom import xlBook2
+
+
+def plotxl(data, firstcol=1, firstrow=2,
+           y_header="SimData", wb_name="PID.xlsx", ws_num=3):
+
+    xl, wb = xlBook2(wb_name)
+    ws = wb.Worksheets(ws_num)
+    cells = ws.Cells
+
+    startcell = cells(firstrow, firstcol)
+    endcell = cells(len(data) + firstrow - 1, firstcol + len(data[0]) - 1)
+
+    if firstrow > 1:
+        cells(firstrow - 1, firstcol + 1).Value = y_header
+    cells.Range(startcell, endcell).Value = data
+
+    return startcell, endcell
+
+
+def manysink():
+
+    import sys
+    try:
+        del sys.modules['scripts.run.temp_sim']
+    except KeyError:
+        pass
+    from scripts.run.temp_sim import HeatSink
+
+    consts = ('1', '2', '5', '10', '20')
+    cs = map(D, consts)
+    x_data = tuple(range(100))
+    from itertools import islice
+    y_data = []
+
+    for c in cs:
+        y = []
+        y_ap = y.append
+        sink = HeatSink(c)
+        hd = 50
+
+        for _ in islice(x_data, None, 50):
+            step = sink.step(hd)
+            y_ap(step)
+
+        hd = 0
+        for _ in islice(x_data, 50, None):
+            step = sink.step(hd)
+            y_ap(step)
+        print(sum(y), 50 * 50 - sink.current)
+        y_data.append(y)
+
+    # plot(x_data, y_data[0], y_data[1:], consts)
