@@ -1342,3 +1342,33 @@ def inplace_speed():
     t8 = timer()
 
     print("Incr:", t2-t1, "normal:", t4 - t3, 'map:', t6-t5, "comp", t8-t7)
+
+
+def test_inplace_add2():
+    from time import perf_counter as timer
+    from decimal import Decimal as D
+    from operator import add
+    from itertools import repeat
+
+    loops = 1000000
+    one = D(1)
+    add = one.__add__
+    test = tuple(map(D, range(loops)))
+    map_obj = map(add, test)
+    _list = list
+
+
+    t1 = timer()
+    a = _list(map_obj) # , repeat(one)))
+    # a = [x for x in range(loops)]
+    t2 = timer()
+
+    mylist = []
+    ap = mylist.append
+    t3 = timer()
+    b = [one + x for x in test]
+    # for x in range(loops):
+    #     ap(x)
+    t4 = timer()
+
+    print("listmap:", t2-t1, 'comp:', t4-t3)
