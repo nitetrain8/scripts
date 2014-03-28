@@ -670,6 +670,7 @@ def smooth_data(x_data, y_data):
     return x_data, new_ys
 
 
+# noinspection PyUnresolvedReferences
 def plot(x, y, y_data=(), names=()):
     from matplotlib import pyplot as plt
     from itertools import count, cycle
@@ -718,6 +719,7 @@ def plot(x, y, y_data=(), names=()):
     plt.show()
 
 
+# noinspection PyUnresolvedReferences
 def manyplot(n=100, temp=37):
     from matplotlib import pyplot as plt
     from scripts.run.temp_sim import HeatSink
@@ -1262,3 +1264,81 @@ def optimal_i(i=D('2.5')):
 
     return ifactor
 
+
+def fudge2(i, x_prev, tdiff, y_prev, ydiff):
+    return (i - x_prev) / tdiff * ydiff + y_prev
+
+
+def smooth(xd, yd):
+    xlen = len(xd)
+    ylen = len(yd)
+    if xlen != ylen:
+        raise Exception("derp")
+    x_prev = xd[0]
+    x_end = xd[-1]
+    y_start = y_prev = yd[0]
+
+    y_data = [y_start] * x_end
+
+    data = zip(xd, yd)
+    next(data)
+    _fudge = fudge2
+
+    for x_next, y_next in data:
+
+        i = x_prev
+        ydiff = y_next - y_prev
+        tdiff = x_next - x_prev
+
+        while i < x_next:
+            i += 1
+            result = _fudge(i, x_prev, tdiff, y_prev, ydiff)
+            y_data[i] = result
+
+        x_prev = x_next
+        y_prev = y_next
+
+    x_data = list(range(len(y_data)))
+
+    assert len(x_data) == xlen
+    assert len(y_data) == ylen
+
+    for x, y in zip(xd, yd):
+        assert y_data[x] == y
+
+    return x_data, y_data
+
+
+def inplace_speed():
+    from time import perf_counter as timer
+    _map = map
+    n = D(1)
+    i = D(1)
+    incr = i.__add__
+
+    loops = 100000 * 100
+
+    test_data = tuple(D(1) for _ in range(loops))
+
+    t1 = timer()
+    for n in test_data:
+        n = incr(n)
+    t2 = timer()
+
+    t3 = timer()
+    for n in test_data:
+        n += i
+    t4 = timer()
+
+    t5 = timer()
+    for num in _map(incr, test_data):
+        a = num
+    t6 = timer()
+
+    t7 = timer()
+    for num in test_data:
+        a = num + i
+
+    t8 = timer()
+
+    print("Incr:", t2-t1, "normal:", t4 - t3, 'map:', t6-t5, "comp", t8-t7)
