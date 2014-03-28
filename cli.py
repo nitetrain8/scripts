@@ -617,77 +617,57 @@ def howlong(n=0, ref_n=1000000, st=D("37.115")):
     print("Minimum estimated iterations for accuracy: %d" % n)
 
 
-def fudge(i, pv_next, pv_prev, t_next, t_prev):
+def fudge(i, pv_next, pv_prev, t_next, t_prev, D=D):
     return (D(i - t_prev) / D(t_next - t_prev)) * D(pv_next - pv_prev) + pv_prev
 
 
-def supermath2():
+def smooth_data(x_data, y_data):
 
-    from officelib.xllib.xlcom import xlBook2
+    # from officelib.xllib.xlcom import xlBook2
+    #
+    # xl, wb = xlBook2("PID.xlsx")
+    #
+    # ws = wb.Worksheets(2)
+    # #: @type: officelib.xllib.typehint.th0x1x6.Range.Range
+    # cells = ws.Cells
+    # cell_range = cells.Range
+    # startcell = cells(2, 11)
+    # endcell = cells(startcell.End(xlDown).Row, 12)
+    # refdata = cell_range(startcell, endcell).Value2
 
-    xl, wb = xlBook2("PID.xlsx")
-
-    ws = wb.Worksheets(2)
-    #: @type: officelib.xllib.typehint.th0x1x6.Range.Range
-    cells = ws.Cells
-    cell_range = cells.Range
-    startcell = cells(2, 11)
-    endcell = cells(startcell.End(xlDown).Row, 12)
-    refdata = cell_range(startcell, endcell).Value2
-
-    times, pvs = zip(*refdata)
-    times = tuple(map(int, times))
-    pvs = tuple(map(D, pvs))
+    times = tuple(map(round, x_data))
+    pvs = tuple(map(D, y_data))
 
     t_start = times[0]
     t_end = times[-1]
     pv_start = pvs[0]
 
-    testdata = [pv_start for _ in range(t_start)]
-    testdata.extend(0 for _ in range(t_end - t_start + 1))
+    new_ys = [pv_start for _ in range(t_start or 1)]
+    new_ys.extend(range(t_end - len(new_ys) + 1))
 
     data = zip(times, pvs)
     t_prev, pv_prev = next(data)
     i = t_prev
-    testdata[i] = pv_prev
-
+    new_ys[i] = pv_prev
+    _fudge = fudge
+    dec = D
+    import pdb
     for t_next, pv_next in data:
-        i = t_prev
-        testdata[i] = pv_prev
-
+        # new_ys[i] = pv_prev
         while i < t_next:
             i += 1
-            testdata[i] = fudge(i, pv_next, pv_prev, t_next, t_prev)
+            # if i == 5:
+            #     pdb.set_trace()
+            result = _fudge(i, pv_next, pv_prev, t_next, t_prev, dec)
+            new_ys[i] = result
 
         t_prev = t_next
         pv_prev = pv_next
+    new_ys[-1] = pvs[-1]
 
-    return testdata
+    x_data = tuple(range(len(new_ys)))
 
-
-# noinspection PyUnusedLocal
-def superplot2():
-    testdata = supermath2()
-    xldata = tuple((t, pv) for t, pv in enumerate(map(str, testdata)))
-    ltd = len(testdata)
-
-    from pickle import load
-
-    with open(
-            "C:\\\\Users\\PBS Biotech\\Documents\\Personal\\PBS_Office\\MSOffice\\scripts\\run\\data\\ref_real.pickle",
-            'rb') as f:
-        cached = load(f)
-
-    print(all(a == b for a, b in zip(testdata, cached)))
-
-    # from officelib.xllib.xlcom import xlBook2
-    # xl, wb = xlBook2("PID.xlsx")
-    # ws = wb.Worksheets(3)
-    # cells = ws.Cells
-
-    firstcol = 1
-    # print("Function disabled to avoid overriding data")
-    # cells.Range(cells(2, firstcol), cells(ltd + 1, firstcol + 1)).Value = testdata
+    return x_data, new_ys
 
 
 def plot(x, y, y_data=(), names=()):
@@ -792,17 +772,30 @@ def process(sim, pid, n=9532):
 
 
 _ref_data = None
+_ref_map = None
 
 
 def get_ref_data():
-
-    global _ref_data
+    """
+    @return:
+    @rtype: list[xlData]
+    """
+    global _ref_data, _ref_map
     if _ref_data is None:
-        reffile = "C:\\Users\\PBS Biotech\\Documents\\Personal\\PBS_Office\\MSOffice\\scripts\\run\\data\\ref_real.pickle"
-        from pickle import load
-        with open(reffile, 'rb') as f:
-            _ref_data = load(f)
-    return _ref_data.copy()
+        _ref_data = sorted(cli_load("PID.xlsx_ws_3.pickle"), key=lambda x: D(x.itime))
+    return list(map(xlData.copy, _ref_data))
+
+
+def get_ref_map():
+    """
+    @return:
+    @rtype: dict[str, xlData]
+    """
+    global _ref_map
+    if _ref_map is None:
+        ref_data = get_ref_data()
+        _ref_map = {d.itime: d for d in map(xlData.copy, ref_data)}
+    return {d.itime: d for d in map(xlData.copy, _ref_map.values())}
 
 
 def profile(cmd):
@@ -1002,19 +995,32 @@ def xl_2_data():
 
 
 def cli_store(data, name="Cli_data"):
-    from pysrc.snippets import safe_pickle, unique_name
+    from pysrc.snippets import safe_pickle
     from os.path import dirname
     save_dir = dirname(__file__) + '\\cli_data\\'
-    save_name = save_dir + unique_name(name + ".pickle")
+    save_name = save_dir + name + ".pickle"
     safe_pickle(data, save_name)
     return save_name
 
 
+def cli_load(name):
+
+    from os.path import dirname
+    from pickle import load
+    save_dir = dirname(__file__) + '\\cli_data\\'
+    save_name = save_dir + name
+    with open(save_name, 'rb') as f:
+        data = load(f)
+    return data
+
+
 class xlData():
-    def __init__(self, name, x_data, y_data):
+    def __init__(self, name, x_data, y_data, pgain='0', itime='0'):
+        self.itime = itime
+        self.pgain = pgain
         self.name = name
         self.x_data = tuple(map(round, x_data))
-        self.y_data = y_data
+        self.y_data = tuple(map(D, y_data))
 
     @classmethod
     def copy(cls, obj):
@@ -1024,36 +1030,48 @@ class xlData():
         can be called on existing instances to return a picklable
         copy; otherwise type(inst) == xlData returns false.
         """
-        return cls(obj.name, obj.x_data, obj.y_data)
+        return cls(obj.name, obj.x_data, obj.y_data, obj.pgain, obj.itime)
+
+    def __repr__(self):
+        return ' '.join(("<", self.__class__.__qualname__, ">", self.name, str(self.pgain), str(self.itime)))
 
 
 def get_xl_data():
+
     from officelib.xllib.xlcom import xlBook2
+    from itertools import dropwhile
+    import re
+
     xl, wb = xlBook2('PID.xlsx')
     ws = wb.Worksheets(3)
     cells = ws.Cells
 
-    cell = cells(2, 6)
-    row = 2
-    col = 6
+    columns = (5, 9, 13, 17, 21, 25, 29)
+
+    def bad(tpl):
+        x, y = tpl
+        return x is None or y < 28
+
+    parse_name = re.compile(r"p(\d*)i([\d\.]*)").match
 
     all_dat = []
     ap = all_dat.append
-    while cell.Value:
-        xldat = cells.Range(cells(row, col - 1), cells(2, col).End(xlDown)).Value
-        name = cells(1, col).Value
-        data = filter(lambda x: x[0], xldat)
-        x, y = tuple(zip(*data))
-        ap(xlData(name, x, y))
+    row = 2
 
-        col += 4
-        cell = cells(2, col)
+    for col in columns:
+        xldat = cells.Range(cells(row, col), cells(row, col + 1).End(xlDown)).Value
+        name = cells(1, col + 1).Value
+        data = dropwhile(bad, xldat)
+        x, y = tuple(zip(*data))
+        x_data, y_data = smooth_data(x, y)
+        p, i = parse_name(name).groups()
+        ap(xlData(name, x_data, y_data, p, i))
 
     return all_dat
 
 
 # noinspection PyUnusedLocal
-def supermath3(delay=0, leak_max=1):
+def supermath3(delay=0, leak_max=0, ref_data=None, i=D('0.5'), ifactor=D(1), plot=True):
     """
     @param delay:
     @type delay: int | Decimal
@@ -1070,11 +1088,19 @@ def supermath3(delay=0, leak_max=1):
         pass
     from scripts.run.temp_sim import TempSim, PIDController
 
-    ref_data = get_ref_data()
+    if ref_data is None:
+        try:
+            ref_data = get_ref_map()[str(i)]
+            print(ref_data)
+            ref_data = ref_data.y_data
+        except:
+            ref_data = get_ref_data()[0]
+            print(ref_data)
+            ref_data = ref_data.y_data
 
     pid_kwargs = {
         'pgain': 40,
-        'itime': .5,
+        'itime': D(i) * D(ifactor),
         }
 
     sim_kwargs = {
@@ -1083,7 +1109,7 @@ def supermath3(delay=0, leak_max=1):
         'cool_constant': TempSim.cooling_constant,
         'heat_constant': TempSim.heating_constant,
         'delay': delay,
-        'leak_max': leak_max
+        'leak_const': leak_max
     }
 
     sim = TempSim(**sim_kwargs)
@@ -1091,21 +1117,20 @@ def supermath3(delay=0, leak_max=1):
 
     times, pvs = process(sim, pid)
     fix = D('-1').__add__
-    times = map(str, map(fix, times))
-    xldata = tuple(zip(times, map(str, pvs)))
-    plotxl(xldata, 32, 2, "SimDataP%di%.1f" % (pid_kwargs['pgain'], pid_kwargs['itime']))
-    #
-    # sub = D.__sub__
-    #
-    # totaldiff = sum(map(abs, map(sub, ref_data, pvs)))
+    if plot:
+        times = map(str, map(fix, times))
+        xldata = tuple(zip(times, map(str, pvs)))
+        plotxl(xldata, 32, 2, "SimDataP%di%.1f" % (pid_kwargs['pgain'], pid_kwargs['itime']))
+
+    totaldiff = sum(map(abs, map(D.__sub__, ref_data, pvs)))
     # print("Delay:", sim_kwargs['delay'], end=' ')
     # print("Totaldiff:", totaldiff, end=' ')
     # print("Ave_diff:", totaldiff / len(ref_data))
-    #
-    # return totaldiff
+
+    return ref_data
 
     # plot(times, pvs, ref_data)
-    return times, pvs
+    # return times, pvs
 
 from officelib.xllib.xlcom import xlBook2
 
@@ -1160,3 +1185,80 @@ def manysink():
         y_data.append(y)
 
     # plot(x_data, y_data[0], y_data[1:], consts)
+
+# noinspection PyUnresolvedReferences
+import sys
+
+
+# noinspection PyUnusedLocal
+def optimal_i(i=D('2.5')):
+    #
+    # try:
+    #     del sys.modules['scripts.run.temp_sim']
+    # except KeyError:
+    #     pass
+
+    i = D(i)
+    ifactor = D('12')
+    i_step = D(2)
+    i_step_factor = D('0.5')
+    i_step_min = D('1')
+    ref_map = get_ref_map()
+    ref_data = ref_map[str(i)]
+    print(ref_data)
+    ref_data = ref_data.y_data
+
+    last_diff = supermath3(0, 0, ref_data, i, ifactor, False)
+    diff = last_diff - 1
+    ifactor += i_step
+
+    _print = print
+    _len = len
+    false = False
+
+    try:
+        while diff != 0:
+
+            print("going up!", end='\n\n')
+            while True:
+                diff = supermath3(0, 0, ref_data, i, ifactor, plot=false)
+                _print("Ifactor:", ifactor, end=' ')
+                _print("Totaldiff:", diff, end=' ')
+                _print("Ave_diff:", diff / _len(ref_data))
+
+                if diff > last_diff:
+                    break
+                lastdiff = diff
+                ifactor += i_step
+
+            i_step *= i_step_factor
+            if i_step < i_step_min:
+                i_step = i_step_min
+            ifactor -= i_step
+            print("going down!", end='\n\n')
+
+            while True:
+                diff = supermath3(0, 0, ref_data, i, ifactor, plot=false)
+                _print("Ifactor:", ifactor, end=' ')
+                _print("Totaldiff:", diff, end=' ')
+                _print("Ave_diff:", diff / _len(ref_data))
+                if diff > last_diff:
+                    break
+                last_diff = diff
+                ifactor -= i_step
+
+            i_step *= i_step_factor
+            if i_step < i_step_min:
+                i_step = i_step_min
+            ifactor += i_step
+
+    except KeyboardInterrupt:
+        pass
+
+    if diff == 0:
+        _print("wow!")
+
+    supermath3(0, 0, ref_data, i, ifactor, plot=True)
+
+    return ifactor
+

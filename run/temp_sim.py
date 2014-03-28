@@ -181,11 +181,13 @@ def print_ave_heats():
 class DelayBuffer(deque):
 
     def __init__(self, delay=30):
+        # No maxlen- let potential delay size
+        # be dynamicly determinable by caller
         super().__init__(repeat(D(0), delay + 1))
 
-    def cycle(self, hd):
+    def cycle(self, hd, rot=deque.rotate):
         self[0] = hd
-        self.rotate(1)
+        rot(self, 1)
         return self[0]
 
 
@@ -198,9 +200,8 @@ class HeatSink():
         @param leak_const:
         @type leak_const: int | Decimal
         """
-        # if not 0 <= leak_rate <= 1:
-        #     raise ValueError("leak_rate invalid")
-        # self.leak_rate = D(leak_rate)
+        if leak_const <= -1:
+            raise ValueError("Can't use leak constant <= -1")
         self.current = D(0)
         self.leak_rate = D(1) / D(1 + D(leak_const))
 
@@ -229,7 +230,7 @@ class TempSim():
 
     def __init__(self, start_temp=25, env_temp=19, heat_duty=0,
                  cool_constant=cooling_constant, heat_constant=heating_constant,
-                 delay=0, leak_max=100):
+                 delay=0, leak_const=20):
         """
         @param start_temp: start temp
         @type start_temp: numbers.Number
@@ -253,8 +254,8 @@ class TempSim():
         self.seconds = 0
         self.heat_duty = heat_duty
 
-        self.delay_buf = DelayBuffer(delay)
-        self.sink = HeatSink(leak_max)
+        self.delay = DelayBuffer(delay).cycle
+        self.sink_step = HeatSink(leak_const).step
 
     # Properties used to simplify the process of ensuring that all internal
     # numeric processing is done via Decimal. Use setters to automatically
@@ -340,7 +341,7 @@ class TempSim():
 
     def heat_diff(self, seconds=default_increment):
         incr = self.heating_constant * seconds * self._heat_duty
-        incr = self.sink.step(incr)
+        incr = self.sink_step(incr)
         return incr
 
     def step(self, seconds=default_increment):
@@ -436,7 +437,7 @@ class TempSim():
         next(v for v in self if v[1] > temp)
 
     def step_heat(self, hd, sec=default_increment):
-        hd = self.delay_buf.cycle(hd)
+        hd = self.delay(hd)
         self.heat_duty = hd
         return self.step(sec)
 
@@ -451,7 +452,7 @@ class PIDController():
         self.set_point = D(set_point)
         self.automax = Decimal(automax)
         self.pgain = D(pgain)
-        self.itime = D(itime) * D('60')  # put itime in seconds
+        self.itime = D(itime)
         self.oneoveritime = 1 / self.itime  # used to calc integral time
         self.dtime = D(dtime)
 
