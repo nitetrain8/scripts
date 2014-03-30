@@ -18,6 +18,10 @@ __author__ = 'Nathan Starkweather'
 # USEFUL FUNCTIONS
 #==================
 
+
+_main_name = '__main__'
+
+
 def reload():
     import sys
 
@@ -25,7 +29,7 @@ def reload():
         del sys.modules['scripts.cli']
     except KeyError:
         pass
-    g = sys.modules['__main__'].__dict__
+    g = sys.modules[_main_name].__dict__
     exec("from scripts.cli import *", g, g)
 
 
@@ -36,7 +40,7 @@ def reload2():
         del sys.modules['scripts.old_cli']
     except KeyError:
         pass
-    g = sys.modules['__main__'].__dict__
+    g = sys.modules[_main_name].__dict__
     exec("reload()", g, g)
 
 
@@ -236,16 +240,19 @@ def process(sim, pid, n=9532):
     simstep = sim.step_heat
     pidstep = pid.step_output
 
-    times = [None] * n
-    pvs = [None] * n
-    hds = [None] * n
+    times = []
+    times_ap = times.append
+    pvs = []
+    pvs_ap = pvs.append
+    hds = []
+    hds_ap = hds.append
 
     for i in range(n):
         hd = pidstep(pv)
         t, pv = simstep(hd)
-        times[i] = t
-        pvs[i] = pv
-        hds[i] = hd
+        times_ap(t)
+        pvs_ap(pv)
+        hds_ap(hd)
 
     return times, pvs
 
@@ -1115,8 +1122,69 @@ def iterspeedtest():
 
             except KeyboardInterrupt:
                 break
+    import sys
+    sys.modules['__main__'].__dict__.update(locals())
 
-    globals().update(locals())
+
+from itertools import zip_longest, repeat
+bigfile = "C:\\Users\\PBS Biotech\\Documents\\Personal\\PBS_Office\\MSOffice\\pbslib\\test\\test_batchreport\\test_mock_strptime\\test_input\\real_world_data\\bigfile.csv"
+bigfile2 = "C:\\Users\\Administrator\\Documents\\Programming\\python\\pbslib\\test\\test_batchreport\\test_mock_strptime\\test_input\\real_world_data\\bigfile.csv"
 
 
+def getbigfiledata():
 
+    with open(bigfile2, 'r') as f:
+        f.readline()
+        data = f.read().splitlines()
+    return data
+
+
+def unpack_test():
+    from timeit import Timer
+    from itertools import count
+
+    append_total = assigment_total = 0
+
+    data = getbigfiledata()
+
+    def using_append(data=data):
+        mydata2 = []
+        append = mydata2.append
+        split = str.split
+        for derp in data:
+            append(split(derp, ','))
+        return mydata2
+
+    def using_assignment(data=data, len=len):
+        mydata2 = [None] * len(data)
+        split = str.split
+        for i, derp in enumerate(data):
+            mydata2[i] = split(derp, ',')
+
+        return mydata2
+
+    append_timer = Timer(stmt=using_append).timeit
+    assignment_timer = Timer(stmt=using_assignment).timeit
+
+    def key(result):
+        return result[1]
+
+    for i in count(1):
+        try:
+            append_result = append_timer(1)
+            append_total += append_result
+            print("append Result:", append_result, end=' ')
+
+            assignment_result = assignment_timer(1)
+            assigment_total += assignment_result
+            print("assignment Result:", assignment_result)
+
+            results = (
+                ("append", append_total / i),
+                ("assignment", assigment_total / i)
+            )
+
+            print('\n', ' '.join("%s: %.3f" % result for result in sorted(results, key=key)), end='\n\n')
+
+        except KeyboardInterrupt:
+            break

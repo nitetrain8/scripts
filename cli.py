@@ -223,3 +223,291 @@ def get_xl_data2():
         ap(xlData(name, x_data, y_data, p, i))
 
     return all_dat
+
+
+from opcode import opmap, opname, HAVE_ARGUMENT
+
+LOAD_CONST = opmap['LOAD_CONST']
+STORE_GLOBAL = opmap['STORE_GLOBAL']
+EXTENDED_ARG = opmap['EXTENDED_ARG']
+LOAD_GLOBAL = opmap['LOAD_GLOBAL']
+
+GREATER_HAVE_ARG = HAVE_ARGUMENT - 1
+
+
+def dummy_len(obj):
+    print("Dummy len called")
+
+
+def dummy_list(obj):
+    print('Dummy list called')
+
+
+builtin_dict = {'len': dummy_len,
+                'list' : dummy_list}
+
+
+def make_constants(f, builtins_only=False, ignore=None):
+    """
+    I forget the URL to where I found this recipe, but it should be easy to find
+    I think I have it bookmarked.
+
+    @param f:
+    @type f: types.FunctionType
+    @param builtins_only:
+    @type builtins_only: bool
+    @type ignore: dict
+    @return:
+    @rtype:
+    """
+    code = f.__code__
+    newconstants = list(code.co_consts)
+    newcode = list(code.co_code)
+    names = code.co_names
+
+    import builtins
+    env = vars(builtins).copy()
+
+    if builtins_only:
+        pass
+    else:
+        env.update(f.__globals__)
+
+    if ignore is not None:
+        # todo
+        pass
+
+    codelen = len(newcode)
+    i = 0
+    while i < codelen:
+        op = newcode[i]
+
+        if op in (STORE_GLOBAL, EXTENDED_ARG):
+            return f
+        if op == LOAD_GLOBAL:
+            oparg = newcode[i + 1]
+            if newcode[i + 2] != 0:
+                raise BaseException("Poor understanding of Python Bytecode!")
+            name = names[oparg]
+            if name in env:
+                value = env[name]
+                for pos, v in enumerate(newconstants):
+                    if v is value:
+                        break
+                else:
+                    pos = len(newconstants)
+                    newconstants.append(value)
+                newcode[i] = LOAD_CONST
+                newcode[i + 1] = pos
+                newcode[i + 2] = 0
+
+        i += 1
+        if op > GREATER_HAVE_ARG:
+            i += 2
+
+    newcode = type(code)(
+        code.co_argcount,
+        code.co_kwonlyargcount,
+        code.co_nlocals,
+        code.co_stacksize,
+        code.co_flags,
+        bytes(newcode),
+        tuple(newconstants),
+        code.co_names,
+        code.co_varnames,
+        code.co_filename,
+        code.co_name,
+        code.co_firstlineno,
+        code.co_lnotab,
+        code.co_freevars,
+        code.co_cellvars
+    )
+
+    newfunc = type(f)(
+        newcode,
+        f.__globals__,
+        f.__name__,
+        f.__defaults__,
+        f.__closure__
+    )
+
+    return newfunc
+
+
+def testfoo():
+    data = (1, 2, 3)
+    len(data)
+    list(data)
+    for d in data:
+        print(d, end='')
+
+
+import pdb
+
+
+def scancode(f):
+    code = f.__code__
+    codelen = len(code.co_code)
+    co_code = code.co_code
+    i = 0
+
+    while i < codelen:
+        op = co_code[i]
+
+        if op == LOAD_GLOBAL:
+            arg1 = co_code[i + 1]
+            arg2 = (co_code[i + 2] << 8)
+            oparg = arg1 + arg2
+            print(oparg)
+            if oparg != arg1:
+                print(f.__qualname__, oparg, repr(arg1), repr(arg2))
+                pdb.set_trace()
+            if arg2 != co_code[i + 2]:
+                print(arg2, f.__qualname__)
+
+        i += 1
+        if op > GREATER_HAVE_ARG:
+            i += 2
+
+
+from types import ModuleType, CodeType, FunctionType
+import inspect
+
+
+def scan_ns(ns=None):
+
+    if ns is None:
+        import sys
+        for module in sys.modules:
+            ns = vars(sys.modules[module])
+        for k, v in ns.items():
+            if hasattr(v, '__code__'):
+                try:
+                    scancode(v)
+                except AttributeError:
+                    pass
+    else:
+        for k, v in ns.items():
+            if hasattr(v, '__code__'):
+                try:
+                    scancode(v)
+                except AttributeError:
+                    pass
+
+
+def derp():
+
+    from os import walk, listdir
+    import builtins
+    from pickle import PickleError
+
+    def dummy_print(*args, **kwargs):
+        pass
+
+    path = "C:\\Python33\\Lib"
+    files = listdir(path)
+
+    for file in files:
+        if file.endswith(".py") and 'setup' not in file and 'antigravity' not in file:
+            fpath = '\\'.join((path, file))
+            with open(fpath, 'rb') as f:
+                src = f.read()
+
+            ns = {'__name__' : '__dummy__'}
+            ns.update((k, v) for k, v in vars(builtins).items() if not k.startswith('_'))
+            ns['print'] = dummy_print
+
+            try:
+                exec(src, ns, ns)
+            except Exception as e:
+                print("Error scanning:", file, e)
+                continue
+
+            print("scanning %s" % file)
+
+            scan_ns(ns)
+
+
+def testfoo2():
+    a = (1, 2, 3, 4, 5)
+    for _ in range(100000):
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+
+
+def time_testfoo2():
+    from timeit import Timer
+
+    before = Timer(testfoo2).timeit
+    after = Timer(_make_constants(testfoo2)).timeit
+
+    before_total = after_total = 0
+
+    from itertools import count
+    n=3
+    for i in count(1):
+
+        bresult = before(n)
+        aresult = after(n)
+
+        before_total += bresult
+        after_total += aresult
+
+        print()
+        print("Before:", bresult, "After:", aresult)
+        print("Before Total", before_total / i, "After Total:", after_total / i)
+        print()
+
+
+def find_func(name="PyMethod_New", fldr="Objects"):
+    from os import listdir
+    import re
+
+    magic = re.compile(r"typedef .*?(%s)" % name).match
+
+    fldr = "C:\\Users\\Administrator\\Downloads\\Python-3.4.0\\" + fldr
+    fldr = "C:\\Python33\\include"
+    for file in listdir(fldr):
+        if file.endswith('.c') or file.endswith(".h"):
+            fpath = '\\'.join((fldr, file))
+            with open(fpath, 'r') as f:
+                text = f.read()
+            if name in text:
+                print(file)
+            match = magic(text)
+            if match:
+                print("magic!", file)
