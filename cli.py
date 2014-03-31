@@ -11,6 +11,7 @@ from scripts.old_cli import process, plot, plotpid, plotpid2, plotpid3, profile,
     plotxl, cli_load, cli_store, get_ref_map, get_ref_data, reload, get_xl_data, reload2
 from decimal import Decimal as D
 
+
 __author__ = 'Nathan Starkweather'
 
 
@@ -226,6 +227,7 @@ def get_xl_data2():
 
 
 from opcode import opmap, opname, HAVE_ARGUMENT
+import dis, imp, wave
 
 LOAD_CONST = opmap['LOAD_CONST']
 STORE_GLOBAL = opmap['STORE_GLOBAL']
@@ -345,29 +347,29 @@ def testfoo():
 import pdb
 
 
-def scancode(f):
-    code = f.__code__
-    codelen = len(code.co_code)
-    co_code = code.co_code
+def iterops(codestr):
     i = 0
-
+    codelen = len(codestr)
     while i < codelen:
-        op = co_code[i]
-
-        if op == LOAD_GLOBAL:
-            arg1 = co_code[i + 1]
-            arg2 = (co_code[i + 2] << 8)
-            oparg = arg1 + arg2
-            print(oparg)
-            if oparg != arg1:
-                print(f.__qualname__, oparg, repr(arg1), repr(arg2))
-                pdb.set_trace()
-            if arg2 != co_code[i + 2]:
-                print(arg2, f.__qualname__)
-
+        op = codestr[i]
+        yield op
         i += 1
         if op > GREATER_HAVE_ARG:
             i += 2
+
+
+def scancode(f):
+    code = f.__code__
+    codelen = len(code.co_code)
+    newcode = code.co_code
+    i = 0
+
+    if any(op == EXTENDED_ARG for op in iterops(newcode)):
+        import pdb
+        pdb.set_trace()
+        a = 1  #
+
+    return None
 
 
 from types import ModuleType, CodeType, FunctionType
@@ -471,8 +473,10 @@ def testfoo2():
 
 def time_testfoo2():
     from timeit import Timer
+    from pysrc.snippets.optimize_constants import _make_constants
 
     before = Timer(testfoo2).timeit
+
     after = Timer(_make_constants(testfoo2)).timeit
 
     before_total = after_total = 0
@@ -497,10 +501,10 @@ def find_func(name="PyMethod_New", fldr="Objects"):
     from os import listdir
     import re
 
-    magic = re.compile(r"typedef .*?(%s)" % name).match
+    # magic = re.compile(r"typedef .*?(%s)" % name).match
 
     fldr = "C:\\Users\\Administrator\\Downloads\\Python-3.4.0\\" + fldr
-    fldr = "C:\\Python33\\include"
+    # fldr = "C:\\Python33\\include"
     for file in listdir(fldr):
         if file.endswith('.c') or file.endswith(".h"):
             fpath = '\\'.join((fldr, file))
@@ -508,6 +512,18 @@ def find_func(name="PyMethod_New", fldr="Objects"):
                 text = f.read()
             if name in text:
                 print(file)
-            match = magic(text)
-            if match:
-                print("magic!", file)
+            # match = magic(text)
+            # if match:
+            #     print("magic!", file)
+
+
+def foo():
+    a = 1
+    def bar():
+        a + 1
+        def baz():
+            a + 2
+            return a
+        return baz
+    return bar
+
