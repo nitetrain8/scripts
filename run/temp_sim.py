@@ -255,7 +255,11 @@ class TempSim():
         self.heat_duty = heat_duty
 
         self.delay = DelayBuffer(delay).cycle
-        self.sink_step = HeatSink(leak_const).step
+        if leak_const == 0:
+            # Shortcut to save some computation time.
+            self.sink_step = lambda x: x
+        else:
+            self.sink_step = HeatSink(leak_const).step
 
     # Properties used to simplify the process of ensuring that all internal
     # numeric processing is done via Decimal. Use setters to automatically

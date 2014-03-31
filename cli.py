@@ -517,13 +517,18 @@ def find_func(name="PyMethod_New", fldr="Objects"):
             #     print("magic!", file)
 
 
+def baz():
+    print("Hello")
+    return "Baz"
+
+
+def bar():
+    try:
+        return baz()
+    finally:
+        print("World")
+
+
 def foo():
     a = 1
-    def bar():
-        a + 1
-        def baz():
-            a + 2
-            return a
-        return baz
-    return bar
-
+    print(bar())

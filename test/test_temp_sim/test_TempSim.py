@@ -110,25 +110,32 @@ class TestFastIteration(TempSimTestBase):
         @rtype: None
         """
 
-        for args in self.init_args:
-            exp_sim = TempSim(*args)
-            test_sim = TempSim(*args)
+        assertEqual = self.assertEqual
 
-            _s = exp_sim.step
+        for args in self.init_args:
+            exp_sim = TempSim(*args, leak_const=0)
+            test_sim = TempSim(*args, leak_const=0)
+
+            step = exp_sim.step
             n = 10000
-            exp_steps = [_s() for _ in range(n)]
+            exp_steps = [step() for _ in range(n)]
             res_steps = test_sim.iterate(n)
 
-            self.assertEqual(exp_steps, res_steps)
-            self.assertEqual(exp_sim, test_sim)
+            # unloop assert equal here, caused hangup
+            # for some reason (??)
+
+            for step_no, (exp_step, res_step) in enumerate(zip(exp_steps, res_steps)):
+                assertEqual(exp_step, res_step)
+
+            assertEqual(exp_sim, test_sim)
 
             # repeat the same thing to ensure iterate works
             # on subsequent calls.
-            exp_steps = [_s() for _ in range(n)]
+            exp_steps = [step() for _ in range(n)]
             res_steps = test_sim.iterate(n)
 
-            self.assertEqual(exp_steps, res_steps)
-            self.assertEqual(exp_sim, test_sim)
+            assertEqual(exp_steps, res_steps)
+            assertEqual(exp_sim, test_sim)
 
     def test_quiet_iter(self):
         """
@@ -138,32 +145,32 @@ class TestFastIteration(TempSimTestBase):
 
         for args in self.init_args:
 
-            exp_sim = TempSim(*args)
-            test_sim = TempSim(*args)
-            _s = exp_sim.step
+            exp_sim = TempSim(*args, leak_const=0)
+            test_sim = TempSim(*args, leak_const=0)
+            step = exp_sim.step
             n = 10000
 
             for _ in range(n):
-                _s()
+                step()
 
             test_sim.quietiter(n)
             self.assertEqual(exp_sim, test_sim)
 
             # test quiet step while we're here
-            _s()
+            step()
             test_sim.quietstep()
             self.assertEqual(exp_sim, test_sim)
 
             # repeat the same thing to ensure iterate works
             # on subsequent calls.
             for _ in range(n):
-                _s()
+                step()
 
             test_sim.quietiter(n)
             self.assertEqual(exp_sim, test_sim)
 
             # test quiet step while we're here
-            _s()
+            step()
             test_sim.quietstep()
             self.assertEqual(exp_sim, test_sim)
 
@@ -401,7 +408,6 @@ class RegressionTest(TempSimTestBase):
             t, pv = sim.step_heat(pv)
             ap((t, pv, hd))
         return result
-
 
     def test_delay_buf_sink(self):
         """
