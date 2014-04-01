@@ -116,7 +116,7 @@ def plotxl(data, firstcol=1, firstrow=2,
     return startcell, endcell
 
 
-def plot(x, y, y_data=(), names=()):
+def plot(x, y, *y_data, names=()):
     from matplotlib import pyplot as plt
     from itertools import count, cycle
     from random import randrange, random
@@ -139,18 +139,20 @@ def plot(x, y, y_data=(), names=()):
         return random(), random(), random()
 
     plts = [plt.scatter(x, y, 20, color=rand_color(), marker=next_marker())]
+
     good_names = [next_name()]
 
     errors = []
-    if y_data:
-        for y in y_data:
-            try:
-                plts.append(plt.scatter(x, y, 20, color=rand_color(), marker=next_marker()))
-            except Exception as e:
-                errors.append(e)
-                next_name()  # dump unused name
-            else:
-                good_names.append(next_name())
+
+    for y in y_data:
+        name = next_name()
+        try:
+            plts.append(plt.scatter(x, y, 20, color=rand_color(), marker=next_marker()))
+        except Exception as e:
+            errors.append(e)
+        else:
+            good_names.append(name)
+
     if errors:
         print("Errors found:")
         print(*errors, sep='\n')
@@ -223,7 +225,7 @@ def profile(cmd):
     # remove(statsfile)
 
 
-def process(sim, pid, n=9532):
+def process(sim, pid, n=9532, step_size=1):
     """
     @param sim:
     @type sim: scripts.run.temp_sim.TempSim
@@ -240,16 +242,15 @@ def process(sim, pid, n=9532):
     simstep = sim.step_heat
     pidstep = pid.step_output
 
-    times = []
-    times_ap = times.append
-    pvs = []
-    pvs_ap = pvs.append
-    hds = []
-    hds_ap = hds.append
+    times = []; times_ap = times.append
+    pvs = []; pvs_ap = pvs.append
+    hds = []; hds_ap = hds.append
 
-    for i in range(n):
-        hd = pidstep(pv)
-        t, pv = simstep(hd)
+    step_size = D(step_size)
+
+    for _ in range(n):
+        hd = pidstep(pv, step_size)
+        t, pv = simstep(hd, step_size)
         times_ap(t)
         pvs_ap(pv)
         hds_ap(hd)

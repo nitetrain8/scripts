@@ -228,9 +228,9 @@ class TempSim():
     # in seconds
     default_increment = Decimal(1)
 
-    def __init__(self, start_temp=25, env_temp=19, heat_duty=0,
+    def __init__(self, start_temp=28, env_temp=19, heat_duty=0,
                  cool_constant=cooling_constant, heat_constant=heating_constant,
-                 delay=0, leak_const=20):
+                 delay=0, leak_const=0):
         """
         @param start_temp: start temp
         @type start_temp: numbers.Number
@@ -448,8 +448,23 @@ class TempSim():
 
 class PIDController():
 
-    def __init__(self, set_point=0, pgain=25, itime=5, dtime=0, automax=50,
+    def __init__(self, set_point=37, pgain=40, itime=33, dtime=0, automax=50,
                  auto_min=0, out_high=100, out_low=0, l=None, b=None):
+        """
+        @type set_point: int
+        @type pgain: int
+        @type itime: int
+        @type dtime: int
+        @type automax: int
+        @param auto_min:
+        @type auto_min:
+        @type out_high: int
+        @type out_low: int
+        @type l: int
+        @type b: int
+        @return:
+        @rtype:
+        """
         self.auto_min = D(auto_min)
         self.out_low = out_low
         self.out_high = out_high
@@ -465,14 +480,17 @@ class PIDController():
         self.L = l
         self.B = b
 
-        self.accumulated_error = Decimal(0)
-        self.seconds = Decimal(0)
-        self.current_output = Decimal(0)
-        self.bump = Decimal(0)
+        zero = Decimal(0)
+
+        self.accumulated_error = zero
+        self.seconds = zero
+        self.current_output = zero
+        self.bump = zero
 
     def auto_mode(self, pv):
         """
-        Turn the reactor on in auto mode at pv
+        Turn the reactor on in auto mode at pv, aka
+        calculate the bump.
 
         @param pv:
         @type pv: decimal.Decimal
