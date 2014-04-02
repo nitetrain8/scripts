@@ -372,8 +372,7 @@ def scancode(f):
     return None
 
 
-from types import ModuleType, CodeType, FunctionType
-import inspect
+import functools
 
 
 def scan_ns(ns=None):
@@ -497,21 +496,34 @@ def time_testfoo2():
         print()
 
 
-def find_func(name="PyMethod_New", fldr="Objects"):
+def iterfiles(dir):
     from os import listdir
+    files = listdir(dir)
+    for file in files:
+        fpath = '\\'.join((dir, file))
+        try:
+            yield from iterfiles(fpath)
+        except NotADirectoryError:
+            yield fpath
+
+
+def find_func(name="PyMethod_New", fldr="Objects"):
+
     import re
 
     # magic = re.compile(r"typedef .*?(%s)" % name).match
 
-    fldr = "C:\\Users\\Administrator\\Downloads\\Python-3.4.0\\" + fldr
+    fldr = "C:\\Users\\Administrator\\Downloads\\Python-3.4.0\\"# + fldr
     # fldr = "C:\\Python33\\include"
-    for file in listdir(fldr):
+    for file in iterfiles(fldr):
         if file.endswith('.c') or file.endswith(".h"):
-            fpath = '\\'.join((fldr, file))
-            with open(fpath, 'r') as f:
-                text = f.read()
-            if name in text:
-                print(file)
+            # fpath = '\\'.join((fldr, file))
+            with open(file, 'r') as f:
+                text = f.readlines()
+
+            for i, line in enumerate(text, 1):
+                if name in line:
+                    print(file, "Line:", i, line)
             # match = magic(text)
             # if match:
             #     print("magic!", file)
@@ -532,3 +544,22 @@ def bar():
 def foo():
     a = 1
     print(bar())
+
+pysrc_fldr = "C:\\Users\\Administrator\\Downloads\\Python-3.4.0\\"
+
+
+def find_builtins(sentinel="builtin"):
+    from os import listdir
+
+    def iterfiles(dir, sentinel):
+        files = listdir(dir)
+        for file in files:
+            fpath = '\\'.join((dir, file))
+            try:
+                yield from iterfiles(fpath, sentinel)
+            except NotADirectoryError:
+                if file == sentinel or sentinel in file:
+                    yield fpath
+
+    for file in iterfiles(pysrc_fldr, sentinel):
+        print(file)

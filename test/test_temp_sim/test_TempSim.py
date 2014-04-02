@@ -10,7 +10,7 @@ Functions: test_functions
 """
 import unittest
 from os import makedirs
-from os.path import dirname, join, exists
+from os.path import dirname, join
 from shutil import rmtree
 from decimal import Decimal as D
 
@@ -69,7 +69,6 @@ class TempSimTestBase(unittest.TestCase):
 
 
 class TestFastIteration(TempSimTestBase):
-
 
     @classmethod
     def setUpClass(cls):
