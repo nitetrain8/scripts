@@ -10,7 +10,7 @@ Functions: test_functions
 """
 import unittest
 from os import makedirs
-from os.path import dirname, join, exists
+from os.path import dirname, join
 from shutil import rmtree
 from decimal import Decimal as D
 
@@ -62,14 +62,13 @@ class TempSimTestBase(unittest.TestCase):
 
         assertEqual(exp.current_temp, res.current_temp)
         assertEqual(exp.heat_duty, res.heat_duty)
-        assertEqual(exp.cooling_constant, res.cooling_constant)
-        assertEqual(exp.heating_constant, res.heating_constant)
+        assertEqual(exp.cool_rate, res.cool_rate)
+        assertEqual(exp.heat_rate, res.heat_rate)
         assertEqual(exp.seconds, res.seconds)
         assertEqual(exp.env_temp, res.env_temp)
 
 
 class TestFastIteration(TempSimTestBase):
-
 
     @classmethod
     def setUpClass(cls):
@@ -99,8 +98,8 @@ class TestFastIteration(TempSimTestBase):
 
         assertEqual(exp.current_temp, res.current_temp)
         assertEqual(exp.heat_duty, res.heat_duty)
-        assertEqual(exp.cooling_constant, res.cooling_constant)
-        assertEqual(exp.heating_constant, res.heating_constant)
+        assertEqual(exp.cool_rate, res.cool_rate)
+        assertEqual(exp.heat_rate, res.heat_rate)
         assertEqual(exp.seconds, res.seconds)
         assertEqual(exp.env_temp, res.env_temp)
 
@@ -121,11 +120,12 @@ class TestFastIteration(TempSimTestBase):
             exp_steps = [step() for _ in range(n)]
             res_steps = test_sim.iterate(n)
 
-            # unloop assert equal here, caused hangup
-            # for some reason (??)
+            # unloop assert otherwise hangup caused
+            # by trying to process too long of a diff in
+            # repr string
 
             for step_no, (exp_step, res_step) in enumerate(zip(exp_steps, res_steps)):
-                assertEqual(exp_step, res_step)
+                assertEqual(exp_step, res_step, step_no)
 
             assertEqual(exp_sim, test_sim)
 
@@ -134,7 +134,8 @@ class TestFastIteration(TempSimTestBase):
             exp_steps = [step() for _ in range(n)]
             res_steps = test_sim.iterate(n)
 
-            assertEqual(exp_steps, res_steps)
+            for step_no, (exp_step, res_step) in enumerate(zip(exp_steps, res_steps)):
+                assertEqual(exp_step, res_step, step_no)
             assertEqual(exp_sim, test_sim)
 
     def test_quiet_iter(self):
@@ -237,15 +238,15 @@ Decimal = D
 class SimArgs():
 
     def __init__(self, start_temp, env_temp, heat_duty,
-                 cool_constant=TempSim.cooling_constant,
-                 heat_constant=TempSim.heating_constant,
+                 cool_constant=TempSim.DEFAULT_COOL_CONSTANT,
+                 heat_constant=TempSim.DEFAULT_HEAT_CONSTANT,
                  delay=0, step_increment=0, nsteps=3000):
 
         self.delay = delay
         self.nsteps = nsteps
         self.step_increment = step_increment
-        self.heating_constant = heat_constant
-        self.cooling_constant = cool_constant
+        self.heat_rate = heat_constant
+        self.cool_rate = cool_constant
         self.heat_duty = heat_duty
         self.env_temp = env_temp
         self.start_temp = start_temp
@@ -281,21 +282,21 @@ class SimArgs():
         self._heat_duty = val
 
     @property
-    def cooling_constant(self):
+    def cool_rate(self):
         return self._cooling_constant
 
-    @cooling_constant.setter
-    def cooling_constant(self, val, D=Decimal, isinst=isinstance):
+    @cool_rate.setter
+    def cool_rate(self, val, D=Decimal, isinst=isinstance):
         if not isinst(val, D):
             val = D(val)
         self._cooling_constant = val
 
     @property
-    def heating_constant(self):
+    def heat_rate(self):
         return self._heating_constant
 
-    @heating_constant.setter
-    def heating_constant(self, val, D=Decimal, isinst=isinstance):
+    @heat_rate.setter
+    def heat_rate(self, val, D=Decimal, isinst=isinstance):
         if not isinst(val, D):
             val = D(val)
         self._heating_constant = val
@@ -312,13 +313,16 @@ class SimArgs():
 
     def get_args(self):
         return (self.start_temp, self.env_temp, self.heat_duty,
-                self.cooling_constant, self.heating_constant, self.delay)
+                self.cool_rate, self.heat_rate, self.delay)
 
     def get_step(self):
         return self.nsteps, self.step_increment
 
 
 class RegressionTest(TempSimTestBase):
+
+    """This class's use of 'SimArgs' to hold test info is a mess.
+    Sorry. Use lists or hard code test, next time."""
 
     @classmethod
     def setUpClass(cls):
@@ -345,6 +349,7 @@ class RegressionTest(TempSimTestBase):
             #: @type: list[SimArgs, list[D, D]]
             cls.exp = load(f)
 
+        # cls.exp[2][0].heat_duty = 0
         cls.cmp_prec = 8
 
     def test_regression_output(self):
@@ -354,25 +359,29 @@ class RegressionTest(TempSimTestBase):
         """
 
         self.addTypeEqualityFunc(D, self.assertRoundDecimalEqual)
-
+        assertTupleEqual = self.assertTupleEqual
         # results = []
-        for args, result in self.exp:
+        for args, expected in self.exp:
             args.delay = 0
             init_args = args.get_args()
             nsteps, step_size = args.get_step()
             sim = TempSim(*init_args)
 
             if step_size:
-                steps = sim.iterate(nsteps, step_size)
+                result = sim.iterate(nsteps, step_size)
             else:
-                steps = sim.iterate(nsteps)
+                result = sim.iterate(nsteps)
 
-            self.assertEqual(result, steps)
-            # results.append((args, steps))
+            # assertEqual(expected, result)
+
+            for exp_step, r_step in zip(expected, result):
+                assertTupleEqual(exp_step, r_step, init_args)
+
+            # results.append((args, result))
 
             # use SimArgs as a dummy TempSim to compare.
-            # Fill in missing attrs using steps data
-            args.seconds, args.current_temp = steps[-1]
+            # Fill in missing attrs using result data
+            args.seconds, args.current_temp = result[-1]
 
             # noinspection PyTypeChecker
             self.assertTempSimEqual(args, sim)
@@ -424,23 +433,20 @@ class RegressionTest(TempSimTestBase):
             exp = pload(f)
 
         sim = TempSim(28, 19, 0, delay=0)
-        pid = PIDController(37, 40, 0.5)
+        pid = PIDController(37, 40, 30, ideal=False)
 
         result = self.run_process(sim, pid, 9500)
 
         for exp_pt, res_pt in zip(exp, result):
             self.assertEqual(exp_pt, res_pt)
 
-        sim = TempSim(28, 19, 0, delay=0)
-        pid = PIDController(37, 40, 0.5)
+        # sim = TempSim(28, 19, 0, delay=0)
+        # pid = PIDController(37, 40, 30)
 
         # result = self.run_process(sim, pid, 9500)
 
         # from pysrc.snippets import safe_pickle
         # safe_pickle(result, test_input + '\\regression\\ref_delay.pickle')
-
-
-
 
 
 if __name__ == '__main__':

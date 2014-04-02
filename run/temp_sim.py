@@ -216,20 +216,20 @@ class HeatSink():
 class TempSim():
 
     # Degrees C per sec per tcur - tenv
-    # cooling_constant = Decimal('-0.00004428785379999')
-    cooling_constant = Decimal('-0.00004679011328')
-    # cooling_constant = Decimal('-0.0000615198895')
+    # cool_rate = Decimal('-0.00004428785379999')
+    DEFAULT_COOL_CONSTANT = Decimal('-0.00004679011328')
+    # cool_rate = Decimal('-0.0000615198895')
 
     # Degrees C per sec per % heat duty
-    heating_constant = Decimal('0.0001140')
+    DEFAULT_HEAT_CONSTANT = Decimal('0.0001140')
 
-    # cooling_constant = Decimal('-0.00011')
-    # heating_constant = Decimal('0.00010')
+    # cool_rate = Decimal('-0.00011')
+    # heat_rate = Decimal('0.00010')
     # in seconds
     default_increment = Decimal(1)
 
     def __init__(self, start_temp=28, env_temp=19, heat_duty=0,
-                 cool_constant=cooling_constant, heat_constant=heating_constant,
+                 cool_constant=Decimal('-0.00004679011328'), heat_constant=Decimal('0.0001140'),
                  delay=0, leak_const=0):
         """
         @param start_temp: start temp
@@ -248,8 +248,8 @@ class TempSim():
         self.current_temp = start_temp
         self.env_temp = env_temp
 
-        self.cooling_constant = Decimal(cool_constant)
-        self.heating_constant = Decimal(heat_constant)
+        self.cool_rate = cool_constant
+        self.heat_rate = heat_constant
 
         self.seconds = 0
         self.heat_duty = heat_duty
@@ -258,6 +258,8 @@ class TempSim():
         if leak_const == 0:
             # Shortcut to save some computation time.
             self.sink_step = lambda x: x
+        elif leak_const < 0:
+            raise ValueError("Leak constant must be 0 or greater")
         else:
             self.sink_step = HeatSink(leak_const).step
 
@@ -340,11 +342,11 @@ class TempSim():
 
     def cool_diff(self, seconds=default_increment):
         tdiff = self._current_temp - self._env_temp
-        incr = self.cooling_constant * tdiff * seconds
+        incr = self._cool_rate * tdiff * seconds
         return incr
 
     def heat_diff(self, seconds=default_increment):
-        incr = self.heating_constant * seconds * self._heat_duty
+        incr = self._heat_rate * seconds * self._heat_duty
         incr = self.sink_step(incr)
         return incr
 
@@ -354,10 +356,24 @@ class TempSim():
         @return: decimal.Decimal
         @rtype: (decimal.Decimal, decimal.Decimal)
         """
-        cool_diff = self.cool_diff(seconds)
-        heat_diff = self.heat_diff(seconds)
-        self.current_temp += cool_diff + heat_diff
-        self.seconds += seconds
+        return self._step(seconds)
+
+    def _step(self, seconds):
+        """
+        @type seconds: decimal.Decimal
+        @return: decimal.Decimal
+        @rtype: (decimal.Decimal, decimal.Decimal)
+        """
+
+        tdiff = self._current_temp - self._env_temp
+        cool_diff = self._cool_rate * tdiff * seconds
+
+        incr = self._heat_rate * seconds * self._heat_duty
+        heat_diff = self.sink_step(incr)
+
+        self._current_temp += cool_diff + heat_diff
+        self._seconds += seconds
+
         return self.seconds, self.current_temp
 
     def __iter__(self):
@@ -374,13 +390,13 @@ class TempSim():
         sec_per_iter = Decimal(sec_per_iter)
 
         naive_heat_per_iter = self.heat_diff(sec_per_iter)
-        naive_cool_const = self.cooling_constant * sec_per_iter
+        naive_cool_const = self._cool_rate * sec_per_iter
         env_temp = self.env_temp
 
         ct = self.current_temp
         sec = self.seconds
-        steps = []
-        append = steps.append
+        steps = []; append = steps.append
+        # delay = self.delay
 
         for _ in range(n):
             ct += naive_heat_per_iter + naive_cool_const * (ct - env_temp)
@@ -403,7 +419,7 @@ class TempSim():
     __str__ = __repr__
 
     def quietstep(self, seconds=default_increment):
-        self.step(seconds)
+        self._step(seconds)
 
     def quietiter(self, n, sec_per_iter=default_increment):
         # inline step() and cool diff/heat diff for speed
@@ -421,7 +437,7 @@ class TempSim():
         sec_per_iter = Decimal(sec_per_iter)
 
         heat_per_iter = self.heat_diff(sec_per_iter)
-        cool_const = self.cooling_constant * sec_per_iter
+        cool_const = self._cool_rate * sec_per_iter
 
         env_temp = self.env_temp
         current_temp = self.current_temp
@@ -443,13 +459,16 @@ class TempSim():
     def step_heat(self, hd, sec=default_increment):
         hd = self.delay(hd)
         self.heat_duty = hd
-        return self.step(sec)
+        return self._step(sec)
 
 
 class PIDController():
 
+    AUTO_MODE = 1
+    OFF_MODE = 0
+
     def __init__(self, set_point=37, pgain=40, itime=33, dtime=0, automax=50,
-                 auto_min=0, out_high=100, out_low=0, l=None, b=None):
+                 auto_min=0, out_high=100, out_low=-100, l=None, b=None, ideal=True):
         """
         @type set_point: int
         @type pgain: int
@@ -468,12 +487,14 @@ class PIDController():
         self.auto_min = D(auto_min)
         self.out_low = out_low
         self.out_high = out_high
+        self.out_range = D(out_high - out_low) / 2
         self.set_point = D(set_point)
         self.automax = Decimal(automax)
         self.pgain = D(pgain)
         self.itime = D(itime)
         self.oneoveritime = 1 / self.itime  # used to calc integral time
         self.dtime = D(dtime)
+        self.ideal = ideal
 
         assert l is None, "Not Implemented"
         assert b is None, "Not Implemented"
@@ -486,6 +507,8 @@ class PIDController():
         self.seconds = zero
         self.current_output = zero
         self.bump = zero
+        self.last_error = zero
+        self.last_pv = zero
 
     def auto_mode(self, pv):
         """
@@ -499,6 +522,10 @@ class PIDController():
         """
         e_t = self.set_point - pv
         self.bump = - e_t * self.pgain
+
+    def reset(self):
+        self.bump = 0
+        self.accumulated_error = 0
 
     @property
     def bump(self):
@@ -571,23 +598,43 @@ class PIDController():
         self._accumulated_error = val
 
     def process_error(self, pv, dt):
+        """
+        @type pv: decimal.Decimal
+        @type dt: decimal.Decimal
+        @return:
+        @rtype:
+        """
+
         e_t = self.set_point - pv
         self.accumulated_error += dt * e_t
         self.seconds += dt
-        # DEBUG
         self.last_error = e_t
+        self.last_pv = pv
         return e_t
 
-    def calc_output(self, error):
+    def calc_output(self, error, pv):
+        """
+        @param error: the error sp - pv
+        @param pv: current process value, used to calc deriv
+                    action and avoid massive kicks at SP change
+        @type error: decimal.Decimal
+        @type pv: decimal.Decimal
+        @return: the heater duty output in %
+        @rtype: decimal.decimal
+        """
 
-        Up = self.pgain * error
-        Ui = self.oneoveritime * self.accumulated_error
+        # Ui = self._oneoveritime * self._accumulated_error
 
-        # nonlinear = 1 + (10 * error * error) / 10000
-        # Ui = self.oneoveritime * self.accumulated_error / nonlinear
-        # Derivative control not yet implemented
+        # Trapezoidal integration
+        out_range = self.out_range
+        Ui = self._oneoveritime * self._accumulated_error / (1 + (10 * error * error) / (out_range * out_range))
 
-        Uk = Up + Ui + self.bump
+        Ud = self._dtime * (pv - self.last_pv)
+
+        if self.ideal:
+            Uk = self._bump + self._pgain * (error + Ui + Ud)
+        else:
+            Uk = self._bump + self._pgain * error + Ui + Ud
 
         if Uk > self.automax:
             Uk = self.automax
@@ -607,7 +654,7 @@ class PIDController():
         @rtype: Decimal
         """
         e_t = self.process_error(pv, dt)
-        output = self.calc_output(e_t)
+        output = self.calc_output(e_t, pv)
         self.current_output = output
         return output
 

@@ -90,8 +90,8 @@ def cli_load(name):
     from pickle import load
     save_dir = dirname(__file__) + '\\cli_data\\'
     save_name = save_dir + name
-    if not name.endswith('.pickle'):
-        name += '.pickle'
+    if not save_name.endswith('.pickle'):
+        save_name += '.pickle'
     with open(save_name, 'rb') as f:
         data = load(f)
     return data
@@ -239,21 +239,21 @@ def process(sim, pid, n=9532, step_size=1):
     pv = sim.current_temp
     pid.auto_mode(pv)
 
-    simstep = sim.step_heat
-    pidstep = pid.step_output
+    sim_step = sim.step_heat
+    pid_step = pid.step_output
 
     times = []; times_ap = times.append
     pvs = []; pvs_ap = pvs.append
-    hds = []; hds_ap = hds.append
+    # hds = []; hds_ap = hds.append
 
     step_size = D(step_size)
 
     for _ in range(n):
-        hd = pidstep(pv, step_size)
-        t, pv = simstep(hd, step_size)
+        hd = pid_step(pv, step_size)
+        t, pv = sim_step(hd, step_size)
         times_ap(t)
         pvs_ap(pv)
-        hds_ap(hd)
+        # hds_ap(hd)
 
     return times, pvs
 
@@ -572,9 +572,9 @@ def manyboth():
             kp = dPV / dCO
             tcs.append(tc)
             kps.append(kp)
-            cs.append(sim.cooling_constant)
+            cs.append(sim.cool_rate)
 
-            print("Const:", sim.cooling_constant.quantize(repr_quant), "Ti:", int(tc), "Kp:", kp.quantize(repr_quant))
+            print("Const:", sim.cool_rate.quantize(repr_quant), "Ti:", int(tc), "Kp:", kp.quantize(repr_quant))
     except KeyboardInterrupt:
         return list(zip(cs, tcs, kps))
         # pass
@@ -630,7 +630,7 @@ def nextlinething():
         print(line, lineno)
 
 
-def run_decay_test(n=5400, start_temp=D('37.04'), c=TempSim.cooling_constant):
+def run_decay_test(n=5400, start_temp=D('37.04'), c=TempSim.DEFAULT_COOL_CONSTANT):
     """
     @return:
     @rtype:
@@ -766,7 +766,7 @@ def run_pidtest(pid, sim, n=1000):
         return pid, sim
 
 
-def plotpid(i=33):
+def plotpid(i=33, ret=False):
     import sys
 
     try:
@@ -805,7 +805,8 @@ def plotpid(i=33):
 
     plotxl(steps, firstcol, firstrow, '', 'PID.xlsx', 2)
 
-    return steps
+    if ret:
+        return steps
     # cells.Range(cells(1, firstcol), cells(1, firstcol + 4)).Value = ("Time", "Temp", "LastErr", "AccumErr", "HeatDuty%")
     # cells.Range(cells(2, firstcol), cells(len(steps) + 1, len(steps[0]) + firstcol - 1)).Value = [tuple(map(str, data)) for data in steps]
 
@@ -839,7 +840,6 @@ def plotpid2(n=15000):
     cells = ws.Cells
 
     firstcol = 30
-
     cells.Range(cells(1, firstcol), cells(1, firstcol + 4)).Value = (
         "Time", "Temp", "LastErr", "AccumErr", "HeatDuty%")
     cells.Range(cells(2, firstcol), cells(len(steps) + 1, len(steps[0]) + firstcol - 1)).Value = \
@@ -1127,7 +1127,6 @@ def iterspeedtest():
     sys.modules['__main__'].__dict__.update(locals())
 
 
-from itertools import zip_longest, repeat
 bigfile = "C:\\Users\\PBS Biotech\\Documents\\Personal\\PBS_Office\\MSOffice\\pbslib\\test\\test_batchreport\\test_mock_strptime\\test_input\\real_world_data\\bigfile.csv"
 bigfile2 = "C:\\Users\\Administrator\\Documents\\Programming\\python\\pbslib\\test\\test_batchreport\\test_mock_strptime\\test_input\\real_world_data\\bigfile.csv"
 
@@ -1189,3 +1188,374 @@ def unpack_test():
 
         except KeyboardInterrupt:
             break
+
+
+from opcode import opmap, HAVE_ARGUMENT
+
+
+LOAD_CONST = opmap['LOAD_CONST']
+STORE_GLOBAL = opmap['STORE_GLOBAL']
+EXTENDED_ARG = opmap['EXTENDED_ARG']
+LOAD_GLOBAL = opmap['LOAD_GLOBAL']
+
+GREATER_HAVE_ARG = HAVE_ARGUMENT - 1
+
+
+def dummy_len(_):
+    print("Dummy len called")
+
+
+def dummy_list(_):
+    print('Dummy list called')
+
+
+builtin_dict = {'len': dummy_len,
+                'list' : dummy_list}
+
+
+def make_constants(f, builtins_only=False, ignore=None):
+    """
+    I forget the URL to where I found this recipe, but it should be easy to find
+    I think I have it bookmarked.
+
+    @param f:
+    @type f: types.FunctionType
+    @param builtins_only:
+    @type builtins_only: bool
+    @type ignore: dict
+    @return:
+    @rtype:
+    """
+    code = f.__code__
+    newconstants = list(code.co_consts)
+    newcode = list(code.co_code)
+    names = code.co_names
+
+    import builtins
+    env = vars(builtins).copy()
+
+    if builtins_only:
+        pass
+    else:
+        env.update(f.__globals__)
+
+    if ignore is not None:
+        pass
+
+    codelen = len(newcode)
+    i = 0
+    while i < codelen:
+        op = newcode[i]
+
+        if op in (STORE_GLOBAL, EXTENDED_ARG):
+            return f
+        if op == LOAD_GLOBAL:
+            oparg = newcode[i + 1]
+            if newcode[i + 2] != 0:
+                raise BaseException("Poor understanding of Python Bytecode!")
+            name = names[oparg]
+            if name in env:
+                value = env[name]
+                for pos, v in enumerate(newconstants):
+                    if v is value:
+                        break
+                else:
+                    pos = len(newconstants)
+                    newconstants.append(value)
+                newcode[i] = LOAD_CONST
+                newcode[i + 1] = pos
+                newcode[i + 2] = 0
+
+        i += 1
+        if op > GREATER_HAVE_ARG:
+            i += 2
+
+    newcode = type(code)(
+        code.co_argcount,
+        code.co_kwonlyargcount,
+        code.co_nlocals,
+        code.co_stacksize,
+        code.co_flags,
+        bytes(newcode),
+        tuple(newconstants),
+        code.co_names,
+        code.co_varnames,
+        code.co_filename,
+        code.co_name,
+        code.co_firstlineno,
+        code.co_lnotab,
+        code.co_freevars,
+        code.co_cellvars
+    )
+
+    newfunc = type(f)(
+        newcode,
+        f.__globals__,
+        f.__name__,
+        f.__defaults__,
+        f.__closure__
+    )
+
+    return newfunc
+
+
+def testfoo():
+    data = (1, 2, 3)
+    len(data)
+    list(data)
+    for d in data:
+        print(d, end='')
+
+
+def iterops(codestr):
+    i = 0
+    codelen = len(codestr)
+    while i < codelen:
+        op = codestr[i]
+        yield op
+        i += 1
+        if op > GREATER_HAVE_ARG:
+            i += 2
+
+
+# noinspection PyUnusedLocal
+def scancode(f):
+    code = f.__code__
+    codelen = len(code.co_code)
+    newcode = code.co_code
+    i = 0
+
+    if any(op == EXTENDED_ARG for op in iterops(newcode)):
+        import pdb
+        pdb.set_trace()
+        # a = 1  #
+
+    return None
+
+
+def scan_ns(ns=None):
+
+    if ns is None:
+        import sys
+        for module in sys.modules:
+            ns = vars(sys.modules[module])
+        for k, v in ns.items():
+            if hasattr(v, '__code__'):
+                try:
+                    scancode(v)
+                except AttributeError:
+                    pass
+    else:
+        for k, v in ns.items():
+            if hasattr(v, '__code__'):
+                try:
+                    scancode(v)
+                except AttributeError:
+                    pass
+
+
+def derp():
+
+    from os import listdir
+    import builtins
+
+    # noinspection PyUnusedLocal
+    def dummy_print(*args, **kwargs):
+        pass
+
+    path = "C:\\Python33\\Lib"
+    files = listdir(path)
+
+    for file in files:
+        if file.endswith(".py") and 'setup' not in file and 'antigravity' not in file:
+            fpath = '\\'.join((path, file))
+            with open(fpath, 'rb') as f:
+                src = f.read()
+
+            ns = {'__name__' : '__dummy__'}
+            ns.update((k, v) for k, v in vars(builtins).items() if not k.startswith('_'))
+            ns['print'] = dummy_print
+
+            try:
+                exec(src, ns, ns)
+            except Exception as e:
+                print("Error scanning:", file, e)
+                continue
+
+            print("scanning %s" % file)
+
+            scan_ns(ns)
+
+
+def testfoo2():
+    a = (1, 2, 3, 4, 5)
+    for _ in range(100000):
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+        len(a)
+
+
+def time_testfoo2():
+    from timeit import Timer
+    from pysrc.snippets.optimize_constants import _make_constants
+
+    before = Timer(testfoo2).timeit
+
+    after = Timer(_make_constants(testfoo2)).timeit
+
+    before_total = after_total = 0
+
+    from itertools import count
+    n = 3
+    for i in count(1):
+
+        bresult = before(n)
+        aresult = after(n)
+
+        before_total += bresult
+        after_total += aresult
+
+        print()
+        print("Before:", bresult, "After:", aresult)
+        print("Before Total", before_total / i, "After Total:", after_total / i)
+        print()
+
+
+# noinspection PyUnusedLocal
+def optimal_i(i=D('2.5')):
+    from scripts.cli import supermath3
+    #
+    # try:
+    #     del sys.modules['scripts.run.temp_sim']
+    # except KeyError:
+    #     pass
+
+    i = D(i)
+    ifactor = D('12')
+    i_step = D(2)
+    i_step_factor = D('0.5')
+    i_step_min = D('1')
+    ref_map = get_ref_map()
+    ref_data = ref_map[str(i)]
+    print(ref_data)
+    ref_data = ref_data.y_data
+
+    last_diff = supermath3(0, 0, ref_data, i, ifactor, False)
+    diff = last_diff - 1
+    ifactor += i_step
+
+    _print = print
+    _len = len
+    false = False
+
+    try:
+        while diff:
+
+            print("going up!", end='\n\n')
+            while True:
+                diff = supermath3(0, 0, ref_data, i, ifactor, plot=false)
+                _print("Ifactor:", ifactor, end=' ')
+                _print("Totaldiff:", diff, end=' ')
+                _print("Ave_diff:", diff / _len(ref_data))
+
+                if diff > last_diff:
+                    break
+                lastdiff = diff
+                ifactor += i_step
+
+            i_step *= i_step_factor
+            if i_step < i_step_min:
+                i_step = i_step_min
+            ifactor -= i_step
+            print("going down!", end='\n\n')
+
+            while True:
+                diff = supermath3(0, 0, ref_data, i, ifactor, plot=false)
+                _print("Ifactor:", ifactor, end=' ')
+                _print("Totaldiff:", diff, end=' ')
+                _print("Ave_diff:", diff / _len(ref_data))
+                if diff > last_diff:
+                    break
+                last_diff = diff
+                ifactor -= i_step
+
+            i_step *= i_step_factor
+            if i_step < i_step_min:
+                i_step = i_step_min
+            ifactor += i_step
+
+    except KeyboardInterrupt:
+        pass
+
+    if diff == 0:
+        _print("wow!")
+
+    supermath3(0, 0, ref_data, i, ifactor, plot=True)
+
+    return ifactor
+
+
+# noinspection PyGlobalUndefined
+def run_test(op=int.__add__, amt=0.2, itime=2.5):
+    # import operator
+    from scripts.cli import supermath3
+    import sys
+
+    g = sys.modules['__main__'].__dict__
+    lastdiff = g['lastdiff']
+    i = lasti = g['i']
+    ref = g['ref']
+
+    diff = supermath3(95, 0, ref, itime, i, False)
+
+    while True:
+        print("Starting again", diff, lastdiff)
+        lasti = i
+        i = op(i, amt)
+        lastdiff = diff
+        diff = supermath3(95, 0, ref, itime, i, False)
+        if diff >= lastdiff:
+            diff = supermath3(95, 0, ref, itime, lasti, True)
+            break
+
+    _l = locals().copy()
+    _l.pop('lasti')
+    _l.pop('amt')
+    _l.pop('op')
+    _l.pop('itime')
+    g.update(_l)
+    # print(diff, lastdiff)
+    return lasti
