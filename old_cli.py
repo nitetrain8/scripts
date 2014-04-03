@@ -97,6 +97,17 @@ def cli_load(name):
     return data
 
 
+def plotxl_by_cell(data, cell, y_header="SimData"):
+    firstcol = cell.Column
+    firstrow = cell.Row
+
+    ws = cell.Parent
+    wb = ws.Parent
+    wb_name = wb.Name
+    ws_name = ws.Name
+    return plotxl(data, firstcol, firstrow, y_header, wb_name, ws_name)
+
+
 def plotxl(data, firstcol=1, firstrow=2,
            y_header="SimData", wb_name="PID.xlsx", ws_num=3):
 
@@ -244,7 +255,7 @@ def process(sim, pid, n=9532, step_size=1):
 
     times = []; times_ap = times.append
     pvs = []; pvs_ap = pvs.append
-    # hds = []; hds_ap = hds.append
+    hds = []; hds_ap = hds.append
 
     step_size = D(step_size)
 
@@ -253,9 +264,12 @@ def process(sim, pid, n=9532, step_size=1):
         t, pv = sim_step(hd, step_size)
         times_ap(t)
         pvs_ap(pv)
-        # hds_ap(hd)
+        hds_ap(hd)
 
-    return times, pvs
+    # print(sim)
+    # print(pid)
+
+    return times, pvs, hds
 
 
 #==================
@@ -1430,11 +1444,13 @@ def testfoo2():
 
 def time_testfoo2():
     from timeit import Timer
-    from pysrc.snippets.optimize_constants import _make_constants
-
+    from pysrc.snippets.optimize_constants import _make_constant_globals
+    import builtins
+    env = vars(builtins).copy()
+    env.update(globals())
     before = Timer(testfoo2).timeit
 
-    after = Timer(_make_constants(testfoo2)).timeit
+    after = Timer(_make_constant_globals(testfoo2, env)).timeit
 
     before_total = after_total = 0
 
@@ -1486,7 +1502,7 @@ def optimal_i(i=D('2.5')):
 
             print("going up!", end='\n\n')
             while True:
-                diff = supermath3(0, 0, ref_data, i, ifactor, plot=false)
+                diff = supermath3(0, 0, ref_data, i, plot=false)
                 _print("Ifactor:", ifactor, end=' ')
                 _print("Totaldiff:", diff, end=' ')
                 _print("Ave_diff:", diff / _len(ref_data))
@@ -1503,7 +1519,7 @@ def optimal_i(i=D('2.5')):
             print("going down!", end='\n\n')
 
             while True:
-                diff = supermath3(0, 0, ref_data, i, ifactor, plot=false)
+                diff = supermath3(0, 0, ref_data, i, plot=false)
                 _print("Ifactor:", ifactor, end=' ')
                 _print("Totaldiff:", diff, end=' ')
                 _print("Ave_diff:", diff / _len(ref_data))
@@ -1523,7 +1539,7 @@ def optimal_i(i=D('2.5')):
     if diff == 0:
         _print("wow!")
 
-    supermath3(0, 0, ref_data, i, ifactor, plot=True)
+    supermath3(0, 0, ref_data, i, plot=True)
 
     return ifactor
 

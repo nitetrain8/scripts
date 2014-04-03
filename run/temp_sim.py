@@ -623,11 +623,11 @@ class PIDController():
         @rtype: decimal.decimal
         """
 
-        # Ui = self._oneoveritime * self._accumulated_error
+        Ui = self._oneoveritime * self._accumulated_error
 
         # Trapezoidal integration
-        out_range = self.out_range
-        Ui = self._oneoveritime * self._accumulated_error / (1 + (10 * error * error) / (out_range * out_range))
+        # out_range = self.out_range
+        # Ui = self._oneoveritime * self._accumulated_error / (1 + (10 * error * error) / (out_range * out_range))
 
         Ud = self._dtime * (pv - self.last_pv)
 
