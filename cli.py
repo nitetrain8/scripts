@@ -142,24 +142,51 @@ def get_xl_data2():
     return all_dat
 
 
-def find_func(name="PyMethod_New", fldr="Objects"):
-    from os import listdir
-    # import re
+from os import listdir
 
+
+# noinspection PyUnresolvedReferences
+def dirwalk(dir):
+    contents = listdir(dir)
+    paths = []; path_append = paths.append
+    for f in contents:
+        path = '\\'.join((dir, f))
+        try:
+            paths.extend(dirwalk(path))
+        except OSError:
+            path_append(path)
+    return paths
+
+# dirwalk = make_constants(verbose=True, listdir=listdir, OSError=OSError, join='\\'.join)(dirwalk)
+
+
+def find_func(name="PyMethod_New", subdir="Objects"):
+    # from os import listdir
+
+    # import re
     # magic = re.compile(r"typedef .*?(%s)" % name).match
 
-    fldr = "C:\\Users\\Administrator\\Downloads\\Python-3.4.0\\" + fldr
+    subdir = "C:\\Users\\Administrator\\Downloads\\Python-3.4.0\\" + subdir
     # fldr = "C:\\Python33\\include"
-    for file in listdir(fldr):
-        if file.endswith('.c') or file.endswith(".h"):
-            fpath = '\\'.join((fldr, file))
+    for fpath in dirwalk(subdir):
+        if fpath.endswith('.c') or fpath.endswith(".h"):
+            # fpath = '\\'.join((subdir, fpath))
             with open(fpath, 'r') as f:
-                text = f.read()
-            if name in text:
-                print(file)
-            # match = magic(text)
-            # if match:
-            #     print("magic!", file)
+                text = f.read().splitlines()
+            for line in text:
+                bbreak = False
+                if name in line:
+                    print(fpath)
+                    bbreak = True
+                if bbreak:
+                    break
+
+                    # match = magic(line)
+                    # if match:
+                        # print("magic!", fpath)
+
+
+import ctypes
 
 
 def run_test(p=40, i=1320, delay=0, leak_const=0):
