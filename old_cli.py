@@ -128,49 +128,89 @@ def plotxl(data, firstcol=1, firstrow=2,
 
 
 def plot(x, y, *y_data, names=()):
+    """
+    @param x: x data
+    @type x: collections.Iterable[int | float | decimal.Decimal]
+    @param y: y data
+    @type y: collections.Iterable[int | float | decimal.Decimal]
+    @param y_data: any more sets of y data for the x data
+    @type y_data: collections.Iterable[int | float | decimal.Decimal]
+    @param names: names to pass to legend
+    @type names: collections.Iterable[str]
+    """
     from matplotlib import pyplot as plt
     from itertools import count, cycle
     from random import randrange, random
 
-    cnt = count(1)
-    markers = (',', '.', 'o', 'v', '^', '<', '>', '1', '2', '3', '4', '8', 's', 'p', '*', 'h', 'H', '+', 'x', 'D', 'd')
-    start = randrange(0, len(markers))
+    markers = (',', '.', 'o', 'v', '^',
+               '<', '>', '1', '2', '3',
+               '4', '8', 's', 'p', '*',
+               'h', 'H', '+', 'x', 'D', 'd')
     next_marker = cycle(markers).__next__
 
-    for _ in range(start):
+    # start at a random marker
+    rnd_marker_start = randrange(0, len(markers))
+    for _ in range(rnd_marker_start):
         next_marker()
 
-    def next_name(n_iter=iter(names)):
-        nxt = next(n_iter, None)
+    # passed in single name
+    if isinstance(names, str):
+        names = (names,)
+    iternames = iter(names)
+
+    leg = plt.gca().legend_
+    if leg is not None:
+        handles = leg.legendHandles[:]
+        labels = [t.get_text() for t in leg.texts]
+    else:
+        handles = []
+        labels = []
+
+    used_names = set(labels)
+    used_names.add(None)
+
+    series_num = count(1)
+
+    def next_name():
+        nxt = next(iternames, None)
         if nxt is None:
-            return "Series " + str(next(cnt))
+            while nxt in used_names:
+                nxt = "Series %d" % next(series_num)
+        elif nxt in used_names:
+            i = 0
+            new = nxt + str(i)
+            while new in used_names:
+                i += 1
+                new = nxt + str(i)
+            nxt = new
+        used_names.add(nxt)
         return nxt
 
     def rand_color():
         return random(), random(), random()
 
-    plts = [plt.scatter(x, y, 20, color=rand_color(), marker=next_marker())]
-
+    new_plots = [plt.scatter(x, y, 20, color=rand_color(), marker=next_marker())]
     good_names = [next_name()]
 
     errors = []
-
     for y in y_data:
         name = next_name()
         try:
-            plts.append(plt.scatter(x, y, 20, color=rand_color(), marker=next_marker()))
+            next_plt = plt.scatter(x, y, 20, color=rand_color(), marker=next_marker())
         except Exception as e:
             errors.append(e)
         else:
             good_names.append(name)
+            new_plots.append(next_plt)
 
     if errors:
         print("Errors found:")
         print(*errors, sep='\n')
 
-    if good_names:
-        plt.legend(plts, names,
-                   scatterpoints=1)
+    handles.extend(new_plots)
+    labels.extend(good_names)
+
+    plt.legend(handles, labels, scatterpoints=1)
     plt.show()
 
 
@@ -1575,3 +1615,48 @@ def run_test(op=int.__add__, amt=0.2, itime=2.5):
     g.update(_l)
     # print(diff, lastdiff)
     return lasti
+
+
+# noinspection PyStatementEffect
+def foo():
+    self
+
+
+# noinspection PyStatementEffect
+class _mc():
+    def bar(self):
+        self
+
+
+self = _mc()
+self.foo = foo
+
+
+def method_speed(n = 3000000):
+    from timeit import Timer
+    from pysrc.snippets.optimize_constants import make_constants
+    # import builtins
+
+    method = Timer(self.bar).timeit
+
+    self.foo = make_constants(self=self)(foo)
+    const = Timer(self.foo).timeit
+
+    method_total = const_total = 0
+
+    from itertools import count
+    try:
+        for i in count(1):
+
+            aresult = const(n)
+            bresult = method(n)
+
+            method_total += bresult
+            const_total += aresult
+
+            print()
+            print("method:", bresult, "const:", aresult)
+            print("method Total", method_total / i, "const Total:", const_total / i)
+            print()
+    except KeyboardInterrupt:
+        return method_total / i, const_total / i

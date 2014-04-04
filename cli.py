@@ -7,7 +7,9 @@ Created in: PyCharm Community Edition
 
 """
 # noinspection PyUnresolvedReferences
+from pysrc.snippets.optimize_constants import make_constants
 
+# noinspection PyUnresolvedReferences
 from scripts.old_cli import process, plot, plotpid, plotpid2, plotpid3, profile, xlData, \
     plotxl, cli_load, cli_store, get_ref_map, get_ref_data, reload, get_xl_data, reload2, \
     plotxl_by_cell
@@ -195,4 +197,85 @@ def test_cooling(c=D('-0.000039')):
 
 
 def run_test2(p=40, i=1320 / 60):
-    run_test(p, i * 60)
+    run_test(p, i)
+
+
+def plot_m(h, linest_formula, linest_range, plotcell, xcol, ycol):
+    from scripts.run.temp_sim import TempSim
+    from officelib.xllib.xladdress import cellRangeStr
+    sim = TempSim(28, 19, 50, heat_constant=h)
+    data = sim.iterate(30000)
+    xs, ys = zip(*data)
+    start = next(i for i, pv in enumerate(ys) if pv > 30)
+    end = next((i for i, pv in enumerate(ys, start) if pv > 36), len(ys) - 1)
+    assert ys[start] > 30
+    assert ys[end] > 36
+    xldata = [(str(x), str(y)) for x, y in zip(xs[start:end], ys[start:end])]
+    plotxl_by_cell(xldata, plotcell)
+    linest_args = linest_formula % (
+        cellRangeStr(
+            (2, ycol), (end - start, ycol)
+        ),
+        cellRangeStr(
+            (2, xcol), (end - start, xcol)
+        )
+    )
+
+    # print(linest_args)
+
+    linest_range.FormulaArray = linest_args
+
+
+@make_constants(int=int, map=map, tuple=tuple, zip=zip,
+                    next=next, enumerate=enumerate, str=str)
+def get_m():
+    delsim()
+    from scripts.run.temp_sim import TempSim
+    from officelib.xllib.xlcom import xlBook2
+    from officelib.xllib.xladdress import cellRangeStr
+    from time import sleep
+    # from pysrc.snippets import smooth1
+
+    xl, wb = xlBook2('PID.xlsx')
+    h = TempSim.DEFAULT_HEAT_CONSTANT
+
+    cells = wb.Worksheets('xtra').Cells
+
+    # refdata = get_paired_cols(cells.Range('E2'))
+    # refx, refy = zip(*refdata)
+    # refx, refy = smooth1(refx, refy)
+    # refx = refx[:]
+
+    incr = h / 20
+    plotcell = cells.Range('J2')
+    cell2 = cells.Range('L2')
+    ref_m = D('0.005497')
+
+    b_cell = cells.Range("M2")
+
+    linest_range = cells.Range(cell2, b_cell)
+    linest_formula = "=linest(%s,%s)"
+
+    xcol = 10
+    ycol = 11
+
+    linest_range.Value = ((0.002, 0),)
+
+    while D(cell2.Value) < ref_m:
+        print("Plotting data with h=%s" % h)
+        plot_m(h, linest_formula, linest_range, plotcell, xcol, ycol)
+        sleep(0.2)
+        h += incr
+
+    incr /= 10
+
+    while D(cell2.Value) > ref_m:
+        print("Plotting data with h=%s" % h)
+        plot_m(h, linest_formula, linest_range, plotcell, xcol, ycol)
+        sleep(0.2)
+        h -= incr
+
+    return h
+
+
+

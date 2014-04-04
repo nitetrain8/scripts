@@ -216,15 +216,20 @@ class HeatSink():
 class TempSim():
 
     # Degrees C per sec per tcur - tenv
-    # cool_rate = Decimal('-0.00004428785379999')
-    DEFAULT_COOL_CONSTANT = Decimal('-0.00004679011328')
-    # cool_rate = Decimal('-0.0000615198895')
-
     # Degrees C per sec per % heat duty
-    DEFAULT_HEAT_CONSTANT = Decimal('0.0001140')
 
+    # DEFAULT_COOL_CONSTANT = Decimal('-0.00004679011328')
+    # DEFAULT_HEAT_CONSTANT = Decimal('0.0001140')
+
+    DEFAULT_COOL_CONSTANT = Decimal('-0.00004')
+    DEFAULT_HEAT_CONSTANT = Decimal('0.000097456')
+
+    # archived constants
+    # cool_rate = Decimal('-0.00004428785379999')
+    # cool_rate = Decimal('-0.0000615198895')
     # cool_rate = Decimal('-0.00011')
     # heat_rate = Decimal('0.00010')
+
     # in seconds
     default_increment = Decimal(1)
 
