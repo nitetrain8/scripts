@@ -473,7 +473,7 @@ class PIDController():
     OFF_MODE = 0
 
     def __init__(self, set_point=37, pgain=40, itime=33, dtime=0, automax=50,
-                 auto_min=0, out_high=100, out_low=-100, l=None, b=None, ideal=True):
+                 auto_min=0, out_high=100, out_low=0, l=1, b=1, ideal=True):
         """
         @type set_point: int
         @type pgain: int
@@ -501,8 +501,6 @@ class PIDController():
         self.dtime = D(dtime)
         self.ideal = ideal
 
-        assert l is None, "Not Implemented"
-        assert b is None, "Not Implemented"
         self.L = l
         self.B = b
 
