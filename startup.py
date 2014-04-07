@@ -17,7 +17,7 @@ def set_npp_hook():
     get_ipython().set_hook('editor', call_editor)
     get_ipython().editor = template
 
-set_npp_hook()
+# set_npp_hook()
 
 
 def set_pycharm_hook():
@@ -36,4 +36,4 @@ def set_pycharm_hook():
     get_ipython().set_hook('editor', call_editor)
     get_ipython().editor = template
 
-
+set_pycharm_hook()

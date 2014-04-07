@@ -150,40 +150,43 @@ def dirwalk(dir):
     contents = listdir(dir)
     paths = []; path_append = paths.append
     for f in contents:
-        path = '\\'.join((dir, f))
+        path = join((dir, f))
         try:
             paths.extend(dirwalk(path))
         except OSError:
             path_append(path)
     return paths
 
-# dirwalk = make_constants(verbose=True, listdir=listdir, OSError=OSError, join='\\'.join)(dirwalk)
+dirwalk = make_constants(listdir=listdir, OSError=OSError, join='\\'.join)(dirwalk)
 
 
-def find_func(name="PyMethod_New", subdir="Objects"):
+def find_func(name="PyMethod_New", subdir=""):
     # from os import listdir
 
     # import re
-    # magic = re.compile(r"typedef .*?(%s)" % name).match
+    # magic = re.compile(r"typedef.*?(%s)" % name).match
 
-    subdir = "C:\\Users\\Administrator\\Downloads\\Python-3.4.0\\" + subdir
+    subdir = "D:\\Python-3.4.0\\" + subdir
     # fldr = "C:\\Python33\\include"
-    for fpath in dirwalk(subdir):
-        if fpath.endswith('.c') or fpath.endswith(".h"):
+    dirs = dirwalk(subdir)
+    print(len(dirs))
+    for i, fpath in enumerate(dirs):
+        if fpath.endswith('.py'):
             # fpath = '\\'.join((subdir, fpath))
-            with open(fpath, 'r') as f:
-                text = f.read().splitlines()
-            for line in text:
-                bbreak = False
+            try:
+                with open(fpath, 'r') as f:
+                    text = f.read().splitlines()
+            except UnicodeDecodeError:
+                continue
+            for lineno, line in enumerate(text, 1):
                 if name in line:
-                    print(fpath)
-                    bbreak = True
-                if bbreak:
-                    break
+                    print(fpath, "Line number", lineno)
 
                     # match = magic(line)
                     # if match:
-                        # print("magic!", fpath)
+                    #     print("magic!", fpath)
+                    #     break
+
 
 
 import ctypes
