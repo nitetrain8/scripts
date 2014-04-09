@@ -276,7 +276,7 @@ def profile(cmd):
     # remove(statsfile)
 
 
-def process(sim, pid, n=9532, step_size=1):
+def process(sim, pid, n=9532, step_size=1, auto_mode=True):
     """
     @param sim:
     @type sim: scripts.run.temp_sim.TempSim
@@ -288,7 +288,8 @@ def process(sim, pid, n=9532, step_size=1):
     @rtype:
     """
     pv = sim.current_temp
-    pid.auto_mode(pv)
+    if auto_mode:
+        pid.auto_mode(pv)
 
     sim_step = sim.step_heat
     pid_step = pid.step_output

@@ -475,17 +475,17 @@ class PIDController():
     def __init__(self, set_point=37, pgain=40, itime=33, dtime=0, automax=50,
                  auto_min=0, out_high=100, out_low=0, l=1, b=1, ideal=True):
         """
-        @type set_point: int
-        @type pgain: int
-        @type itime: int
-        @type dtime: int
-        @type automax: int
-        @param auto_min:
-        @type auto_min:
-        @type out_high: int
-        @type out_low: int
-        @type l: int
-        @type b: int
+        @type set_point: int | float
+        @type pgain: int | float
+        @type itime: int | float
+        @type dtime: int | float
+        @type automax: int | float
+        @param auto_min: int | float
+        @type auto_min: int | float
+        @type out_high: int | float
+        @type out_low: int | float
+        @type l: int | float
+        @type b: int | float
         @return:
         @rtype:
         """
@@ -512,6 +512,7 @@ class PIDController():
         self.bump = zero
         self.last_error = zero
         self.last_pv = zero
+        self.lastlastpv = zero
 
     def auto_mode(self, pv):
         """
@@ -612,7 +613,8 @@ class PIDController():
         self.accumulated_error += dt * e_t
         self.seconds += dt
         self.last_error = e_t
-        self.last_pv = pv
+        self.last_pv = self.lastlastpv
+        self.lastlastpv = pv
         return e_t
 
     def calc_output(self, error, pv):
@@ -631,7 +633,7 @@ class PIDController():
         # Trapezoidal integration
         # out_range = self.out_range
         # Ui = self._oneoveritime * self._accumulated_error / (1 + (10 * error * error) / (out_range * out_range))
-
+        # print(pv - self.last_pv)
         Ud = self._dtime * (pv - self.last_pv)
 
         if self.ideal:
