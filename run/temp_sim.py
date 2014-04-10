@@ -525,7 +525,12 @@ class PIDController():
         @rtype:
         """
         e_t = self.set_point - pv
-        self.bump = - e_t * self.pgain
+
+        uk0 = self.pgain * e_t
+        # ui0 = self.itime * e_t
+        # if self.ideal:
+        #     ui0 *= self.pgain
+        self.bump = -uk0
 
     def reset(self):
         self.bump = 0

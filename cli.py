@@ -40,7 +40,7 @@ def supermath3(delay=0, leak_constant=0, ref_data=None, i=D('0.5'), plot=True, p
     """
     delsim()
     from scripts.run.temp_sim import TempSim, PIDController
-
+    import queue
     # i = D(i) * 3 + D('13.95')
 
     pid_kwargs = {

@@ -109,12 +109,12 @@ def plotxl_by_cell(data, cell, y_header="SimData"):
 
 
 def plotxl(data, firstcol=1, firstrow=2,
-           y_header="SimData", wb_name="PID.xlsx", ws_num=3):
+           y_header="SimData", wb_name="PID.xlsx", ws_id=3):
 
     from officelib.xllib.xlcom import xlBook2
 
     xl, wb = xlBook2(wb_name)
-    ws = wb.Worksheets(ws_num)
+    ws = wb.Worksheets(ws_id)
     cells = ws.Cells
 
     startcell = cells(firstrow, firstcol)
