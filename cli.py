@@ -112,18 +112,18 @@ def find_func(name="PyMethod_New", subdir=""):
     subdir = "D:\\Python-3.4.0\\" + subdir
     # fldr = "C:\\Python33\\include"
     dirs = dirwalk(subdir)
-    print(len(dirs))
+    # print(len(dirs))
     for i, fpath in enumerate(dirs):
-        if fpath.endswith('.py'):
+        # if fpath.endswith('.py'):
             # fpath = '\\'.join((subdir, fpath))
-            try:
-                with open(fpath, 'r') as f:
-                    text = f.read().splitlines()
-            except UnicodeDecodeError:
-                continue
-            for lineno, line in enumerate(text, 1):
-                if name in line:
-                    print(fpath, "Line number", lineno)
+        try:
+            with open(fpath, 'r') as f:
+                text = f.read().splitlines()
+        except (UnicodeDecodeError, OSError):
+            continue
+        for lineno, line in enumerate(text, 1):
+            if name in line:
+                print(fpath, "Line number", lineno)
 
                     # match = magic(line)
                     # if match:
