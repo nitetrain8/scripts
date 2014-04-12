@@ -409,7 +409,7 @@ class RegressionTest(TempSimTestBase):
 
     def run_process(self, sim, pid, n):
         pv = sim.current_temp
-        pid.auto_mode(pv)
+        pid.off_to_auto(pv)
         result = []
         ap = result.append
         for _ in range(n):

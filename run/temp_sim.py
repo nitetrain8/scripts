@@ -514,7 +514,7 @@ class PIDController():
         self.last_pv = zero
         self.lastlastpv = zero
 
-    def auto_mode(self, pv):
+    def off_to_auto(self, pv):
         """
         Turn the reactor on in auto mode at pv, aka
         calculate the bump.
@@ -524,13 +524,20 @@ class PIDController():
         @return:
         @rtype:
         """
-        e_t = self.set_point - pv
+        self.man_to_auto(0, pv)
 
-        uk0 = self.pgain * e_t
-        # ui0 = self.itime * e_t
-        # if self.ideal:
-        #     ui0 *= self.pgain
-        self.bump = -uk0
+    def man_to_auto(self, hd, pv):
+        """
+        @param hd:
+        @type hd:
+        @param pv:
+        @type pv:
+        @return:
+        @rtype:
+        """
+        err = self.set_point - pv
+        uk0 = self.pgain * err
+        self.bump = hd - uk0
 
     def reset(self):
         self.bump = 0
@@ -639,6 +646,7 @@ class PIDController():
         # out_range = self.out_range
         # Ui = self._oneoveritime * self._accumulated_error / (1 + (10 * error * error) / (out_range * out_range))
         # print(pv - self.last_pv)
+
         Ud = self._dtime * (pv - self.last_pv)
 
         if self.ideal:

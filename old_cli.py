@@ -6,6 +6,8 @@ Created in: PyCharm Community Edition
 
 
 """
+from os import listdir
+from pysrc.optimize import make_constants
 from pysrc.snippets import smooth1
 from decimal import Decimal as D
 from time import perf_counter as _timer
@@ -158,10 +160,10 @@ def plot(x, y, *y_data, names=()):
         names = (names,)
     iternames = iter(names)
 
-    leg = plt.gca().legend_
-    if leg is not None:
-        handles = leg.legendHandles[:]
-        labels = [t.get_text() for t in leg.texts]
+    legend = plt.gca().legend_
+    if legend is not None:
+        handles = legend.legendHandles[:]
+        labels = [t.get_text() for t in legend.texts]
     else:
         handles = []
         labels = []
@@ -276,7 +278,7 @@ def profile(cmd):
     # remove(statsfile)
 
 
-def process(sim, pid, n=9532, step_size=1, auto_mode=True):
+def process(sim, pid, n=9532, step_size=1, off_to_auto=True):
     """
     @param sim:
     @type sim: scripts.run.temp_sim.TempSim
@@ -288,8 +290,10 @@ def process(sim, pid, n=9532, step_size=1, auto_mode=True):
     @rtype:
     """
     pv = sim.current_temp
-    if auto_mode:
-        pid.auto_mode(pv)
+    if off_to_auto:
+        pid.off_to_auto(pv)
+    else:
+        pid.man_to_auto(sim.heat_duty, pv)
 
     sim_step = sim.step_heat
     pid_step = pid.step_output
@@ -834,7 +838,7 @@ def plotpid(i=33, ret=False):
     sim = TempSim(D('28.183533'), 19, 0)
     pid = PIDController(37, 40, D(i))
     # pid = PIDController(37, 40, 0.5)
-    pid.auto_mode(sim.current_temp)
+    pid.off_to_auto(sim.current_temp)
 
     pv = sim.current_temp
     #: @type: list[tuple[D]]
@@ -878,7 +882,7 @@ def plotpid2(n=15000):
     sim = TempSim(D('28.183533'), 19, 0)
     pid = PIDController(37, 40, D('0.55'))
     # pid = PIDController(37, 40, 0.5)
-    pid.auto_mode(sim.current_temp)
+    pid.off_to_auto(sim.current_temp)
 
     pv = sim.current_temp
     #: @type: list[tuple[D]]
@@ -913,7 +917,7 @@ def plotpid3(n=7202 - 11, p=40, i=D('6'), d=0):
     sim = TempSim(D('28.183533'), 19, 0)
     pid = PIDController(37, p, i, d)
     # pid = PIDController(37, 40, 0.5)
-    pid.auto_mode(sim.current_temp)
+    pid.off_to_auto(sim.current_temp)
 
     pv = sim.current_temp
     #: @type: list[tuple[D]]
@@ -953,7 +957,7 @@ def check():
     sim = TempSim(D('28.183533'), 19, 0)
     pid = PIDController(37, 40, D('0.55'))
 
-    pid.auto_mode(sim.current_temp)
+    pid.off_to_auto(sim.current_temp)
 
     pv = sim.current_temp
     #: @type: list[tuple[D]]
@@ -970,11 +974,11 @@ def check():
         e_t = self.set_point - pv
         self.accumulated_error = - e_t * self.pgain * self.itime
 
-    PIDController.auto_mode = auto_mode
+    PIDController.off_to_auto = auto_mode
 
     pid = PIDController(37, 40, D('0.55'))
 
-    pid.auto_mode(sim.current_temp)
+    pid.off_to_auto(sim.current_temp)
 
     pv = sim.current_temp
     #: @type: list[tuple[D]]
@@ -1268,92 +1272,6 @@ builtin_dict = {'len': dummy_len,
                 'list' : dummy_list}
 
 
-def make_constants(f, builtins_only=False, ignore=None):
-    """
-    I forget the URL to where I found this recipe, but it should be easy to find
-    I think I have it bookmarked.
-
-    @param f:
-    @type f: types.FunctionType
-    @param builtins_only:
-    @type builtins_only: bool
-    @type ignore: dict
-    @return:
-    @rtype:
-    """
-    code = f.__code__
-    newconstants = list(code.co_consts)
-    newcode = list(code.co_code)
-    names = code.co_names
-
-    import builtins
-    env = vars(builtins).copy()
-
-    if builtins_only:
-        pass
-    else:
-        env.update(f.__globals__)
-
-    if ignore is not None:
-        pass
-
-    codelen = len(newcode)
-    i = 0
-    while i < codelen:
-        op = newcode[i]
-
-        if op in (STORE_GLOBAL, EXTENDED_ARG):
-            return f
-        if op == LOAD_GLOBAL:
-            oparg = newcode[i + 1]
-            if newcode[i + 2] != 0:
-                raise BaseException("Poor understanding of Python Bytecode!")
-            name = names[oparg]
-            if name in env:
-                value = env[name]
-                for pos, v in enumerate(newconstants):
-                    if v is value:
-                        break
-                else:
-                    pos = len(newconstants)
-                    newconstants.append(value)
-                newcode[i] = LOAD_CONST
-                newcode[i + 1] = pos
-                newcode[i + 2] = 0
-
-        i += 1
-        if op > GREATER_HAVE_ARG:
-            i += 2
-
-    newcode = type(code)(
-        code.co_argcount,
-        code.co_kwonlyargcount,
-        code.co_nlocals,
-        code.co_stacksize,
-        code.co_flags,
-        bytes(newcode),
-        tuple(newconstants),
-        code.co_names,
-        code.co_varnames,
-        code.co_filename,
-        code.co_name,
-        code.co_firstlineno,
-        code.co_lnotab,
-        code.co_freevars,
-        code.co_cellvars
-    )
-
-    newfunc = type(f)(
-        newcode,
-        f.__globals__,
-        f.__name__,
-        f.__defaults__,
-        f.__closure__
-    )
-
-    return newfunc
-
-
 def testfoo():
     data = (1, 2, 3)
     len(data)
@@ -1485,7 +1403,7 @@ def testfoo2():
 
 def time_testfoo2():
     from timeit import Timer
-    from pysrc.snippets.optimize_constants import _make_constant_globals
+    from pysrc.optimize.optimize_constants import _make_constant_globals
     import builtins
     env = vars(builtins).copy()
     env.update(globals())
@@ -1633,9 +1551,9 @@ self = _mc()
 self.foo = foo
 
 
-def method_speed(n = 3000000):
+def method_speed(n=3000000):
     from timeit import Timer
-    from pysrc.snippets.optimize_constants import make_constants
+    from pysrc.optimize.optimize_constants import make_constants
     # import builtins
 
     method = Timer(self.bar).timeit
@@ -1646,6 +1564,7 @@ def method_speed(n = 3000000):
     method_total = const_total = 0
 
     from itertools import count
+    i = 1
     try:
         for i in count(1):
 
@@ -1661,3 +1580,137 @@ def method_speed(n = 3000000):
             print()
     except KeyboardInterrupt:
         return method_total / i, const_total / i
+
+
+@make_constants(int=int, map=map, tuple=tuple, zip=zip,
+                    next=next, enumerate=enumerate, str=str)
+def get_m():
+    from scripts.cli import delsim
+    delsim()
+    from scripts.run.temp_sim import TempSim
+    from officelib.xllib.xlcom import xlBook2
+    # from officelib.xllib.xladdress import cellRangeStr
+    from time import sleep
+    # from pysrc.snippets import smooth1
+
+    xl, wb = xlBook2('PID.xlsx')
+    h = TempSim.DEFAULT_HEAT_CONSTANT
+
+    cells = wb.Worksheets('xtra').Cells
+
+    # refdata = get_paired_cols(cells.Range('E2'))
+    # refx, refy = zip(*refdata)
+    # refx, refy = smooth1(refx, refy)
+    # refx = refx[:]
+
+    incr = h / 20
+    plotcell = cells.Range('J2')
+    cell2 = cells.Range('L2')
+    ref_m = D('0.005497')
+
+    b_cell = cells.Range("M2")
+
+    linest_range = cells.Range(cell2, b_cell)
+    linest_formula = "=linest(%s,%s)"
+
+    xcol = 10
+    ycol = 11
+
+    linest_range.Value = ((0.002, 0),)
+
+    while D(cell2.Value) < ref_m:
+        print("Plotting data with h=%s" % h)
+        plot_m(h, linest_formula, linest_range, plotcell, xcol, ycol)
+        sleep(0.2)
+        h += incr
+
+    incr /= 10
+
+    while D(cell2.Value) > ref_m:
+        print("Plotting data with h=%s" % h)
+        plot_m(h, linest_formula, linest_range, plotcell, xcol, ycol)
+        sleep(0.2)
+        h -= incr
+
+    return h
+
+
+def plot_m(h, linest_formula, linest_range, plotcell, xcol, ycol):
+    from scripts.run.temp_sim import TempSim
+    from officelib.xllib.xladdress import cellRangeStr
+    sim = TempSim(28, 19, 50, heat_constant=h)
+    data = sim.iterate(30000)
+    xs, ys = zip(*data)
+    start = next(i for i, pv in enumerate(ys) if pv > 30)
+    end = next((i for i, pv in enumerate(ys, start) if pv > 36), len(ys) - 1)
+    assert ys[start] > 30
+    assert ys[end] > 36
+    xldata = [(str(x), str(y)) for x, y in zip(xs[start:end], ys[start:end])]
+    plotxl_by_cell(xldata, plotcell)
+    linest_args = linest_formula % (
+        cellRangeStr(
+            (2, ycol), (end - start, ycol)
+        ),
+        cellRangeStr(
+            (2, xcol), (end - start, xcol)
+        )
+    )
+
+    # print(linest_args)
+
+    linest_range.FormulaArray = linest_args
+
+
+join = '\\'.join
+
+
+def dirwalk(dir):
+    contents = listdir(dir)
+    paths = []; path_append = paths.append
+    for f in contents:
+        path = join((dir, f))
+        try:
+            paths.extend(dirwalk(path))
+        except OSError:
+            path_append(path)
+    return paths
+
+# noinspection PyUnresolvedReferences
+dirwalk = make_constants(listdir=listdir, OSError=OSError, join=join)(dirwalk)
+
+
+def get_xl_data2():
+
+    from officelib.xllib.xlcom import xlBook2
+    from officelib.const import xlDown
+    from pysrc.snippets import smooth1
+    import re
+    from itertools import takewhile
+    xl, wb = xlBook2('PID.xlsx')
+    ws = wb.Worksheets('p30')
+    cells = ws.Cells
+
+    # columns = (5, 9, 13, 17, 21, 25, 29)
+    columns = range(2, 19, 4)
+
+    parse_name = re.compile(r"p(\d*)i([\d\.]*)").match
+
+    all_dat = []
+    ap = all_dat.append
+    row = 2
+
+    def good(o):
+        return o != (None, None)
+
+    for col in columns:
+
+        data = cells.Range(cells(row, col), cells(row, col + 1).End(xlDown)).Value
+        name = cells(1, col + 1).Value
+        xldata = takewhile(good, data)
+        x, y = zip(*xldata)
+        x_data, y_data = smooth1(x, y)
+
+        p, i = parse_name(name).groups()
+        ap(xlData(name, x_data, y_data, p, i))
+
+    return all_dat
