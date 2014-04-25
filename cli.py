@@ -47,11 +47,11 @@ def supermath3(delay=0, leak_constant=0, ref_data=None, i=D('0.5'), plot=True, p
         'itime': i,
         'out_high' : 100,
         'out_low' : -100,
-        'ideal' : False
+        'ideal' : True
         }
 
     sim_kwargs = {
-        'start_temp': (D('27.5')),
+        'start_temp': (D('28.183')),
         'env_temp': 19,
         'delay': delay,
         'leak_const': leak_constant,

@@ -1001,7 +1001,6 @@ def tpid_eval_data_scan(data_report, steps, time_offset=0):
     test_list = []
     offset = timedelta(minutes=time_offset)
 
-    # local var boilerplate
     end = -1
     old_sp = round(pvs[0])
     for t_start, t_end in steps:
@@ -1063,9 +1062,10 @@ def _time_to_sp(ramp_test, col):
     # if end was in middle of list, use the next index.
     # if end was the last time in the list (0), bump it up
     # to 1
-    if not end:
+    if 0 == end:
         end = 1
 
+    # +11 -> account for cell header rows
     end_index = y_len - end + 11
 
     magic = "=" + cellStr(end_index, col)

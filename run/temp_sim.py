@@ -180,10 +180,10 @@ def print_ave_heats():
 
 class DelayBuffer(deque):
 
-    def __init__(self, delay=30):
+    def __init__(self, delay=30, startvalue=0):
         # No maxlen- let potential delay size
         # be dynamicly determinable by caller
-        super().__init__(repeat(D(0), delay + 1))
+        super().__init__(repeat(D(startvalue), delay + 1))
 
     def cycle(self, hd, rot=deque.rotate):
         self[0] = hd
@@ -234,19 +234,19 @@ class TempSim():
     default_increment = Decimal(1)
 
     def __init__(self, start_temp=28, env_temp=19, heat_duty=0,
-                 cool_constant=Decimal('-0.00004679011328'), heat_constant=Decimal('0.0001140'),
+                 cool_constant=DEFAULT_COOL_CONSTANT, heat_constant=DEFAULT_HEAT_CONSTANT,
                  delay=0, leak_const=0):
         """
         @param start_temp: start temp
-        @type start_temp: numbers.Number
+        @type start_temp: int | float | decimal.Decimal
         @param env_temp: env temp
-        @type env_temp: numbers.Number
+        @type env_temp: int | float | decimal.Decimal
         @param heat_duty: heat duty
-        @type heat_duty: numbers.Number
+        @type heat_duty: int | float | decimal.Decimal
         @param cool_constant: cooling rate constant in degC/(sec*dt)
-        @type cool_constant: numbers.Number
+        @type cool_constant: int | float | decimal.Decimal
         @param heat_constant: heat rate constant in degC/(sec*%heatduty)
-        @type heat_constant: numbers.Number
+        @type heat_constant: int | float | decimal.Decimal
         """
 
         self.start_temp = start_temp
@@ -259,7 +259,7 @@ class TempSim():
         self.seconds = 0
         self.heat_duty = heat_duty
 
-        self.delay = DelayBuffer(delay).cycle
+        self.delay = DelayBuffer(delay, heat_duty).cycle
         if leak_const == 0:
             # Shortcut to save some computation time.
             self.sink_step = lambda x: x
@@ -519,25 +519,22 @@ class PIDController():
         Turn the reactor on in auto mode at pv, aka
         calculate the bump.
 
-        @param pv:
-        @type pv: decimal.Decimal
-        @return:
-        @rtype:
+        @param pv: current process temp to use for bumpless xfer calculation
+        @type pv: int | float | decimal.Decimal
         """
         self.man_to_auto(0, pv)
 
     def man_to_auto(self, hd, pv):
         """
-        @param hd:
-        @type hd:
-        @param pv:
-        @type pv:
-        @return:
-        @rtype:
+        @param hd: current heat duty, for bumpless xfer calculation
+        @type hd: int | float | decimal.Decimal
+        @param pv: current process temp to use for bumpless xfer calculation
+        @type pv: int | float | decimal.Decimal
         """
         err = self.set_point - pv
         uk0 = self.pgain * err
         self.bump = hd - uk0
+        #print("hd %.2f, pv %d, bump %.2f" % (hd, pv, self.bump))
 
     def reset(self):
         self.bump = 0

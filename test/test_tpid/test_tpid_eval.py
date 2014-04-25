@@ -12,7 +12,7 @@ from datetime import datetime
 from itertools import zip_longest
 import unittest
 from os import makedirs
-from os.path import dirname, join, exists
+from os.path import dirname, join
 from shutil import rmtree
 from pbslib.batchreport import DataReport
 import scripts.tpid.tpidmany as tpidmany
@@ -51,6 +51,7 @@ class TestEvalSteps(TPIDUnittest):
 
         cls.xl_need_closing = []
 
+    @unittest.skip("Test not yet written")
     def test_tpid_eval_data_scan(self):
         """
         @return: None

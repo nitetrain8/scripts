@@ -53,11 +53,11 @@ class FullTpidManyTest(unittest.TestCase):
         # currently only interested in data moved to sheet.
         # Chart logic is relatively easy to clean up, and extremely
         # tedious to compare.
-        addr = cellStr
+        _cellStr = cellStr
         try:
             for r, (exp_row, result_row) in enumerate(zip_longest(result, expected), 1):
                 for c, (exp_cell, result_cell) in enumerate(zip_longest(exp_row, result_row), 1):
-                    self.assertEqual(exp_cell, result_cell, msg=addr(r, c))
+                    self.assertEqual(exp_cell, result_cell, msg=_cellStr(r, c))
         finally:
             wb.Close(False)
             xl.Quit()
