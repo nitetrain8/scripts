@@ -497,7 +497,7 @@ class PIDController():
         self.automax = Decimal(automax)
         self.pgain = D(pgain)
         self.itime = D(itime)
-        self.oneoveritime = 1 / self.itime  # used to calc integral time
+        self.oneoveritime = 1 / self.itime  # used to calc accumulated_error time
         self.dtime = D(dtime)
         self.ideal = ideal
 
