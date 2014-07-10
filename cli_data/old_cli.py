@@ -7,11 +7,13 @@ Created in: PyCharm Community Edition
 
 """
 from os import listdir
-from pysrc.optimize import make_constants
-from pysrc.snippets import smooth1
 from decimal import Decimal as D
 from time import perf_counter as _timer
+
+from pysrc.optimize import make_constants
+from pysrc.snippets import smooth1
 from scripts.run.temp_sim import TempSim
+
 
 __author__ = 'Nathan Starkweather'
 
@@ -445,7 +447,7 @@ def manysuper3():
     last = 99999999999
     totaldiff = 0
     from officelib.xllib.xlcom import xlBook2
-    from scripts.cli import supermath3
+    from cli_data.cli import supermath3
 
     xl, wb = xlBook2("PID.xlsx")
     cell = wb.Worksheets(1).Cells.Range("C8")
@@ -462,7 +464,7 @@ def manysuper3():
 
 def test_leak():
     data = []
-    from scripts.cli import supermath3
+    from cli_data.cli import supermath3
     times, pvs = supermath3(leak_constant=0)
     data.append(times)
     data.append(pvs)
@@ -1431,7 +1433,7 @@ def time_testfoo2():
 
 # noinspection PyUnusedLocal
 def optimal_i(i=D('2.5')):
-    from scripts.cli import supermath3
+    from cli_data.cli import supermath3
     #
     # try:
     #     del sys.modules['scripts.run.temp_sim']
@@ -1506,7 +1508,7 @@ def optimal_i(i=D('2.5')):
 # noinspection PyGlobalUndefined
 def run_test(op=int.__add__, amt=0.2, itime=2.5):
     # import operator
-    from scripts.cli import supermath3
+    from cli_data.cli import supermath3
     import sys
 
     g = sys.modules['__main__'].__dict__
@@ -1585,7 +1587,7 @@ def method_speed(n=3000000):
 @make_constants(int=int, map=map, tuple=tuple, zip=zip,
                     next=next, enumerate=enumerate, str=str)
 def get_m():
-    from scripts.cli import delsim
+    from cli_data.cli import delsim
     delsim()
     from scripts.run.temp_sim import TempSim
     from officelib.xllib.xlcom import xlBook2

@@ -8,10 +8,11 @@ Created in: PyCharm Community Edition
 """
 
 # noinspection PyUnresolvedReferences
-from scripts.old_cli import process, plot, plotpid, plotpid2, plotpid3, profile, xlData, \
+from decimal import Decimal as D
+
+from cli_data.old_cli import process, plot, plotpid, plotpid2, plotpid3, profile, xlData, \
     plotxl, cli_load, cli_store, get_ref_map, get_ref_data, reload, get_xl_data, reload2, \
     plotxl_by_cell, dirwalk
-from decimal import Decimal as D
 
 
 __author__ = 'Nathan Starkweather'
