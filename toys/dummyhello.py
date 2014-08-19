@@ -1,5 +1,6 @@
 from xml.etree.ElementTree import parse as xml_parse
 from urllib.request import urlopen
+from urllib.error import URLError
 from io import BytesIO
 
 
@@ -12,11 +13,11 @@ def call_hello(url):
     return root
 
 
-def getMainValues(ipv4='192.168.1.6'):
+def getMainValues(ipv4='192.168.1.83'):
         url = "http://%s/webservice/interface/?&call=getMainValues" % ipv4
         return call_hello(url)
 
-def getAdvancedValues(ipv4='192.168.1.6'):
+def getAdvancedValues(ipv4='192.168.1.83'):
     url = "http://%s/webservice/interface/?&call=getAdvancedValues" % ipv4
     return call_hello(url)
 
@@ -170,7 +171,7 @@ def poll_main_values():
     root = getMainValues()
     try:
         _parse_main_values_xml(root, values)
-    except:
+    except StopIteration:
         pass
     else:
         # sleep(.5)
@@ -183,7 +184,7 @@ def poll_main_values():
             for param, pv in groupdict.items():
                 group[param]['vlabel'].config(text=pv)
 
-    tkroot.after(500, poll_main_values)
+    tkroot.after(250, poll_main_values)
 
 
 mvhb = 0
@@ -209,7 +210,7 @@ def poll_adv_values():
     root = getAdvancedValues()
     try:
         _parse_adv_values_xml(root, values)
-    except:
+    except StopIteration:
         pass
     else:
         avhb += 1
@@ -219,7 +220,7 @@ def poll_adv_values():
             for param, pv in groupdict.items():
                 group[param]['vlabel'].config(text=pv)
 
-    tkroot.after(500, poll_adv_values)
+    tkroot.after(250, poll_adv_values)
 
 
 if __name__ == '__main__':
