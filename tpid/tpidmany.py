@@ -1146,7 +1146,7 @@ def _debug_tpid_eval_full_scan(data_file, steps_file, time_offset):
 
 if __name__ == "__main__":
 
-    # __profile_code()
+    __profile_code()
 
     # data4 = "C:\\users\\pbs biotech\\downloads\\ovntpids4data (1).csv"
 # steps4 = "C:\\users\\pbs biotech\\downloads\\ovntpids4steps (1).csv"
