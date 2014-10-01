@@ -18,6 +18,7 @@ def extract(src):
 
     # Sloppy regexes
     # Todo- use XML parsing library instead of regex
+    # 9/30/14 - XML parsing? pretty sure this is html
     date_re = re.compile(r'(?<=id="date">)(.*)</h2>')
     cal_re = re.compile(r'(?<=TOTAL:</td>)\s+<td>(\d*)(?:,*)(\d*)</td>')
 
