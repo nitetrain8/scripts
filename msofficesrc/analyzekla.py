@@ -57,7 +57,7 @@ def build_deriv_list(times,values):
     list comprehension but this is more readable"""
     
     def diff(slice):
-        return (slice[-1] - slice[0])
+        return slice[-1] - slice[0]
         
     def deriv(start, stop):
         #stop + 1 includes the stop index for easier math
@@ -71,6 +71,7 @@ def build_deriv_list(times,values):
     dlist.append(None)
     
     return dlist
+
     
 def make_quick_chart(ws):
     
@@ -80,8 +81,7 @@ def make_quick_chart(ws):
         smooth_data(x_data)
         cells.Range(cells(2, x_data_col), cells(len(x_data) + 1, x_data_col)).Value2 = [[(i - x_data[0])*24] for i in x_data]
         ws.Columns(x_data_col).NumberFormat = "0.00"
-    
-    
+
     cells = ws.Cells
     DO_data_start = cells.Find(What="DOPV(%)", After=cells(1,1), SearchOrder=xlByRows)
     x_data_col = DO_data_start.Column + 1
