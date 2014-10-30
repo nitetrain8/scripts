@@ -6,7 +6,7 @@ Created on Oct 28, 2013
 from officelib import *
 from tkinter.filedialog import askopenfilenames
 from officelib.const import xlToRight, xlByRows, xlDown, xlXYScatterLines, xlPrimary
-from officelib.xllib.xlcom import prompt_files, xlObjs
+from officelib.xllib.xlcom import xlObjs
 
 debug_files = [
                "C:/Users/PBS Biotech/Documents/Personal/source/KLA Testing/raw batch files/kla id22 60mLPM.csv",
@@ -112,13 +112,14 @@ def make_quick_chart(ws):
     FormatChart(chart, None, "KLA", "Time(hours)", "DO PV (%)", True)
     
 
-raw_file = prompt_files()[0]
-xl, wb, ws, cells = xlObjs(raw_file)
+if __name__ == '__main__':
+    raw_file = debug_files[0]
+    xl, wb, ws, cells = xlObjs(raw_file)
 
-from officelib.xllib.xlcom import HiddenXl
+    from officelib.xllib.xlcom import HiddenXl
 
-with HiddenXl(xl):
-    make_quick_chart(ws)
+    with HiddenXl(xl):
+        make_quick_chart(ws)
 
 
 
