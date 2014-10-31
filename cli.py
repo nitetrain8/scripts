@@ -16,5 +16,14 @@ def test():
 
     return analyze_batches()
 
+
+def test2():
+    import hello.kla
+    import subprocess
+
+    subprocess.call("tskill.exe EXCEL")
+    hello.kla.__test_analyze_kla()
+
 if __name__ == '__main__':
-    test()
+
+    test2()
