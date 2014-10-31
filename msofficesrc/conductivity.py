@@ -23,9 +23,9 @@ from officelib.xllib.xladdress import cellStr
 from batchreport.proxies import BatchFile
 
 
-def mean(list_):
+def mean(o):
     """ Naive mean for simple things"""
-    return sum(list_) / len(list_)
+    return sum(o) / len(o)
 
 
 def ask_user_for_files():
