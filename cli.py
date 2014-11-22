@@ -70,6 +70,27 @@ def tkquickdiff():
     frame.grid()
     root.mainloop()
 
+
+def c():
+    print("C")
+    from hello.mock.server import _stack_trace
+    for line in (_stack_trace()):
+        print(line)
+
+
+def b():
+    print("B")
+    c()
+
+
+def a():
+    print("A")
+    b()
+
+
+def foo():
+    a()
+
 if __name__ == '__main__':
 
-    tkquickdiff()
+    foo()
