@@ -11,8 +11,14 @@ def getcall(call, auto=True, **params):
     if params:
         query = query + "&" + "&".join("%s=%s" % (k, v) for k, v in params.items())
 
-    if 'json' in params and params['json'] in {'1', "True", 1, True}:
-        json = True
+    if 'json' in params:
+        js = params['json']
+        if isinstance(js, str):
+            js = js.lower()
+        if js in {'1', "True", 1, True, 'true'}:
+            json = True
+        else:
+            json = False
     else:
         json = False
 
