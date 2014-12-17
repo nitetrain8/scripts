@@ -6,6 +6,9 @@ from officelib.nsdbg import npp_open
 from pysrc.snippets import unique_name
 
 
+ipv4 = '192.168.1.6:80'
+
+
 def getcall(call, auto=True, **params):
     query = "?&call=%s" % call
     if params:
@@ -22,7 +25,7 @@ def getcall(call, auto=True, **params):
     else:
         json = False
 
-    rsp = urlopen("http://192.168.1.6:80/webservice/interface/" + query)
+    rsp = urlopen(("http://%s/webservice/interface/" % ipv4) + query)
     txt = rsp.read()
     if not auto:
         fname = "C:\\.replcache\\paste%s.txt" % call
@@ -42,4 +45,11 @@ def getcall(call, auto=True, **params):
     npp_open(fname)
 
 
-
+def init_hello_server():
+    from hello.mock.server import HelloServer
+    from threading import Thread
+    global s, t
+    s = HelloServer()
+    t = Thread(None, s.serve_forever)
+    t.daemon = True
+    t.start()
