@@ -5,6 +5,8 @@ from urllib.request import urlopen
 from officelib.nsdbg import npp_open
 from pysrc.snippets import unique_name
 import sys
+import os
+import os.path
 
 
 ipv4 = '192.168.1.6:80'
@@ -54,8 +56,8 @@ class FTest():
         self.call = call
         self.fns = []
 
-    def add_fn(self, params, raw_name=None, json=False):
-        self.fns.append((params, raw_name, json))
+    def add_fn(self, params, raw_name=None, json=False, real_mode=False):
+        self.fns.append((params, raw_name, json, real_mode))
 
     def write(self, f):
 
@@ -63,13 +65,23 @@ class FTest():
         """ % self.call
 
         f.write(cdef)
+        seen = set()
+        for i, (params, raw_name, json, real_mode) in enumerate(self.fns, 1):
 
-        for i, (params, raw_name, json) in enumerate(self.fns, 1):
-            s = self.fn_to_str(params, raw_name, i, json)
+            # sort params to ensure that the resulting function string is identical
+            # in the event that the same params are passed in a different order, and
+            # thus regected by the set of seen functions.
+
+            params = sorted(params.items())
+
+            s = self.fn_to_str(params, raw_name, i, json, real_mode)
+            if s in seen:
+                continue
+            seen.add(s)
             f.write(s)
         f.write("\n\n")
 
-    def fn_to_str(self, params, raw_name, nfn=1, json=False):
+    def fn_to_str(self, params, raw_name, nfn=1, json=False, real_mode=False):
         fn = """
     def test_%(name)s%(n)d(self):
 
@@ -77,11 +89,13 @@ class FTest():
         params = (
             %(pstr)s
         )
-
+        mode = self.real_mode
+        self.real_mode = %(real_mode)s
         self.do_call_expect_%(json)s(call, params, %(raw_name)s)
+        self.real_mode = mode
         """
 
-        pstr = "\n            ".join("""("%s", "%s"),""" % i for i in params.items())
+        pstr = "\n            ".join("""("%s", "%s"),""" % i for i in params)
 
         return fn % {
             'name': self.call,
@@ -89,7 +103,8 @@ class FTest():
             'n': nfn,
             'call': self.call,
             'pstr': pstr,
-            'json': 'json' if json else 'xml'
+            'json': 'json' if json else 'xml',
+            'real_mode': real_mode
         }
 
 
@@ -112,44 +127,19 @@ class CallGetter():
 
     def getcall(self, call, **params):
 
-        if call in self.calls:
-            t = self.calls[call]
-        else:
-            self.calls[call] = t = FTest(call)
+        json, t = self._getcall_prep(call, params)
+        t.add_fn(params, None, json)
 
         query = "?&call=%s" % call
         if params:
             query = query + "&" + "&".join("%s=%s" % (k, v) for k, v in params.items())
 
-        if 'json' in params:
-            js = params['json']
-            if isinstance(js, str):
-                js = js.lower()
-            if js in {'1', "True", 1, True, 'true'}:
-                json = True
-            else:
-                json = False
-        else:
-            json = False
-
-        assert isinstance(t, FTest)
-
-        t.add_fn(params, None, json)
-
         rsp = urlopen(("http://%s/webservice/interface/" % self.ipv4) + query)
         txt = rsp.read()
 
-        if json:
-            ext = ".json"
-        else:
-            ext = ".xml"
-        fname = self.file_path + call + ext
+        self._getcall_write_file(call, json, txt)
 
-        with open(fname, 'wb') as f:
-            f.write(txt)
-
-    def getcall_with_text(self, call, txt, **params):
-
+    def _getcall_prep(self, call, params):
         if call in self.calls:
             t = self.calls[call]
         else:
@@ -166,17 +156,51 @@ class CallGetter():
         else:
             json = False
 
-        assert isinstance(t, FTest)
-        t.add_fn(params, None, json)
+        return json, t
 
-        if json:
-            ext = ".json"
-        else:
-            ext = ".xml"
-        fname = self.file_path + call + ext
-
+    def _getcall_write_file(self, call, json, txt, fname=None):
+        if fname is None:
+            if json:
+                ext = ".json"
+            else:
+                ext = ".xml"
+            fname = self.file_path + call + ext
         with open(fname, 'wb') as f:
             f.write(txt)
+
+    def getcall_with_text(self, call, txt, **params):
+
+        json, t = self._getcall_prep(call, params)
+        t.add_fn(params, None, json)
+        self._getcall_write_file(call, json, txt)
+
+    def getcall_ex(self, call, txt, real_mode, **params):
+
+        json, t = self._getcall_prep(call, params)
+        name = self.name_from_params(call, params)
+        t.add_fn(params, name, json, real_mode)
+        dir = os.path.join(self.file_path, "getcall")
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+        path = os.path.join(dir, name)
+
+        self._getcall_write_file(call, json, txt, path)
+
+    def getcall_ex_notext(self, call, real_mode=False, **params):
+        json, t = self._getcall_prep(call, params)
+        t.add_fn(params, None, json, real_mode)
+
+    def name_from_params(self, call, params):
+        if params:
+            params.pop("_", None)
+            params = sorted("%s-%s" % item for item in params.items())
+            pstr = "_".join(params)
+            sep = "_"
+        else:
+            pstr = ""
+            sep = ""
+
+        return "".join((call, sep, pstr, ".dummy"))
 
     def dump(self, f):
         for c in self.calls.values():
@@ -211,10 +235,10 @@ def test():
 
     init_hello_server()
     getter = CallGetter('localhost:12345', tpath)
-    getter.getcall('login', val1='user1', val2=12345)
-    getter.getcall('login', val1='pbstech', val2=727246)
-    getter.getcall("getmainvalues", json=True)
-    getter.getcall("getmaininfo", json=True)
+    getter.getcall_ex_notext('login', val1='user1', val2=12345)
+    getter.getcall_ex_notext('login', val1='pbstech', val2=727246)
+    getter.getcall_ex_notext("getmainvalues", json=True)
+    getter.getcall_ex_notext("getmaininfo", json=True)
     import sys
     with open(r"C:\Users\PBS Biotech\Documents\Personal\PBS_Office\MSOffice\scripts\cli_data\foo.py", 'w') as f:
         getter.dump(f)
