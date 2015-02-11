@@ -91,6 +91,18 @@ def a():
 def foo():
     a()
 
-if __name__ == '__main__':
 
-    foo()
+def tojson(ffrom, fto):
+    from hello.hello import HelloXML
+    import json
+    with open(ffrom, 'rb') as f:
+        contents = f.read().decode()
+    with open(fto, 'w') as f:
+        json.dump(HelloXML(contents).data, f, indent=4)
+
+
+
+if __name__ == '__main__':
+    ffrom = "C:\\Users\\Public\\Documents\\PBSSS\\Functional Testing\\80L\\PBS 80 Mesoblast I\\System Variables.cfg"
+    fto = ffrom.replace(".cfg", ".txt")
+    tojson(ffrom, fto)

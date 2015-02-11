@@ -13,6 +13,8 @@ import tkinter.ttk as ttk
 from tkinter.filedialog import askopenfilenames
 from smb.SMBConnection import SMBConnection
 from smb.base import SharedFile, SharedDevice
+import smb.base
+# from smb.SMBHandler import SMBHandler
 import io
 import subprocess
 from collections import OrderedDict
@@ -22,22 +24,54 @@ class MySMBConnection(SMBConnection):
     pass
 
 
+class YesNo():
+    def __init__(self, message):
+        self.root = tk.Toplevel()
+        frame = ttk.LabelFrame(self.root, text="Yes/No Prompt")
+        label = ttk.Label(frame, text=message)
+        yes = ttk.Button(frame, text="Yes", command=self.yes)
+        no = ttk.Button(frame, text="No", command=self.no)
+        self.result = False
+
+        self.root.grid()
+        frame.grid()
+        label.grid()
+        yes.grid()
+        no.grid()
+
+    def no(self):
+        self.result = False
+        self.root.destroy()
+
+    def yes(self):
+        self.result = True
+        self.root.destroy()
+
+    def run(self):
+        # self.root.mainloop()
+        self.root.wait_window(self.root)
+        return self.result
+
+
 class DirEntry():
-    def __init__(self, entry, share, path):
+    def __init__(self, entry, svc_name, path):
         assert isinstance(entry, (SharedFile, SharedDevice))
         self.entry = entry
         if isinstance(entry, SharedFile):
             self.name = entry.filename
             self.isDirectory = entry.isDirectory
+            self.isShare = False
         else:
             self.name = entry.name
             self.isDirectory = True
+            self.isShare = True
 
-        self.share = share
+        self.svc_name = svc_name
         self.path = path
 
     def __str__(self):
         return self.name
+
 
 import os.path
 DEFAULT_PATH = "C:\\.replcache\\SMB"
@@ -62,22 +96,30 @@ class SMBInterface():
 
         self.setup()
 
-    def update_box(self, contents, share=None, path=None):
+    def close(self):
+        print("close")
+        self.root.destroy()
+
+    def update_box(self, contents, svc_name=None, path=None):
         self._emap.clear()
 
         for c in contents:
             if not isinstance(c, DirEntry):
-                c = DirEntry(c, share, path)
+                c = DirEntry(c, svc_name, path)
             self._emap[str(c)] = c
 
         self.box.delete(0, tk.END)
         self.box.insert(tk.END, *self._emap)
 
+    def init_connection(self):
+        self.con = MySMBConnection(self.user, self.password, self.myname, self.remote_name)
+        self.con.connect(self.ipv4)
+
     def setup(self):
         root = tk.Tk()
         frame = ttk.LabelFrame(root, text="Stupid SMB Thing")
         box = tk.Listbox(frame, width=60)
-        close = ttk.Button(root, text="Close", command=lambda: root.destroy)
+        close = ttk.Button(root, text="Close", command=self.close)
         upbtn = ttk.Button(root, text="Up", command=self.up_button_click)
         uploadbtn = ttk.Button(root, text="Upload...", command=self.upload_btn_click)
         new_direct = ttk.Button(root, text="New Folder", command=self.new_directory_clicked)
@@ -90,7 +132,10 @@ class SMBInterface():
         self.uploadbtn = uploadbtn
         self.new_directory_btn = new_direct
 
-        self.con = MySMBConnection(self.user, self.password, self.myname, self.remote_name)
+        breakpoint = ttk.Button(root, text="Breakpoint", command=self.breakpoint)
+        breakpoint.grid()
+
+        self.init_connection()
         if not self.con.connect(self.ipv4):
             raise ValueError("Connection failed to authenticate!")
         shares = self.con.listShares()
@@ -98,10 +143,10 @@ class SMBInterface():
         root.grid()
         frame.grid(columns=8)
         box.grid(columnspan=8)
-        close.grid(column=1)
-        upbtn.grid(column=2)
-        uploadbtn.grid(column=3)
-        new_direct.grid(column=4)
+        close.grid(column=1, row=2)
+        upbtn.grid(column=2, row=2)
+        uploadbtn.grid(column=3, row=2)
+        new_direct.grid(column=4, row=2)
 
         self.is_setup = True
         box.bind("<Double-Button-1>", self.listbox_dblclick)
@@ -109,6 +154,7 @@ class SMBInterface():
     def main(self):
         if not self.is_setup:
             self.setup()
+        print("mainloop")
         self.root.mainloop()
 
     def up_button_click(self):
@@ -120,46 +166,78 @@ class SMBInterface():
 
     def _generate_path(self, path):
         try:
-            share, *pth = path
+            svc_name, *pth = path
         except ValueError:
-            share = None
+            svc_name = None
             pth = "\\"
         else:
             if pth:
                 pth = "\\".join(str(s) for s in pth)
             else:
                 pth = "\\"
-        return share, pth
+        return svc_name, pth
 
     def show_path(self, path):
-        share, pth = self._generate_path(path)
-        if share is None:
-            self.update_box(self.con.listShares(), share, pth)
-        else:
-            files = self.con.listPath(share, pth)
-            self.update_box(files, share, pth)
+        svc_name, pth = self._generate_path(path)
+        count = 1
+        while True:
+            try:
+                if svc_name is None:
+                    self.update_box(self.con.listShares(), svc_name, pth)
+                else:
+                    self.update_box(self.con.listPath(svc_name, pth), svc_name, pth)
+            except (OSError, smb.base.NotConnectedError):
+                if count > 3:
+                    raise
+                count += 1
+                self.con.close()
+                self.init_connection()
+            else:
+                break
 
-    def _download_byname(self, share, pth, name, show=True):
+    def show_explorer(self, path):
+        print(path)
+        path = path.replace("/", "\\")
+        cmdpth = "\\".join(path.split("\\")[:-1])
+        if " " in cmdpth:
+            cmdpth = '"%s"' % cmdpth
+        print(cmdpth)
+        subprocess.Popen("explorer.exe " + cmdpth)
+
+    def download(self, svc_name, path, filename, topath=None, show=True):
+
+        if topath is None:
+            topath = os.path.join(self.dl_path, filename)
+
+        if os.path.exists(topath):
+            overwrite = YesNo("File Exists: Overwrite?").run()
+            if not overwrite:
+                return
+
         buf = io.BytesIO()
-        dlpth = os.path.join(self.dl_path, name)
-        smb_name = "\\".join((pth, name))
-        attrs, nbytes = self.con.retrieveFile(share, smb_name, buf)
-        with open(dlpth, 'wb') as f:
-            f.write(buf.getvalue())
-        dlpth = dlpth.replace("/", "\\")
-        if show:
-            cmdpth = "\\".join(dlpth.split("\\")[:-1])
-            if " " in cmdpth:
-                cmdpth = '"%s"' % cmdpth
-            subprocess.Popen("explorer.exe " + cmdpth)
+        smb_name = "\\".join((path, filename))
+        attrs, nbytes = self.con.retrieveFile(svc_name, smb_name, buf)
 
-    def download(self, entry, show=True):
+        with open(topath, 'wb') as f:
+            # while some files might be big,
+            # the network operation will be much more of a performance
+            # drag than just having an extra copy of the contents floating around.
+            # so don't bother writing in line by line
+            f.write(buf.getvalue())
+        if show:
+            self.show_explorer(topath)
+
+    def download_entry(self, entry, show=True):
         name = entry.name
-        share, pth = entry.share, entry.path
-        self._download_byname(share, pth, name, show)
+        svc_name, pth = entry.svc_name, entry.path
+        self.download(svc_name, pth, name, None, show)
+
+    def current_selection(self):
+        txt = self.box.get(self.box.curselection()[0])
+        return txt
 
     def listbox_dblclick(self, e):
-        txt = self.box.get(self.box.curselection()[0])
+        txt = self.current_selection()
         entry = self._emap[txt]
 
         if entry.isDirectory:
@@ -170,25 +248,25 @@ class SMBInterface():
                 self.path.pop()
                 raise
         else:
-            # entry was a file: download and show in folder
-            self.download(entry, True)
+            # entry was a file: download_entry and show in folder
+            self.download_entry(entry, True)
 
-    def upload(self, share, path, filename):
-        assert share, "Don't know how to handle empty share"
+    def upload(self, svc_name, path, filename):
+        assert svc_name, "Don't know how to handle empty share"
+        print(svc_name, path)
         with open(filename, 'rb') as f:
-            self.con.storeFile(share, path, f)
+            self.con.storeFile(svc_name, path, f)
 
-    def upload_btn_click(self, e):
+    def upload_btn_click(self):
+        svc_name, path = self._generate_path(self.path)
         names = askopenfilenames()
-        share, path = self._generate_path(self.path)
-        lstnames = names.strip("{}").split("} {")
-        for name in lstnames:
-            self.upload(share, path, name)
+        for name in names:
+            self.upload(svc_name, os.path.join(path, os.path.split(name)[1]), name)
 
-    def new_directory(self, share, path):
-        self.con.createDirectory(share, path)
+    def new_directory(self, svc_name, path):
+        self.con.createDirectory(svc_name, path)
 
-    def new_directory_clicked(self, e):
+    def new_directory_clicked(self):
         prompt = tk.Toplevel(self.root)
         frame = ttk.LabelFrame(prompt, text="Enter Name of Directory")
         t = tk.StringVar()
@@ -208,11 +286,26 @@ class SMBInterface():
 
         prompt.wait_window(prompt)
 
-        share, pth = self._generate_path(self.path)
+        svc_name, pth = self._generate_path(self.path)
         pth = "\\".join((pth, name))
-        self.new_directory(share, pth)
+        self.new_directory(svc_name, pth)
+        
+    def delete(self, svc_name, path, isdirectory):
+        if isdirectory:
+            self.con.deleteDirectory(svc_name, path)
+        else:
+            self.con.deleteFiles(svc_name, path)
 
+    def delete_clicked(self, e):
+        txt = self.current_selection()
+        entry = self._emap[txt]
+        svc = entry.svc_name
+        path = entry.path
+        self.delete(svc, path, entry.isDirectory)
 
+    def breakpoint(self):
+        while False:
+            pass
 
 
 def main():
@@ -224,8 +317,8 @@ def main():
     ipv4 = '192.168.1.99'
     s = SMBInterface(usr, pwd, myname, remote, ipv4)
     # debug
-    # s.path = ['Mfg Released', "IF", "IF00102"]
-    # s.relist_path()
+    s.path = ['Data', "Documents", "Posting Matrix"]
+    s.show_path(s.path)
     s.main()
 
 if __name__ == '__main__':

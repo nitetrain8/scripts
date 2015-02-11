@@ -34,8 +34,24 @@ def run_150203():
     # print(rv)
     # for f in rv:
     #     print(f.filename)
-    rv = c.echo("hi")
+    import io
+    rv = c.echo(io.BytesIO(b"hi"))
     c.close()
+
+
+import socket
+
+
+class SimpleFTP():
+    def __init__(self, root="C:\\.replcache\\", host='', port=12345):
+        self.host = host
+        self.port = port
+        self.root = root
+
+    def connect(self):
+        self.sock = socket.socket()
+        self.sock.bind((self.host, self.port))
+
 
 if __name__ == '__main__':
     run_150203()
