@@ -113,7 +113,11 @@ class SMBInterface():
 
     def init_connection(self):
         self.con = MySMBConnection(self.user, self.password, self.myname, self.remote_name)
-        self.con.connect(self.ipv4)
+        print("Connecting...")
+        if not self.con.connect(self.ipv4):
+            print("Uh Oh")
+            raise ValueError("Failed to init connection")
+        print("Connected!")
 
     def setup(self):
         root = tk.Tk()
@@ -136,8 +140,8 @@ class SMBInterface():
         breakpoint.grid()
 
         self.init_connection()
-        if not self.con.connect(self.ipv4):
-            raise ValueError("Connection failed to authenticate!")
+        # if not self.con.connect(self.ipv4, timeout=10):
+        #     raise ValueError("Connection failed to authenticate!")
         shares = self.con.listShares()
         self.update_box(shares)
         root.grid()
@@ -216,7 +220,12 @@ class SMBInterface():
 
         buf = io.BytesIO()
         smb_name = "\\".join((path, filename))
-        attrs, nbytes = self.con.retrieveFile(svc_name, smb_name, buf)
+        try:
+            attrs, nbytes = self.con.retrieveFile(svc_name, smb_name, buf)
+        except:
+            print(svc_name, smb_name)
+            print(buf.getvalue())
+            raise
 
         with open(topath, 'wb') as f:
             # while some files might be big,
@@ -233,8 +242,7 @@ class SMBInterface():
         self.download(svc_name, pth, name, None, show)
 
     def current_selection(self):
-        txt = self.box.get(self.box.curselection()[0])
-        return txt
+        return self.box.get(self.box.curselection()[0])
 
     def listbox_dblclick(self, e):
         txt = self.current_selection()
@@ -255,7 +263,11 @@ class SMBInterface():
         assert svc_name, "Don't know how to handle empty share"
         print(svc_name, path)
         with open(filename, 'rb') as f:
-            self.con.storeFile(svc_name, path, f)
+            try:
+                self.con.storeFile(svc_name, path, f)
+            except:
+                print(svc_name, path)
+                raise
 
     def upload_btn_click(self):
         svc_name, path = self._generate_path(self.path)
@@ -264,7 +276,11 @@ class SMBInterface():
             self.upload(svc_name, os.path.join(path, os.path.split(name)[1]), name)
 
     def new_directory(self, svc_name, path):
-        self.con.createDirectory(svc_name, path)
+        try:
+            self.con.createDirectory(svc_name, path)
+        except:
+            print(svc_name, path)
+            raise
 
     def new_directory_clicked(self):
         prompt = tk.Toplevel(self.root)
@@ -304,8 +320,10 @@ class SMBInterface():
         self.delete(svc, path, entry.isDirectory)
 
     def breakpoint(self):
+        import pdb
+        pdb.set_trace()
         while False:
-            pass
+            break
 
 
 def main():
@@ -324,5 +342,6 @@ def main():
 if __name__ == '__main__':
     try:
         main()
-    except:
+    except Exception:
         input()
+        raise
