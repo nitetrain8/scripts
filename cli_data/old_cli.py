@@ -149,7 +149,8 @@ def plot(x, y, *y_data, names=()):
     markers = (',', '.', 'o', 'v', '^',
                '<', '>', '1', '2', '3',
                '4', '8', 's', 'p', '*',
-               'h', 'H', '+', 'x', 'D', 'd')
+               'h', 'H', '+', 'x', 'D', 
+               'd'                      )
     next_marker = cycle(markers).__next__
 
     # start at a random marker
