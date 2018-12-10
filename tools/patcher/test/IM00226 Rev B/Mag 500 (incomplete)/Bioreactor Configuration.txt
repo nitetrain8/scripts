@@ -1,0 +1,15 @@
+7,2,2,2
+The leftmost number is bioreactor model.
+Second is DO Sensor Hardware Setting.
+Third is pH Sensor Hardware Setting.
+Fourth number is Temp Sensor Hardware Setting.
+For the leftmost number:
+Number	Model
+0 	Air 3
+1 	Air 15
+2	Air 80
+3	Air 500
+4	Mag 3
+5	Mag 15
+6	Mag 80
+7	Mag 500

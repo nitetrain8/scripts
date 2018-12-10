@@ -1,0 +1,27 @@
+                                                  Contents                                          Matches     Restore
+Variable                : Cust File             | Old File               | New File               | USR  OLD  | Action 
+-----------------------------------------------------------------------------------------------------------------------
+Filename                : user_recipes_cdi3L.cfg| old_recipes_revB_3L.cfg| new_recipes_revC_3L.cfg|           |  
+LevelControl-LoopRecipe :                       |                        |                        | No Change | new 
+Addition A Slow 1min    :                       |                        |                        | No Change | new 
+Addition B Slow 1min    :                       |                        |                        | No Change | new 
+All Controls Off        :                       |                        |                        | No Change | new 
+1min_on-LoopRecipe      :                       |                        |                        | No Change | new 
+30min_off-LoopRecipe    :                       |                        |                        | No Change | new 
+60min_off-LoopRecipe    :                       |                        |                        | No Change | new 
+120min_off-LoopRecipe   :                       |                        |                        | No Change | new 
+DA neuron 45min         :                       |                        |                        | custom    | user 
+DA neuron 30min         :                       |                        |                        | custom    | user 
+DA neuron 20min         :                       |                        |                        | custom    | user 
+DA neuron 15min         :                       |                        |                        | custom    | user 
+DA neuron seed          :                       |                        |                        | custom    | user 
+DA neuron harvest       :                       |                        |                        | custom    | user 
+d1 CM TX feed           :                       |                        |                        | custom    | user 
+d1 CM TX feed w limits  :                       |                        |                        | custom    | user 
+CM2 sparged feed        :                       |                        |                        | custom    | user 
+CM seed 80              :                       |                        |                        | custom    | user 
+CM feed 80              :                       |                        |                        | custom    | user 
+sonosep-LoopRecipe      :                       |                        |                        | custom    | user 
+C175 d1 feed            :                       |                        |                        | custom    | user 
+C175 d2 feed            :                       |                        |                        | custom    | user 
+C175 feed               :                       |                        |                        | custom    | user 

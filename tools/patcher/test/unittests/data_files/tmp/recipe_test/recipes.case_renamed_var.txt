@@ -1,0 +1,14 @@
+Translating 'All Controls Off' step 6 'LEDWhiteLEDOn.Max' -> 'LEDWhiteLEDOn'
+Translating 'All Controls Off' step 6 'LEDWhiteLEDOn.Max' -> 'LEDWhiteLEDOn'
+                                            Contents                                          Matches     Restore
+Variable                : Cust File       | Old File               | New File               | USR  OLD  | Action 
+-----------------------------------------------------------------------------------------------------------------
+Filename                : user_recipes.cfg| old_recipes_revB_3L.cfg| new_recipes_revC_3L.cfg|           |  
+LevelControl-LoopRecipe :                 |                        |                        | No Change | new 
+Addition A Slow 1min    :                 |                        |                        | No Change | new 
+Addition B Slow 1min    :                 |                        |                        | No Change | new 
+All Controls Off        :                 |                        |                        | No Change | new 
+1min_on-LoopRecipe      :                 |                        |                        | No Change | new 
+30min_off-LoopRecipe    :                 |                        |                        | No Change | new 
+60min_off-LoopRecipe    :                 |                        |                        | No Change | new 
+120min_off-LoopRecipe   :                 |                        |                        | No Change | new 

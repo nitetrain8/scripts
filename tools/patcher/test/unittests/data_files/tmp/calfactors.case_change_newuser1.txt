@@ -1,0 +1,33 @@
+                                        Contents                          Matches     Restore
+Variable            : Cust File       | Old File       | New File       | USR  OLD  | Action 
+---------------------------------------------------------------------------------------------
+Filename            : user_revB_3L.cfg| old_revB_3L.cfg| new_revC_3L.cfg|           |  
+pH A Cal.m          : 1.00000         | 4.00000        | 2.00000        | N    N    | usr 
+pH A Cal.b          :                 |                |                | No Change | new 
+pH A Cal.Ex Temp    :                 |                |                | No Change | new 
+pH B Cal.m          :                 |                |                | No Change | new 
+pH B Cal.b          :                 |                |                | No Change | new 
+pH B Cal.Ex Temp    :                 |                |                | No Change | new 
+DO A Cal.m          :                 |                |                | No Change | new 
+DO A Cal.b          :                 |                |                | No Change | new 
+DO B Cal.m          :                 |                |                | No Change | new 
+DO B Cal.b          :                 |                |                | No Change | new 
+Temperature A Cal.m :                 |                |                | No Change | new 
+Temperature A Cal.b :                 |                |                | No Change | new 
+Temperature B Cal.m :                 |                |                | No Change | new 
+Temperature B Cal.b :                 |                |                | No Change | new 
+Condenser Cal.m     :                 |                |                | No Change | new 
+Condenser Cal.b     :                 |                |                | No Change | new 
+Pressure Cal.m      :                 |                |                | No Change | new 
+Pressure Cal.b      :                 |                |                | No Change | new 
+Level Cal.m         :                 |                |                | No Change | new 
+Level Cal.b         :                 |                |                | No Change | new 
+MFC Air Cal.m       :                 |                |                | No Change | new 
+MFC Air Cal.b       :                 |                |                | No Change | new 
+MFC CO2 Cal.m       :                 |                |                | No Change | new 
+MFC CO2 Cal.b       :                 |                |                | No Change | new 
+MFC O2 Cal.m        :                 |                |                | No Change | new 
+MFC O2 Cal.b        :                 |                |                | No Change | new 
+MFC N2 Cal.m        :                 |                |                | No Change | new 
+MFC N2 Cal.b        :                 |                |                | No Change | new 
+HarvestDelay(s)     :                 |                |                | No Change | new 

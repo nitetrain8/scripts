@@ -1,0 +1,73 @@
+
+# Note - EVERYTHING IS CASE SENSITIVE!
+# The parser will attempt to sanity check everything
+# but be careful anyway!
+
+# Note - whenever the structure of a config file
+# is naturally represented using a hierarchy of 
+# nested structures (System Variables, Cal Factors...),
+# the name of each variable below should be a dotted
+# name path (Agitation.Minimum (RPM), etc). 
+
+# Force a setting to specific value.
+# Use strings "New" or "User" to 
+# force the merge parser to always
+# use the New reference or User's 
+# value, respectively. Functionally
+# Equivalent to the "New" and "User"
+# fields below. 
+
+[Force Raw Value]
+Level High,0,0
+24 Vdc Mezz Fuse,0,0
+Restarted Recipe,0,0
+DO Dual Sensor Failure,1,1
+pH High High,0,1
+
+# Always use the new Default
+
+[Force New Value]
+Pressure Low Low
+Main Gas Low
+24 Vdc Main Fuse
+Temp Sensor B Failure (range)
+
+# Always use User Value
+
+[Force User Value]
+24 Vdc User2 Fuse
+Level High High
+Agitation Low Low
+Pressure Sensor Disconnected
+Unknown Alarm
+
+# Todo - add options for reference files
+# and determining User's PBS version number
+
+# General options
+# Type values: sysvars TODO: alarms, loggersettings
+# Output path is relative to caller's path, not EXE's 
+# patch file's!
+
+[General]
+Type=alarms
+Output=.\{filename}
+Logfile=.\{filename}merge log.txt
+
+# Translation table for names which have changed
+# Old Name -> New Name
+
+[Translate]
+
+
+# Old variables that are no longer relevant (not renamed!)
+# For documentation purposes only.
+
+[Depreciated]
+
+
+# New variables (NOT renamed!) 
+# For documentation purposes only.
+
+[New Variables]
+

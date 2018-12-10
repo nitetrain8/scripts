@@ -1,0 +1,1 @@
+Error: Bad variable for new file: 'DOO2RangeAutoMax(%)'

@@ -1,0 +1,4 @@
+System Variables,ref.sys,file1.sys,file2.sys,file3.sys
+Temperature.P Gain (%/C),50.00000,51.00000,,
+Temperature.I Time (min),26.00000,,25.00000,
+Temperature.D Time (min),0.00000,,,1.00000

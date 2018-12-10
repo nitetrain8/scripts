@@ -1,0 +1,94 @@
+                                            Contents                              Matches     Restore
+Variable                      : Cust File | Old File  | New File                | USR  PBS  | Action 
+-----------------------------------------------------------------------------------------------------
+Recipient Email Addresses     : ...       |           | example.user.0@gmail.com| N    Y    | usr 
+Subject                       : PBS 3 CDI |           | PBS                     | N    Y    | usr 
+SMTP Address                  : 10.0.0.85 |           | smtp.1and1.com          | N    Y    | usr 
+SMTP Port                     : 587       |           | 25                      | N    Y    | usr 
+Return Address                : ...       |           |                         | N    Y    | usr 
+EnableSSL                     : FALSE     |           | TRUE                    | N    Y    | usr 
+Snooze (min)                  :           |           |                         | No Change | new 
+Name                          :           |           |                         | No Change | new 
+Agitation Low Low             :           |           |                         | No Change | new 
+Main Gas Low Low              :           |           |                         | No Change | new 
+Temperature Low Low           :           |           |                         | No Change | new 
+DO Low Low                    :           |           |                         | No Change | new 
+pH Low Low                    :           |           |                         | No Change | new 
+Pressure Low Low              :           |           |                         | No Change | new 
+Level Low Low                 :           |           |                         | No Change | new 
+Filter Oven Low Low           :           |           |                         | No Change | new 
+Leak Detected                 :           |           |                         | No Change | new 
+Temperature Sensor Mismatch   :           |           |                         | No Change | new 
+DO Sensor Mismatch            : 1         |           | 0                       | N    Y    | usr 
+pH Sensor Mismatch            : 1         |           | 0                       | N    Y    | usr 
+O2 MFC Mismatch               :           |           |                         | No Change | new 
+N2 MFC Mismatch               :           |           |                         | No Change | new 
+Air MFC Mismatch              :           |           |                         | No Change | new 
+CO2 MFC Mismatch              :           |           |                         | No Change | new 
+Agitation Low                 : 1         |           | 0                       | N    Y    | usr 
+Main Gas Low                  : 1         |           | 0                       | N    Y    | usr 
+Temperature Low               : 1         |           | 0                       | N    Y    | usr 
+DO Low                        : 1         |           | 0                       | N    Y    | usr 
+pH Low                        : 1         |           | 0                       | N    Y    | usr 
+Pressure Low                  : 1         |           | 0                       | N    Y    | usr 
+Level Low                     : 1         |           | 0                       | N    Y    | usr 
+Filter Oven Low               : 1         |           | 0                       | N    Y    | usr 
+Agitation Sensor Failure      :           |           |                         | No Change | new 
+Temp Sensor A Failure (range) :           |           |                         | No Change | new 
+Temp Sensor B Failure (range) :           |           |                         | No Change | new 
+Temp Dual Sensor Failure      :           |           |                         | No Change | new 
+DO Sensor A Failure (range)   :           |           |                         | No Change | new 
+DO Sensor B Failure (range)   : 1         |           | 0                       | N    Y    | usr 
+DO Dual Sensor Failure        : 1         |           | 0                       | N    Y    | usr 
+pH Sensor A Failure (range)   :           |           |                         | No Change | new 
+pH Sensor B Failure (range)   : 1         |           | 0                       | N    Y    | usr 
+pH Sensor A Failure (rate)    :           |           |                         | No Change | new 
+pH Sensor B Failure (rate)    : 1         |           | 0                       | N    Y    | usr 
+pH Dual Sensor Failure        : 1         |           | 0                       | N    Y    | usr 
+Pressure Sensor Disconnected  :           |           |                         | No Change | new 
+Dirty Startup                 : 1         |           | 0                       | N    Y    | usr 
+Clean Startup                 : 1         |           | 0                       | N    Y    | usr 
+Resume                        : 1         |           | 0                       | N    Y    | usr 
+Agitation High High           :           |           |                         | No Change | new 
+Main Gas High High            :           |           |                         | No Change | new 
+Temperature High High         :           |           |                         | No Change | new 
+DO High High                  :           |           |                         | No Change | new 
+pH High High                  :           |           |                         | No Change | new 
+Pressure High High            :           |           |                         | No Change | new 
+Level High High               :           |           |                         | No Change | new 
+Filter Oven High High         : 1         |           | 0                       | N    Y    | usr 
+Agitation High                : 1         |           | 0                       | N    Y    | usr 
+Main Gas High                 : 1         |           | 0                       | N    Y    | usr 
+Temperature High              : 1         |           | 0                       | N    Y    | usr 
+DO High                       : 1         |           | 0                       | N    Y    | usr 
+pH High                       : 1         |           | 0                       | N    Y    | usr 
+Pressure High                 : 1         |           | 0                       | N    Y    | usr 
+Level High                    : 1         |           | 0                       | N    Y    | usr 
+Filter Oven High              : 1         |           | 0                       | N    Y    | usr 
+RT Mem Fragmented             :           |           |                         | No Change | new 
+RT Mem Nearly Full            :           |           |                         | No Change | new 
+NI 9205 Error                 :           |           |                         | No Change | new 
+NI 9425/Onboard Error         :           |           |                         | No Change | new 
+NI 9219 Error                 :           |           |                         | No Change | new 
+NI 9476 Error                 :           |           |                         | No Change | new 
+NI 9263 Error                 :           |           |                         | No Change | new 
+24 Vdc Mezz Fuse              : 1         |           | 0                       | N    Y    | usr 
+24 Vdc MFC Fuse               : 1         |           | 0                       | N    Y    | usr 
+24 Vdc Main Fuse              : 1         |           | 0                       | N    Y    | usr 
+24 Vdc sbRIO Fuse             : 1         |           | 0                       | N    Y    | usr 
+12 Vdc Atom Fuse              : 1         |           | 0                       | N    Y    | usr 
+12 Vdc Mezz Fuse              : 1         |           | 0                       | N    Y    | usr 
+12 Vdc Mntr Fuse              : 1         |           | 0                       | N    Y    | usr 
+24 Vdc Fill Pump Fuse         : 1         |           | 0                       | N    Y    | usr 
+24 Vdc User1 Fuse             : 1         |           | 0                       | N    Y    | usr 
+24 Vdc Ind DO Fuse            : 1         |           | 0                       | N    Y    | usr 
+24 Vdc User2 Fuse             : 1         |           | 0                       | N    Y    | usr 
+24 Vdc User3 Fuse             : 1         |           | 0                       | N    Y    | usr 
+12 Vdc User2 Fuse             : 1         |           | 0                       | N    Y    | usr 
+12 Vdc User3 Fuse             : 1         |           | 0                       | N    Y    | usr 
+Comb Plate Popped             : 0         |           | 1                       | N    Y    | usr 
+12 Vdc User1 Fuse             : 1         |           | 0                       | N    Y    | usr 
+Restarted Recipe              :           |           |                         | No Change | new 
+Unknown Alarm                 : 1         |           | 0                       | N    Y    | usr 
+
+Writing output to ".\cdi_test\Email Alerts Settings.xml"

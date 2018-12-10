@@ -1,0 +1,1 @@
+Alarms identical:                        'ref.alm', 'file1.alm', 'file2.alm', 'file3.alm'

@@ -1,0 +1,23 @@
+System Variables                          |  <System Variabl...> |  <System Variabl...>
+---------------------------------------------------------------------------------------
+Agitation.P Gain (%/RPM)                  |           6.00000E-2 |           6.10000E-2
+Agitation.Beta                            |              0.00000 |              1.00000
+pH.CO2 P Gain (%/pH)                      |           -200.00000 |             15.00000
+pH.CO2 I Time (min)                       |              2.00000 |             80.00000
+pH.CO2 Beta                               |              1.00000 |              0.00000
+pH.CO2 Manual Max (%)                     |            100.00000 |             25.00000
+pH.CO2 Auto Max (%)                       |             30.00000 |             80.00000
+pH.Base P Gain (%/pH)                     |             10.00000 |            -10.00000
+pH.Base I Time (min)                      |             10.00000 |              8.00000
+pH.Base Beta                              |              1.00000 |              0.00000
+pH.Base Auto Max (%)                      |             50.00000 |            100.00000
+Safety.Max Level (L)                      |             17.00000 |             15.00000
+Process Alarms.Agitation Low Low (RPM)    |              3.00000 |              5.00000
+Process Alarms.Agitation Low (RPM)        |             10.00000 |              8.00000
+Process Alarms.Agitation High (RPM)       |             35.00000 |             20.00000
+Process Alarms.Agitation High High (RPM)  |             38.00000 |             25.00000
+Process Alarms.pH Low Low                 |              7.10000 |              7.20000
+Process Alarms.pH Low                     |              7.15000 |              7.30000
+Process Alarms.pH High                    |              7.25000 |              7.50000
+Process Alarms.pH High High               |              7.30000 |              7.60000
+Process Alarms.Main Gas Low (LPM)         |              0.40000 |              0.30000

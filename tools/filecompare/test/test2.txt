@@ -1,0 +1,2 @@
+sysvars,D:\auto_hd_install\default configs\IM00226 Rev C\Mag 15\System Variables.sys,D:\customer_backups\001512J1201 180319\LabVIEW_Data\System Variables.sys,--outfmt=txt,--verbose,--logfile=sysv.txt
+recipes,D:\auto_hd_install\default configs\IM00226 Rev C\Mag 15\bioreactor recipes.cfg,D:\customer_backups\001512J1201 180319\LabVIEW_Data\bioreactor recipes.cfg,--outfmt=txt,--verbose

@@ -1,0 +1,171 @@
+                                                        Contents                   Matches     Restore
+Variable                                 : Cust File  | Old File   | New File    | USR  PBS  |  Action
+------------------------------------------------------------------------------------------------------
+Temperature.P Gain (%/C)                 :            | 40.00000   | 50.00000    | N    N    |  
+Temperature.I Time (min)                 :            | 6.00000    | 26.00000    | N    N    |  
+Temperature.D Time (min)                 :            |            |             | No Change |  
+Temperature.Alpha                        : ???        | ???        | -1.00000e+00| NOTFOUND  |  
+Temperature.Beta                         : ???        | ???        | 0.00000e+00 | NOTFOUND  |  
+Temperature.Gamma                        : ???        | ???        | 0.00000e+00 | NOTFOUND  |  
+Temperature.Linearity                    : ???        | ???        | 1.00000     | NOTFOUND  |  
+Temperature.Heat Manual Max (%)          :            |            |             | No Change |  
+Temperature.Heat Auto Max (%)            :            |            |             | No Change |  
+Temperature.Valid High (C)               :            |            |             | No Change |  
+Temperature.Valid Low (C)                :            |            |             | No Change |  
+Temperature.Mismatch Thresh (C)          : ???        | ???        | 4.00000e-01 | NOTFOUND  |  
+Filter Oven.P Gain (%/C)                 :            |            |             | No Change |  
+Filter Oven.I Time (min)                 :            |            |             | No Change |  
+Filter Oven.D Time (min)                 :            |            |             | No Change |  
+Filter Oven.Alpha                        : ???        | ???        | -1.00000e+00| NOTFOUND  |  
+Filter Oven.Beta                         : ???        | ???        | 1.00000     | NOTFOUND  |  
+Filter Oven.Gamma                        : ???        | ???        | 0.00000e+00 | NOTFOUND  |  
+Filter Oven.Linearity                    : ???        | ???        | 1.00000     | NOTFOUND  |  
+Filter Oven.Heat Manual Max (%)          :            |            |             | No Change |  
+Filter Oven.Heat Auto Max (%)            :            |            |             | No Change |  
+Agitation.P Gain (%/RPM)                 :            |            | 1.00000e-01 | Force New |  
+Agitation.I Time (min)                   :            |            | 1.00000e-02 | Force New |  
+Agitation.D Time (min)                   :            |            | 0.00000e+00 | Force New |  
+Agitation.Alpha                          : ???        | ???        | -1.00000e+00| NOTFOUND  |  
+Agitation.Beta                           : ???        | ???        | 0.00000e+00 | NOTFOUND  |  
+Agitation.Gamma                          : ???        | ???        | 0.00000e+00 | NOTFOUND  |  
+Agitation.Linearity                      : ???        | ???        | 1.00000     | NOTFOUND  |  
+Agitation.Minimum (RPM)                  :            |            | 5.00000     | Force Val |  
+Agitation.Pulse Mode Timeout (s)         :            |            |             | No Change |  
+Agitation.Lookup Mode Timeout (s)        :            |            |             | No Change |  
+Agitation.Lookup Factor (%/RPM)          :            |            |             | No Change |  
+Agitation.Power Auto Max (%)             :            |            |             | No Change |  
+Agitation.Power Auto Min (%)             :            |            |             | No Change |  
+Agitation.Auto Max Startup (%)           :            | 17.00000   | 20.00000    | N    N    |  
+Agitation.Power Manual Max (%)           :            |            |             | No Change |  
+Agitation.Number of Magnets              :            |            |             | No Change |  
+Agitation.Samples To Average             :            | 1          | 3           | N    N    |  
+pH.Mismatch Thresh                       :            |            |             | No Change |  
+pH.Rate Fail Delta PV                    : ???        | ???        | 1.00000     | NOTFOUND  |  
+pH.Rate Fail Delta Time (s)              : ???        | ???        | 60.00000    | NOTFOUND  |  
+pH.CO2 P Gain (%/pH)                     :            |            | 15.00000    | Force New |  
+pH.CO2 I Time (min)                      :            | 2.00000    | 80.00000    | N    N    |  
+pH.CO2 D Time (min)                      :            |            |             | No Change |  
+pH.CO2 Alpha                             : ???        | ???        | -1.00000e+00| NOTFOUND  |  
+pH.CO2 Beta                              : ???        | ???        | 0.00000e+00 | NOTFOUND  |  
+pH.CO2 Gamma                             : ???        | ???        | 0.00000e+00 | NOTFOUND  |  
+pH.CO2 Linearity                         : ???        | ???        | 1.00000     | NOTFOUND  |  
+pH.CO2 Manual Max (%)                    :            |            |             | No Change |  
+pH.CO2 Auto Max (%)                      :            |            | 100.00000   | Force New |  
+pH.Base P Gain (%/pH)                    :            | 10.00000   | -1.00000e+01| N    N    |  
+pH.Base I Time (min)                     :            | 10.00000   | 80.00000    | N    N    |  
+pH.Base D Time (min)                     :            |            |             | No Change |  
+pH.Base Alpha                            : ???        | ???        | -1.00000e+00| NOTFOUND  |  
+pH.Base Beta                             : ???        | ???        | 0.00000e+00 | NOTFOUND  |  
+pH.Base Gamma                            : ???        | ???        | 0.00000e+00 | NOTFOUND  |  
+pH.Base Linearity                        : ???        | ???        | 1.00000     | NOTFOUND  |  
+pH.Base Manual Max (%)                   : 0.00000e+00|            | 50.00000    | N    Y    |  
+pH.Base Auto Max (%)                     : 0.00000e+00|            | 50.00000    | N    Y    |  
+pH.A Use Temp Comp?                      :            |            |             | No Change |  
+pH.B Use Temp Comp?                      :            |            |             | No Change |  
+pH.Deadband                              : 1.00000e-02|            | 2.00000e-02 | N    Y    |  
+pH.Valid High (pH)                       :            |            |             | No Change |  
+pH.Valid Low (pH)                        :            |            |             | No Change |  
+DO.Mismatch Thresh (DO%)                 : ???        | ???        | 5.00000     | NOTFOUND  |  
+DO.Valid High (DO%)                      :            |            |             | No Change |  
+DO.Valid Low (DO%)                       :            |            |             | No Change |  
+DO.O2 P Gain (%/DO%)                     : ???        | ???        | 1.50000     | NOTFOUND  |  
+DO.O2 I Time (min)                       :            | 1.00000e-01| 120.00000   | N    N    |  
+DO.O2 D Time (min)                       :            |            |             | No Change |  
+DO.O2 Alpha                              : ???        | ???        | -1.00000e+00| NOTFOUND  |  
+DO.O2 Beta                               : ???        | ???        | 0.00000e+00 | NOTFOUND  |  
+DO.O2 Gamma                              : ???        | ???        | 0.00000e+00 | NOTFOUND  |  
+DO.O2 Linearity                          : ???        | ???        | 1.00000     | NOTFOUND  |  
+DO.O2 Manual Max (%)                     : ???        | ???        | 100.00000   | NOTFOUND  |  
+DO.O2 Auto Max (%)                       : ???        | ???        | 100.00000   | NOTFOUND  |  
+DO.N2 P Gain (%/DO%)                     :            |            |             | No Change |  
+DO.N2 I Time (min)                       : 1.00000    | 10.00000   | 50.00000    | N    N    |  
+DO.N2 D Time (min)                       :            |            |             | No Change |  
+DO.N2 Alpha                              : ???        | ???        | -1.00000e+00| NOTFOUND  |  
+DO.N2 Beta                               : ???        | ???        | 0.00000e+00 | NOTFOUND  |  
+DO.N2 Gamma                              : ???        | ???        | 0.00000e+00 | NOTFOUND  |  
+DO.N2 Linearity                          : ???        | ???        | 1.00000     | NOTFOUND  |  
+DO.N2 Manual Max (%)                     :            |            |             | No Change |  
+DO.N2 Auto Max (%)                       : 100.00000  |            | 100.00000   | Y    N    |  
+DO.Deadband (DO%)                        :            |            |             | No Change |  
+Level.Radius (cm)                        :            |            |             | No Change |  
+Level.Empty Level (V)                    :            |            |             | No Change |  
+Level.Empty Level (L)                    :            |            |             | No Change |  
+Level.cm/psi                             :            |            |             | No Change |  
+Level.Vessel Depth (cm)                  :            |            |             | No Change |  
+Level.Bottom Gap (cm)                    :            |            |             | No Change |  
+Level.Enable Sensor (0 or 1)             :            |            |             | No Change |  
+Level.CalLevelSlopeMax(psi/V)            :            |            |             | No Change |  
+Level.CalLevelSlopeMin(psi/V)            :            |            |             | No Change |  
+Level.CalLevelInterceptMax(psi)          :            |            |             | No Change |  
+Level.CalLevelInterceptMin(psi)          :            |            |             | No Change |  
+Pressure.Disconnected Pressure (V)       :            |            |             | No Change |  
+Pressure.CalPressureInterceptMax(psi)    :            |            |             | No Change |  
+Pressure.CalPressureInterceptMin(psi)    :            |            |             | No Change |  
+Pressure.CalPressureSlopeMax(psi/V)      :            |            |             | No Change |  
+Pressure.CalPressureSlopeMin(psi/V)      :            |            |             | No Change |  
+Pressure.Reusable Sensor (0 or 1)        :            |            |             | No Change |  
+Gas Data.CO2 Min (LPM)                   : 3.00000e-02|            | 3.00000e-02 | Y    N    |  
+Gas Data.CO2 Off (V)                     :            |            |             | No Change |  
+Gas Data.N2 Min (LPM)                    :            |            |             | No Change |  
+Gas Data.N2 Off (V)                      :            |            |             | No Change |  
+Gas Data.Air Min (LPM)                   :            |            |             | No Change |  
+Gas Data.Air Off (V)                     :            |            |             | No Change |  
+Gas Data.O2 Min (LPM)                    :            |            |             | No Change |  
+Gas Data.O2 Off (V)                      :            |            |             | No Change |  
+Gas Data.PWM On Time (s)                 :            | 3.00000    | 10.00000    | N    N    |  
+Gas Data.PWM Max Period (s)              :            | 60.00000   | 200.00000   | N    N    |  
+Gas Data.Mismatch Thresh (V)             : 2.00000e-01|            | 1.00000e-01 | N    Y    |  
+Gas Data.O2 Min Volume (L)               :            |            |             | No Change |  
+Gas Data.Manual Max (LPM)                : 1.00000    |            | 5.00000e-01 | N    Y    |  
+Safety.Min Ag Power (%)                  :            |            |             | No Change |  
+Safety.Max Temp (C)                      :            |            |             | No Change |  
+Safety.Max Pressure (psi)                :            |            |             | No Change |  
+Safety.Max Pressure Door (psi)           :            |            |             | No Change |  
+Safety.Min Level (L)                     :            |            |             | No Change |  
+Safety.Max Level (L)                     : 4.00000    |            | 4.00000     | Y    N    |  
+Safety.Buzzer Period (ms)                :            |            |             | No Change |  
+Safety.DoorPressureSensor (0 or 1)       :            |            |             | No Change |  
+Pumps.Aux Low Duty                       :            |            |             | No Change |  
+Pumps.Aux Med Duty                       :            |            |             | No Change |  
+Pumps.Base On Time (s)                   :            |            |             | No Change |  
+Pumps.Base Max Period (s)                :            |            |             | No Change |  
+Pumps.Analog Base Speed (RPM)            :            |            |             | No Change |  
+Pumps.Sample Reverse CW and CCW (0 or 1) : ???        | ???        | 0           | NOTFOUND  |  
+Process Alarms.Agitation Low Low (RPM)   : 30.00000   |            | 30.00000    | Force Usr |  
+Process Alarms.Agitation Low (RPM)       : 32.00000   |            | 32.00000    | Force Usr |  
+Process Alarms.Agitation High (RPM)      : 38.00000   |            | 35.00000    | N    Y    |  
+Process Alarms.Agitation High High (RPM) : 40.00000   |            | 38.00000    | N    Y    |  
+Process Alarms.Temp Low Low (C)          :            |            |             | No Change |  
+Process Alarms.Temp Low (C)              :            |            |             | No Change |  
+Process Alarms.Temp High (C)             : 37.10000   |            | 38.00000    | N    Y    |  
+Process Alarms.Temp High High (C)        : 37.20000   |            | 39.00000    | N    Y    |  
+Process Alarms.DO Low Low (%)            : 70.00000   |            | 30.00000    | N    Y    |  
+Process Alarms.DO Low (%)                : 75.00000   |            | 40.00000    | N    Y    |  
+Process Alarms.DO High (%)               : 155.00000  |            | 60.00000    | N    Y    |  
+Process Alarms.DO High High (%)          : 160.00000  |            | 70.00000    | N    Y    |  
+Process Alarms.pH Low Low                : 5.90000    |            | 7.10000     | N    Y    |  
+Process Alarms.pH Low                    : 6.00000    |            | 7.15000     | N    Y    |  
+Process Alarms.pH High                   : 7.60000    |            | 7.25000     | N    Y    |  
+Process Alarms.pH High High              : 7.70000    |            | 7.30000     | N    Y    |  
+Process Alarms.Pressure Low Low (psi)    :            |            |             | No Change |  
+Process Alarms.Pressure Low (psi)        :            |            |             | No Change |  
+Process Alarms.Pressure High (psi)       :            |            |             | No Change |  
+Process Alarms.Pressure High High (psi)  :            |            |             | No Change |  
+Process Alarms.Level Low Low (L)         : 1.50000    |            | 5.00000e-01 | N    Y    |  
+Process Alarms.Level Low (L)             : 1.75000    |            | 1.30000     | N    Y    |  
+Process Alarms.Level High (L)            : 2.50000    |            | 3.25000     | N    Y    |  
+Process Alarms.Level High High (L)       : 2.70000    |            | 3.50000     | N    Y    |  
+Process Alarms.Filter Oven Low Low (C)   : 30.00000   |            | 45.00000    | N    Y    |  
+Process Alarms.Filter Oven Low (C)       : 37.00000   |            | 47.00000    | N    Y    |  
+Process Alarms.Filter Oven High (C)      : 52.00000   |            | 53.00000    | N    Y    |  
+Process Alarms.Filter Oven High High (C) :            |            |             | No Change |  
+Process Alarms.Main Gas Low Low (LPM)    : 2.00000e-01|            | 5.00000e-02 | N    Y    |  
+Process Alarms.Main Gas Low (LPM)        : 2.50000e-01|            | 1.00000e-01 | N    Y    |  
+Process Alarms.Main Gas High (LPM)       : 3.50000e-01|            | 4.00000e-01 | N    Y    |  
+Process Alarms.Main Gas High High (LPM)  : 4.00000e-01|            | 4.50000e-01 | N    Y    |  
+System.Max Data Log Interval (min)       :            |            |             | No Change |  
+System.Alarm Snooze Time (s)             :            |            |             | No Change |  
+System.Available Mem Limit (KB)          :            |            | 2000        | New Var   |  
+System.LCB Mem Limit (KB)                :            |            | 2000        | New Var   |  
+
+Writing XML to ".\System Variables.cfg"

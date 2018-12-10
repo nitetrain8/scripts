@@ -1,0 +1,71 @@
+# Note - EVERYTHING IS CASE SENSITIVE!
+# The parser will attempt to sanity check everything
+# but be careful anyway!
+
+# Note - whenever the structure of a config file
+# is naturally represented using a hierarchy of 
+# nested structures (System Variables, Cal Factors...),
+# the name of each variable below should be a dotted
+# name path (Agitation.Minimum (RPM), etc). 
+
+# Force a setting to specific value.
+# Use strings "New" or "User" to 
+# force the merge parser to always
+# use the New reference or User's 
+# value, respectively. Functionally
+# Equivalent to the "New" and "User"
+# fields below. 
+
+[Force Raw Value]
+
+# Always use the new Default
+
+[Force New Value]
+pH.CO2 P Gain (%/pH)
+pH.CO2 I Time (min)
+pH.CO2 D Time (min)
+pH.CO2 Manual Max (%)
+pH.CO2 Auto Max (%)
+pH.Base P Gain (%/pH)
+pH.Base I Time (min)
+pH.Base D Time (min)
+pH.Base Beta
+pH.Base Manual Max (%)
+pH.Base Auto Max (%)
+Safety.Max Level (L)
+
+# Always use User Value
+
+[Force User Value]
+Gas Data.O2 Min (LPM)
+Gas Data.Air Min (LPM)
+Gas Data.N2 Min (LPM)
+Gas Data.CO2 Min (LPM)
+
+# Todo - add options for reference files
+# and determining User's PBS version number
+
+# General options
+# Type values: sysvars TODO: alarms, loggersettings
+# Output path is relative to caller's path, not EXE's 
+# or patch file's!
+
+[General]
+Type=sysvars
+Output=.\{filename}
+Logfile=.\{filename}merge log.txt
+
+# Translation table for names which have changed
+# Old Name -> New Name
+
+[Translate]
+
+# Old variables that are no longer relevant (not renamed!)
+# For documentation purposes only.
+
+[Depreciated]
+
+# New variables (NOT renamed!) 
+# For documentation purposes only.
+
+[New Variables]

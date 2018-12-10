@@ -1,0 +1,67 @@
+# Note - EVERYTHING IS CASE SENSITIVE!
+# The parser will attempt to sanity check everything
+# but be careful anyway!
+
+# Note - whenever the structure of a config file
+# is naturally represented using a hierarchy of 
+# nested structures (System Variables, Cal Factors...),
+# the name of each variable below should be a dotted
+# name path (Agitation.Minimum (RPM), etc). 
+
+# Force a setting to specific value.
+# Use strings "New" or "User" to 
+# force the merge parser to always
+# use the New reference or User's 
+# value, respectively. Functionally
+# Equivalent to the "New" and "User"
+# fields below. 
+
+[Force Raw Value]
+Agitation.Minimum (RPM) = 5
+pH.CO2 Auto Max (%) = New
+
+# Always use the new Default
+
+[Force New Value]
+Agitation.P Gain (%/RPM)
+Agitation.I Time (min)
+Agitation.D Time (min)
+pH.CO2 P Gain (%/pH)
+
+# Always use User Value
+
+[Force User Value]
+Process Alarms.Agitation Low Low (RPM)
+Process Alarms.Agitation Low (RPM)
+
+# Todo - add options for reference files
+# and determining User's PBS version number
+
+# General options
+# Type values: sysvars, alarms, loggersettings, todo: email, recipes ...
+# Output path is relative to caller's path, not EXE's 
+# or patch file's!
+
+[General]
+Type=sysvars
+Output=.\{filename}
+Logfile=.\{filename}merge log.txt
+
+# Translation table for names which have changed
+# Old Name -> New Name
+
+[Translate]
+pH.Max Delta=pH.Mismatch Thresh
+Safety.Main Temp Max (C)=Safety.Max Temp (C)
+
+# Old variables that are no longer relevant (not renamed!)
+# For documentation purposes only.
+
+[Depreciated]
+
+# New variables (NOT renamed!) 
+# For documentation purposes only.
+
+[New Variables]
+System.LCB Mem Limit (KB)
+System.Available Mem Limit (KB)

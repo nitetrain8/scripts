@@ -1,0 +1,6 @@
+sysvars,files\sysvars\ref.sys,files\sysvars\file1.sys,files\sysvars\file2.sys,files\sysvars\file3.sys,--logfile=files\sysvars.txt,--outfmt=txt,--verbose
+alarms,files\alarms\ref.alm,files\alarms\file1.alm,files\alarms\file2.alm,files\alarms\file3.alm,--logfile=files\alarms.txt,--outfmt=txt,--verbose
+calfactors,files\calfactors\ref.cfg,files\calfactors\file1.cfg,files\calfactors\file2.cfg,files\calfactors\file3.cfg,--logfile=files\calfactors.txt,--outfmt=txt,--verbose
+reportsettings,files\reportsettings\ref.cfg,files\reportsettings\file1.cfg,files\reportsettings\file2.cfg,files\reportsettings\file3.cfg,--logfile=files\reportsettings.txt,--outfmt=txt,--verbose
+emailsettings,files\emailsettings\ref.xml,files\emailsettings\file1.xml,files\emailsettings\file2.xml,files\emailsettings\file3.xml,--logfile=files\emailsettings.txt,--outfmt=txt,--verbose
+loggersettings,files\loggersettings\ref.log,files\loggersettings\file1.log,files\loggersettings\file2.log,files\loggersettings\file3.log,--logfile=files\loggersettings.txt,--outfmt=txt,--verbose

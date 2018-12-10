@@ -1,0 +1,89 @@
+Recipient Email Addresses,6086228662@email.uscc.net,2249449993@messaging.sprintpcs.com,hebron.ellen@gmail.com
+Subject,PBS 3 CDI
+SMTP Address,10.0.0.85
+SMTP Port,587
+Return Address,15LBIOREACTOR2@CELLULARDYNAMICS.COM
+EnableSSL,FALSE
+Snooze (min),0
+Name, Notify, Audible
+Agitation Low Low,1
+Main Gas Low Low,1
+Temperature Low Low,1
+DO Low Low,1
+pH Low Low,1
+Pressure Low Low,1
+Level Low Low,1
+Filter Oven Low Low,1
+Leak Detected,1
+Temperature Sensor Mismatch,1
+DO Sensor Mismatch,1
+pH Sensor Mismatch,1
+O2 MFC Mismatch,1
+N2 MFC Mismatch,1
+Air MFC Mismatch,1
+CO2 MFC Mismatch,1
+Agitation Low,1
+Main Gas Low,1
+Temperature Low,1
+DO Low,1
+pH Low,1
+Pressure Low,1
+Level Low,1
+Filter Oven Low,1
+Agitation Sensor Failure,1
+Temp Sensor A Failure (range),1
+Temp Sensor B Failure (range),1
+Temp Dual Sensor Failure,1
+DO Sensor A Failure (range),1
+DO Sensor B Failure (range),1
+DO Dual Sensor Failure,1
+pH Sensor A Failure (range),1
+pH Sensor B Failure (range),1
+pH Sensor A Failure (rate),1
+pH Sensor B Failure (rate),1
+pH Dual Sensor Failure,1
+Pressure Sensor Disconnected,1
+Dirty Startup,1
+Clean Startup,1
+Resume,1
+Agitation High High,1
+Main Gas High High,1
+Temperature High High,1
+DO High High,1
+pH High High,1
+Pressure High High,1
+Level High High,1
+Filter Oven High High,1
+Agitation High,1
+Main Gas High,1
+Temperature High,1
+DO High,1
+pH High,1
+Pressure High,1
+Level High,1
+Filter Oven High,1
+RT Mem Fragmented,1
+RT Mem Nearly Full,1
+NI 9205 Error,1
+NI 9425/Onboard Error,1
+NI 9219 Error,1
+NI 9476 Error,1
+NI 9263 Error,1
+24 Vdc Mezz Fuse,1
+24 Vdc MFC Fuse,1
+24 Vdc Main Fuse,1
+24 Vdc sbRIO Fuse,1
+12 Vdc Atom Fuse,1
+12 Vdc Mezz Fuse,1
+12 Vdc Mntr Fuse,1
+24 Vdc Fill Pump Fuse,1
+24 Vdc User1 Fuse,1
+24 Vdc Ind DO Fuse,1
+24 Vdc User2 Fuse,1
+24 Vdc User3 Fuse,1
+12 Vdc User2 Fuse,1
+12 Vdc User3 Fuse,1
+Comb Plate Popped,0
+12 Vdc User1 Fuse,1
+Restarted Recipe,1
+Unknown Alarm,1

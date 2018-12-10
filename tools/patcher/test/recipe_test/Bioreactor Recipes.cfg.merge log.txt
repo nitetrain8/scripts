@@ -1,0 +1,29 @@
+                                                           Contents                                                          Matches     Restore
+Variable                : Cust File                      | Old File                       | New File                       | USR  OLD  | Action 
+------------------------------------------------------------------------------------------------------------------------------------------------
+IntegrityTest           : ???                            | ???                            | Recipe('IntegrityTest')        | NOTFOUND  |  
+Addition A Slow 1min    :                                |                                |                                | No Change | new 
+Addition B Slow 1min    :                                |                                |                                | No Change | new 
+All Controls Off        :                                |                                |                                | No Change | new 
+1min_on-LoopRecipe      : Recipe('1min_on-LoopRecipe')   | Recipe('1min_on-LoopRecipe')   | Recipe('1min_on-LoopRecipe')   | N    Y    | usr 
+30min_off-LoopRecipe    : Recipe('30min_off-LoopRecipe') | Recipe('30min_off-LoopRecipe') | Recipe('30min_off-LoopRecipe') | N    Y    | usr 
+60min_off-LoopRecipe    : Recipe('60min_off-LoopRecipe') | Recipe('60min_off-LoopRecipe') | Recipe('60min_off-LoopRecipe') | N    Y    | usr 
+120min_off-LoopRecipe   : Recipe('120min_off-LoopRecipe')| Recipe('120min_off-LoopRecipe')| Recipe('120min_off-LoopRecipe')| N    Y    | usr 
+LevelControl-LoopRecipe :                                |                                |                                | custom    | user 
+DA neuron 45min         :                                |                                |                                | custom    | user 
+DA neuron 30min         :                                |                                |                                | custom    | user 
+DA neuron 20min         :                                |                                |                                | custom    | user 
+DA neuron 15min         :                                |                                |                                | custom    | user 
+DA neuron seed          :                                |                                |                                | custom    | user 
+DA neuron harvest       :                                |                                |                                | custom    | user 
+d1 CM TX feed           :                                |                                |                                | custom    | user 
+d1 CM TX feed w limits  :                                |                                |                                | custom    | user 
+CM2 sparged feed        :                                |                                |                                | custom    | user 
+CM seed 80              :                                |                                |                                | custom    | user 
+CM feed 80              :                                |                                |                                | custom    | user 
+sonosep-LoopRecipe      :                                |                                |                                | custom    | user 
+C175 d1 feed            :                                |                                |                                | custom    | user 
+C175 d2 feed            :                                |                                |                                | custom    | user 
+C175 feed               :                                |                                |                                | custom    | user 
+
+Writing output to ".\recipe_test\Bioreactor Recipes.cfg"

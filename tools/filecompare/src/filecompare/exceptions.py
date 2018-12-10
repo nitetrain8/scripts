@@ -1,0 +1,2 @@
+class SanityError(Exception):
+    pass
