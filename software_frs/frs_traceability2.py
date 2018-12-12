@@ -165,6 +165,13 @@ class Node():
         for t in self._tests:
             child.add_test(t)
         return child
+
+    def remove_child(self, id):
+        child = self.children.get(id)
+        if child is not None:
+            del self.children[id]
+            child.parent = None
+
     
     def mk_child(self, id, flags=0):
         return self.__class__("%s.%s"%(self.id, id), self, flags)
@@ -545,8 +552,9 @@ def process_user_tests(xl, root, user_test_matrix):
     user_wb = xl.Workbooks.Open(user_test_matrix)
     user_ws = user_wb.Worksheets(1)
     user_test_map = load_user_test_map(user_ws)
-    root_add_test_map(root, user_test_map)
     user_wb.Close(False)
+    root_add_test_map(root, user_test_map)
+    
     
 
 def process_unit_tests(xl, root, unit_test_matrix):
