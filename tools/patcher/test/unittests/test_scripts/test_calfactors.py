@@ -54,7 +54,7 @@ def compare(exp, res):
         rv = util.diff3(flatten(exp), flatten(res))
         
         # this code block is triggered if there were differences
-        # detected by raw string compare, but between the parsed
+        # detected by raw string compare, but no between the parsed
         # string lists. 
 
         if len(rv) == 1 and rv[0].startswith("<Unknown"):
