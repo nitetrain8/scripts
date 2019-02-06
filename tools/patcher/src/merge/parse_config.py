@@ -85,8 +85,8 @@ _patch_template = """
 
 [General]
 Type=%(type)s
-Output=.\{filename}
-Logfile=.\{filename}merge log.txt
+Output=.\\{filename}
+Logfile=.\\{filename}merge log.txt
 
 # Translation table for names which have changed
 # Old Name -> New Name

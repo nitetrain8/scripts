@@ -15,6 +15,11 @@ import difflib
 import cfg_compare
 fromfn = cfg_compare.fromfn  # make sure the correct one is imported!
 
+# This lv parse test file originally assumed that all the 
+# system variable files were formatted correctly e.g. for floats
+# once tests started being added to verify that e.g. 0.00100 -> 1.00000E-3,
+# failures started being generated erroneously. 
+# Manually skip performing those tests 
 skip_exp_fail = {
     "sysvars.case_small_float"
 }
