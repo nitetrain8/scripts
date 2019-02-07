@@ -50,10 +50,18 @@ def quote(s):
     return '"%s"'%s
 
 def set_run_cmd(c):
+    """
+    Used by conftest.py to set whether the suite
+    is run in python mode or EXE mode. 
+    """
     global MERGE_CMD
     MERGE_CMD = c
 
 def make_command(*args, **kw):
+    """
+    Create the command line. I'm sure there's a module or something
+    that does most of this.  
+    """
     if MERGE_CMD is None:
         raise ValueError("MERGE_CMD not initialized")
     cmdl = [MERGE_CMD]
@@ -61,6 +69,8 @@ def make_command(*args, **kw):
         if " " in s and not (s[0] == s[-1] == '"'):
             s = quote(s)
         cmdl.append(s)
+
+    # make_command(foo='bar') -> '--foo=bar'
     for k, v in kw.items():
         if not k.startswith("-"):
             k = "--" + k
@@ -92,6 +102,11 @@ def _cmd3(c, cwd, **kw):
 ##################################
 
 def load_test_cases(type):
+    """
+    Primary test loading function. Used to find test
+    cases following the standard directory format of
+    Data folder/[type]_case_files/case_[name]
+    """
     dn = type + "_case_files"
     dn = os.path.normpath(dn)
     path = os.path.join(DATA, dn)
@@ -100,12 +115,21 @@ def load_test_cases(type):
 
 
 def load_case_by_name(type, name):
+    """
+    Similar to above, but load a specific test case. 
+    Does not require any special formatting of the test case name.
+    """
     dn = type+"_case_files"
     path = os.path.join(DATA, dn, name)
     return load_case_normal(path, type)
 
 import glob
 def load_cases_glob(pathname, type="none"):
+    """
+    Similar to above in that it allows loading test cases by
+    specific name, but allows the user to load cases matching
+    the given glob. 
+    """
     path = os.path.join(DATA, pathname)
     def j(f): return os.path.join(path, f)
     return [load_case_normal(j(f), type) for f in glob.glob(path)]
@@ -116,6 +140,13 @@ def load_file(fp):
         return f.read()
 
 class TestInfo():
+    """
+    Test class to load and run the merge test. Contains attributes and 
+    methods to facilitate the process of running the test and finding 
+    the associated files. Also has a name field to simplify debugging of
+    failures.  
+    """
+
     verbose = False
     def __init__(self, patch, cff, off, nff, exp, result, name, basepath):
         self.patch = patch
@@ -129,6 +160,7 @@ class TestInfo():
         self.result = self._outf_from_file or result
         self.name = name
         self.path = basepath
+        self.rv = 0
 
     def get_cmd(self):
         """
@@ -190,7 +222,6 @@ class TestInfo():
 
     def cleanup(self):
         self.cleanup_output()
-        pass
 
     def cleanup_output(self):
         for f in (self.result, self.logfile):
@@ -223,7 +254,7 @@ class TestInfo():
         if os.path.exists(self.logfile):
             os.rename(self.logfile, nl); self.logfile = nl
 
-def load_case_normal(path, type):
+def load_case_normal(path, typ):
     patch    = None
     off      = None
     cff      = None
@@ -235,12 +266,16 @@ def load_case_normal(path, type):
     def notnone(v,n):
         if v is None:
             raise FileNotFoundError("%s file not found in %s"%(n, path))
+
+    # Loop through files and assign to the correct type according to name
+    # Perform some sanity checking to make sure no multiples correspond 
+    # to the same type. 
     for file in os.listdir(path):
         if file.endswith(".patch"):
             if patch is None:
                 patch = file
             else:
-                dup('patchs')
+                dup('patches')
         elif file.startswith("new_"):
             if nff is None:
                 nff = file
@@ -273,7 +308,7 @@ def load_case_normal(path, type):
     # should go in the data_files folder
 
     case = os.path.basename(path)
-    name = "%s.%s" % (type, case)
+    name = "%s.%s" % (typ, case)
     name = name.replace("\\", ".")
     outfn = name + ".result"
     outfp = os.path.join(TMP, outfn)
@@ -307,6 +342,13 @@ def diff(a,b):
     return "\n".join(diff(a,b))
 
 def diff3(a,b):
+    """
+    Simple wrapper for diff2 that returns a simple error message if
+    no diff is found. This occurs when a string difference is found,
+    but a processed file difference is not. For example, this can 
+    occur due to differences in string representation of floating 
+    points: 0.001 vs 0.0010. 
+    """
     res = diff2(a,b)
     if len(res) == 1 and res[0] == "":  # no diff found
         return ["<Unknown mismatch - processed files are identical. Compare raw text>"]
@@ -350,7 +392,6 @@ def raise_assert(msg):
     """
     __tracebackhide__ = True
     assert LinesAsserter(msg) == LinesAsserter()
-
 
 import abc
 class CustomAsserter(abc.ABC):

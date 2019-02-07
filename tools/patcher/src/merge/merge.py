@@ -70,6 +70,18 @@ def batch_mode_main2(metafile):
                 print("Error(%d) running batch mode"%res)
     return rv
 
+def fix(arg,unkn):
+     if unkn:
+         ext1 = os.path.splitext(a.new_defaults)[1]
+         ext2 = os.path.splitext(a.user_file)[1]
+         maybe = arg.user_file + "," + arg.old_defaults
+         if os.path.exists(maybe):
+             d = arg.__dict__.copy()
+             d['new_defaults'] = unkn[0]
+             d['user_file'] = maybe
+             d['old_defaults'] = arg.new_defaults
+             return argparse.Namespace(**d)
+     return arg
 
 def parse_args(args=None):
     parser = argparse.ArgumentParser()
@@ -82,7 +94,7 @@ def parse_args(args=None):
     parser.add_argument("--verbose",    help="Verbose", action='store_true')
     parser.add_argument("--logfile",    help="Log file")
     args, unkn = parser.parse_known_args(args)
-    
+
     # add command line arguments to options.
     # command line overrides defaults set by patch file
 

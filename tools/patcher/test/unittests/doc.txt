@@ -1,0 +1,11 @@
+Unit testing of the merge.exe executable uses pytest and a custom test discovery system. 
+Some details included in the top-level readme for this package. 
+
+Most of the system code is located in the "util.py" file. the "conftest.py" file
+is a special file that pytest uses to load hooks and custom behavior. The hooks
+are loaded from the conftest.py file, which uses the utilities from the util.py file
+to discover tests according to the name format. 
+
+As a special note, this suite can be run in python mode or executable mode. In executable mode,
+the merge.exe itself is rebuilt and used to run the tests. In python mode, the scripts are loaded
+directly from python. 
