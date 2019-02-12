@@ -9,3 +9,8 @@ to discover tests according to the name format.
 As a special note, this suite can be run in python mode or executable mode. In executable mode,
 the merge.exe itself is rebuilt and used to run the tests. In python mode, the scripts are loaded
 directly from python. 
+
+The individual file types are tested via different test_*.py scripts. Each loads test cases of 
+the given type, runs them, collects the resulting output and expected outputs, and 
+performs comparison (usually using util.py's functions) to produce human-digestible
+output in the event of failures. 
