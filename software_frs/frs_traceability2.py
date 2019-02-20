@@ -141,6 +141,7 @@ class Node():
         self.children = {}
         self._tests = []
         self.text = ""
+        self.refs = set()
         
     def is_na(self):
         return self.flags & FRS_NA
@@ -171,7 +172,6 @@ class Node():
         if child is not None:
             del self.children[id]
             child.parent = None
-
     
     def mk_child(self, id, flags=0):
         return self.__class__("%s.%s"%(self.id, id), self, flags)
