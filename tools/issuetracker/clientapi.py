@@ -989,4 +989,10 @@ class Issue():
     def download(self):
         return self._api.download_issue_pdf(self.id)
     
-    __str__ = __repr__ = pretty_print
+    __str__ = pretty_print
+
+    def __repr__(self):
+        sub = self.subject
+        if len(sub) > 30:
+            sub = sub[:27] + "..."
+        return "%s(%r)"%(self.__class__.__name__, sub)
