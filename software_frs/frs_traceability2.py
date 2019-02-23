@@ -181,6 +181,12 @@ class Node():
         for _, v in sorted(self.children.items()):
             yield v
             yield from v.iter()
+
+    def iter2(self, sort_key):
+        children = sorted(self.children.values(), key=sort_key)
+        for c in children:
+            yield c
+            yield from c.iter2(sort_key)
             
     def total_len(self):
         n = len(self.children)

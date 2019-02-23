@@ -341,6 +341,7 @@ class IssuetrackerAPI():
             
         issues = {i.id: i for i in self._download_issues(ops)}
         reloop = True
+
         while reloop:
             reloop = False
             users = set()
@@ -350,12 +351,18 @@ class IssuetrackerAPI():
                     if isinstance(id_, Issue):
                         continue
                     p = issues.get(id_,None)
+
+                    # manually download the issue if 
+                    # parent wasn't downloaded with 
+                    # the other issues here. 
+
                     if p is None:
                         p = self.download_issue(id_)
                         issues[id_] = p
                         reloop = True
+                        
                     iss.parent = p
-                    issues[id_].subtasks.append(iss)
+                    p.subtasks.append(iss)
                 for u in iss._get_users():
                     users.add(u)
                 if reloop:
