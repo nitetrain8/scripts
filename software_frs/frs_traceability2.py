@@ -123,7 +123,7 @@ def _key_match(k):
 
 
 # Misc flags for FRS item status
-FRS_NA       = 1<<0  # 1
+
 
 
 def dump(node, level=0):
@@ -134,20 +134,27 @@ def dump(node, level=0):
 
 class Node():
 
-    def __init__(self, id, parent, flags=0):
-        self.id = id
-        self.flags = flags
+    OBSOLETE = 1<<0  # 1
+
+    def __init__(self, nid, parent, flags=0):
+        self.id = nid
         self.parent = parent
         self.children = {}
         self._tests = []
         self.text = ""
+        self.milestone = ""
+        self.priority = ""
         self.refs = set()
-        
-    def is_na(self):
-        return self.flags & FRS_NA
-    
-    def set_flags(self, flags):
         self.flags = flags
+        
+    def is_obsolete(self):
+        return self.get_flag(self.OBSOLETE)
+
+    def set_flag(self, flag):
+        self.flags |= flag
+
+    def get_flag(self, flag):
+        return self.flags & flag
         
     def add_test(self, id_test):
         self._tests.append(id_test)
@@ -157,24 +164,24 @@ class Node():
     def get_tests(self):
         return sorted(self._tests, key=str)
         
-    def get(self, id):
-        return self.children.get(id, None)
+    def get(self, id_):
+        return self.children.get(id_, None)
         
-    def add_child(self, id, flags=0):
-        child = self.mk_child(id, flags)
-        self.children[id] = child
+    def add_child(self, id_, flags=0):
+        child = self.mk_child(id_, flags)
+        self.children[id_] = child
         for t in self._tests:
             child.add_test(t)
         return child
 
-    def remove_child(self, id):
-        child = self.children.get(id)
+    def remove_child(self, id_):
+        child = self.children.get(id_)
         if child is not None:
-            del self.children[id]
+            del self.children[id_]
             child.parent = None
     
-    def mk_child(self, id, flags=0):
-        return self.__class__("%s.%s"%(self.id, id), self, flags)
+    def mk_child(self, id_, flags=0):
+        return self.__class__("%s.%s"%(self.id, id_), self, flags)
     
     def iter(self):
         # use .items() to sort by item order
@@ -182,11 +189,11 @@ class Node():
             yield v
             yield from v.iter()
 
-    def iter2(self, sort_key):
-        children = sorted(self.children.values(), key=sort_key)
+    def iter2(self, sort_func):
+        children = sorted(self.children.values(), key=sort_func)
         for c in children:
             yield c
-            yield from c.iter2(sort_key)
+            yield from c.iter2(sort_func)
             
     def total_len(self):
         n = len(self.children)
@@ -213,7 +220,7 @@ class Node():
         return not self.children
     
     def has_children(self):
-        return not not self.children
+        return bool(self.children)
         
 
 class Root(Node):
@@ -221,12 +228,21 @@ class Root(Node):
         super().__init__("", 0, None)
         self._key_func = key_func
         
-    def mk_child(self, id, flags):
-        return Node(id, self, flags)
+    def mk_child(self, id_, flags):
+        return Node(id_, self, flags)
         
     def add(self, key, flags):
         root_key, nums = self._key_func(key)
         child = self.get(root_key)
+
+        # 2/25/19: this was done in a dumb way
+        # basically, this block says "if there's
+        # no root, and we're adding a child to the root,
+        # create the root without the flags. Otherwise,
+        # we're adding the root, so add the flags". 
+        # This would be much easier if it used a split
+        # type / num / tag system the way Reference object
+        # works. 
         if not child:
             if nums:
                 child = self.add_child(root_key)
@@ -237,10 +253,10 @@ class Root(Node):
         path = [int(i) for i in nums.split(".")]
         node = child
         
-        for id in path:
-            child = node.get(id)
+        for id_ in path:
+            child = node.get(id_)
             if child is None:
-                child = node.add_child(id)
+                child = node.add_child(id_)
             node = child
         node.set_flags(flags)
         return node
@@ -253,7 +269,8 @@ class Root(Node):
         path = [int(i) for i in nums.split(".")]
         for id in path:
             node = node.get(id)
-            if not node: break
+            if node is None: 
+                return None
         return node
 
 
@@ -473,7 +490,7 @@ def filter_relevant_issues(issues):
     relevant = []
     for v in issues.values():
         if v.sprint_milestone == "3.0" and v.tracker == "Specification" and v.status not in ("Closed", "Rejected"):
-                relevant.append(v)
+            relevant.append(v)
     return relevant
 
 
