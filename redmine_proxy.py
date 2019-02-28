@@ -1,152 +1,190 @@
-import requests
-import pickle
 import socket
+import pickle
 import select
-import threading
+import time
+
+class ProxyError(OSError):
+    pass
+
+class ProxyTimeout(ProxyError):
+    pass
+
 
 class BaseProtocol():
-    def __init__(self, socket):
-        self.sock = socket
-        self.wfile = socket.makefile("wb")
-        self.rfile = socket.makefile("rb")
-
-    def _send(self, message, payload=None):
-        obj = (message, payload)
-        try:
-            pickle.dump(obj, self.wfile)
-            self.wfile.flush()
-        except OSError:
-            print("Error occurred sending response to %s"%repr(self.sock.getpeername()))
-
-    def _recv(self):
-        r, w, l = select.select([self.sock], [], [], 30)
-        if r:
-            msg, data = pickle.load(self.rfile)
-        else:
-            msg, data = "TIMEOUT", None
-        return msg, data
-
+    """ Mixin / common code for client & server side 
+    protocols. 
+    """
+    SOCK_TIMEOUT = 30
+    RECV_TIMEOUT = 30
+    
+    def __init__(self):
+        self._queue = {}
+        
+    def _makefiles(self):
+        self._wfile = self._sock.makefile("wb")
+        self._rfile = self._sock.makefile("rb")
+        self._sock.settimeout(self.SOCK_TIMEOUT)
+    
     def close(self):
-        if self.wfile:
-            self.wfile.flush()
-            self.wfile.close()
-            self.wfile = None
-        if self.rfile:   
-            self.rfile.flush()
-            self.rfile.close()
-            self.rfile = None
-        self.sock.shutdown(socket.SHUT_RDWR)
-        self.sock.close()
-
-
-class ServerProtocol(BaseProtocol):
-    def __init__(self, socket, sess, cache, lock):
-        super().__init__(socket)
-        self.sess = sess
-        self.cache = cache
-        self.lock = lock
-
-    def get(self, url, kw):
-        kws = " ".join('%r=%r'%i for i in kw.items())
-        key = (url, kws)
-        with self.lock:
-            if key in self.cache:
-                print("returning cached value for '%s'"%(repr(url)))
-                return self.cache[key]
-        print('requesting new value for "%s"'%(repr(key)))
-        timeout = kw.pop('timeout', 40)
-        rsp = self.sess.get(url, timeout=timeout, **kw)
-        rsp.content  # trigger actual read
-        with self.lock:
-            self.cache[key] = rsp
-        return "SUCCESS", rsp
-
-    def process(self):
-        msg, data = self._recv()
-        if msg == "GET_URL":
-            url, kw = data
-            msg, rsp = self.get(url, kw)
-            self._send(msg, rsp)
-        elif msg == "CLEAR_CACHE":
-            with self.lock:
-                self.cache.clear()
-            print("cleared internal cache")
-            self._send("SUCCESS", "CLEAR_CACHE")
+        if self._wfile:
+            self._wfile.flush()
+            self._wfile.close()
+            self._wfile = None
+        if self._rfile:
+            self._rfile.close()
+            self._rfile = None
+            
+        self._sock.shutdown(socket.SDRW)
+        self._sock.close()
+        self._sock = None
+        
+    def send(self, data):
+        pickle.dump(data, self._wfile)
+        self._wfile.flush()
+        
+    def recv_one_msg(self):
+        r, w, x = select.select([self._sock], [], [], self.SOCK_TIMEOUT)
+        if r:
+            data = msg_load(self._rfile)
+            if data.msg == "INTERNAL_ERROR":
+                raise ProxyError("Internal error: '%s'"%data)
+            return data
         else:
-            self._send("UNKN_CMD", msg)
+            raise ProxyTimeout("Socket read timeout")
+        
+    def recv(self, id, timeout=-1, hard_timeout=None):
+        data = self._queue.pop(id, None)
+        if data is not None:
+            return data
+        
+        if timeout < 0:
+            timeout = self.RECV_TIMEOUT
+        end = time.time() + timeout
+        
+        if hard_timeout is not None:
+            hard_end = max(end, time.time() + hard_timeout)
+            
+        while True:
+            data = self.recv_one_msg()
+            if data.msg == "HEARTBEAT":
+                end = time.time() + timeout
+                if end > hard_end:
+                    end = hard_end
+                continue
+                
+            if data.id != id:
+                self._queue[data.id] = data
+            else:
+                return data
 
+            if time.time() > end:
+                raise ProxyTimeout("Took too long to get confirmation for result")
+
+        
+class MessageData():
+    def __init__(self):
+        self.id = None
+        self.msg = None
+        self.data = None
+    
+class MyUnpickler(pickle.Unpickler):
+
+    def find_class(self, module, name):
+        if module == "__main__" and name == "MessageData":
+            return MessageData
+        return super().find_class(module, name)
+
+def msg_load(f):
+    return MyUnpickler(f).load()
+    
+    
 class ClientProtocol(BaseProtocol):
-
-    def __init__(self, host, port):
+    _instance = 0
+    def __new__(cls, *args, **kw):
+        cls._instance += 1
+        self = super().__new__(cls)
+        self._instance = cls._instance
+        return self
+    
+    def __init__(self, host, port, *, connect=True):
+        super().__init__()
         self.host = host
         self.port = port
-        self._init()
-
-    def _init(self):
-        self.close()
-        sock = socket.socket()
-        sock.connect((self.host, self.port))
-        super().__init__(sock)
-
-    def clear_cache(self):
-        self._send("CLEAR_CACHE", None)
-        msg, rsp = self._recv()
-        if msg != "SUCCESS":
-            raise ValueError(rsp)
-
-    def get(self, url, **kw):
-        self._send("GET_URL", (url, kw))
-        rsp, data = self._recv()
-        if rsp == "SUCCESS":
-            return data
-        elif rsp == "ERR_RAISE_EXC":
-            raise data
+        self._connected = False
+        
+        self._sock = None
+        self._wfile = None
+        self._rfile = None
+        
+        if connect:
+            self.connect()
+            
+        self._msg = 0
+            
+    def connect(self):
+        if self._connected:
+            self.close()
+        self._sock = socket.socket()
+        self._sock.connect((self.host, self.port))
+        self._makefiles()
+        
+    def _new_message_data(self):
+        m = MessageData()
+        m.id = "%d.%d"%(self._instance, self._msg)
+        self._msg += 1
+        return m
+        
+    def call(self, fn, *args, **kw):
+        data = self._new_message_data()
+        data.msg = "CALL_FUNCTION"
+        data.data = fn, args, kw
+        self.send(data)
+        rsp = self.recv(data.id)
+        if rsp.msg != "CALL_FUNCTION_SUCCESS":
+            if isinstance(rsp.data, Exception):
+                raise rsp.data
+            else:
+                raise ProxyError("Function call failed: %s"%rsp.data)
+        return rsp.data
+    
+    
+class ServerProtocol(BaseProtocol):
+    """ Server protocol starts differently because 
+    the socket is created by an accept() call on a 
+    server socket. 
+    
+    Also, notably, the object is a slave of the server
+    protocol, whereas for the client the protocol is the
+    slave of the object. 
+    """
+    def __init__(self, socket, obj):
+        self.host, self.port = socket.getpeername()
+        self._sock = socket
+        self._wfile = self._rfile = None
+        self._makefiles()
+        self._obj = obj
+        
+    def process_one(self):
+        try:
+            data = self.recv_one_msg()
+        except ProxyTimeout:
+            return False
+        rsp = MessageData()
+        rsp.id = data.id
+        if data.msg == "SHUTDOWN":
+            self.close()
+            rsp.msg = "SHUTDOWN_SUCCESS"
+        elif data.msg == "CALL_FUNCTION":
+            fn, args, kw = data.data
+            try:
+                rsp.data = getattr(self._obj, fn)(*args, **kw)
+                rsp.msg = "CALL_FUNCTION_SUCCESS"
+            except Exception as e:
+                rsp.msg = "CALL_FUNCTION_FAILURE"
+                rsp.data = e
         else:
-            raise ValueError("Unknown result returned: (%r, %r)"%(rsp, data))
-
-
-class HandleIt(threading.Thread):
-    def __init__(self, sock, cache, sess, lock):
-        super().__init__(daemon=True)
-        self.sock = sock
-        self.cache = cache
-        self.sess = sess
-        self.lock = lock
-        self.start()
-
-    def run(self):
-        proto = ServerProtocol(self.sock, self.sess, self.cache, self.lock)
-        proto.process()
-        proto.close()
-
-class Server():
-    def __init__(self, host, port=0):
-        self.serv = socket.socket()
-        self.serv.bind((host, port))
-        self.serv.listen(20)
-        self.cache = {}
-        self.sess = requests.Session()
-        self.running = False
-        self.lock = threading.Lock()
-
-    def mainloop(self):
-        self.running = True
-        while self.running:
-            rl, wl, xl = select.select([self.serv], [], [], 0.1)
-            client, addr = self.serv.accept()
-            print("Got connection from %r"%str(addr))
-            HandleIt(client, self.cache, self.sess, self.lock)
-
-    def stop(self):
-        self.running = False
-
-def main():
-    print("Initializing server at (%r, %r)"%("localhost", 9876))
-    s = Server("localhost", 9876)
-    s.mainloop()
-
-if __name__ == "__main__":
-    try:
-        main()
-    except Exception:
-        input()
+            rsp.msg = "INTERNAL_ERROR"
+            rsp.data = "Unknown command: '%s'"%data.msg
+        self.send(rsp)
+        return True
+            
