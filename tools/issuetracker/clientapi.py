@@ -167,55 +167,19 @@ class IssuetrackerAPI():
         return r.content
 
     def add_watcher(self, iid, user_id):
-        j ='{"user_id": %d}'%iid
+        j ='{"user_id": %d}'%user_id
         url = "/issues/%s/watchers.json"%iid
         url = uj(self._base_url, url)
         r = self._sess.delete(url, data=j)
         r.raise_for_status()
         return r.content
 
-        
-    # def _parse_proj_csv(self, csv, encoding='utf-8'):
-    #     if not isinstance(csv, str):
-    #         csv = csv.decode(encoding)
-    #     sl = csv.splitlines()
-    #     sl[0] = sl[0].lower().replace('"', "")
-    #     lines = [l.split(",") for l in sl]
-    #     issues = OrderedDict()
-    #     for i, l in enumerate(lines[1:], 1):
-    #         issue = Issue(line=sl[i], api=self)
-    #         for key, val in zip(lines[0], l):
-    #             issue[key] = val.strip('"') or "<n/a>"
-    #         issue['#'] = int(issue['#'])
-    #         issues[issue['#']] = issue
-    #     return issues
-    
-#     def download_projects(self):
-#         url = uj(self._base_url, self._proj_url)
-#         r = self._sess.get(url)
-#         r.raise_for_status()
-#         c = r.content
-#         q = pyquery.PyQuery(c)
-#         q2 = q("#projects-index > [class='projects root']")
-#         projects = _Project(self, "All", "")
-#         for e in q2.children(".root"):
-#             proj_ele = pyquery.PyQuery(e).children(".root > a")[0]
-#             pt = proj_ele.text
-#             phref = proj_ele.attrib['href'].split("/")[-1]
-#             proj = projects.add(pt, phref)
-#             q4 = pyquery.PyQuery(e).children("[class='more collapsed']")
-#             if len(q4) and _sp_re.match(q4[0].text):
-#                 q3 = pyquery.PyQuery(e)("[class='projects ']")
-#                 for e2 in q3(".child > .child > a"):
-#                     proj.add(e2.text, e2.attrib['href'].split("/")[-1])
-#         return projects
-
     def download_projects(self):
         url = uj(self._base_url, self._proj_url + ".xml")
         print("Downloading projects...")
         r = self._sess.get(url, auth=self._auth)
         r.raise_for_status()
-        xml = lxml.etree.XML(r.content)  #pylint: disable=E1101
+        xml = lxml.etree.XML(r.content)  #pylint: disable=E1101,I0011
         projects = {}
         for proj in xml.findall("project"):
             p = Project.from_element(self, proj)
@@ -269,8 +233,8 @@ class IssuetrackerAPI():
         r.raise_for_status()
         return r
 
-    def download_issue(self, id, fmt="json", include=()):
-        url = "%s/%s.%s"%(self._issues_url, str(id), fmt)
+    def download_issue(self, iid, fmt="json", include=()):
+        url = "%s/%s.%s"%(self._issues_url, str(iid), fmt)
         if include:
             url += "?include="+",".join(include)
         url = uj(self._base_url, url)
@@ -296,11 +260,11 @@ class IssuetrackerAPI():
         rv = {}
         for user in d:
             name = user['firstname'] + " " + user['lastname']
-            id = user['id']
-            u = User(self, name, id)
+            uid = user['id']
+            u = User(self, name, uid)
             for k, v in user.items():
                 setattr(u, k, v)
-            rv[id] = u
+            rv[uid] = u
         return rv
 
     @property
