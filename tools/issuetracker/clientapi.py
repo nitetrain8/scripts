@@ -416,7 +416,7 @@ def _map_issues(issues):
         raise e2 from None
     if len(seen) != len(issues):
         raise ValueError("Internal error checking gantt integrity: len(seen) != len(issues).")
-    if (set_issues - seen):
+    if set_issues - seen:
         raise ValueError("Internal error checking gantt integrity: Not all issues seen.")
     
 def _parse_custom_fields(e):
@@ -596,35 +596,35 @@ class Project():
 def _unrecognized_kw(kw):
     return ValueError("Unrecognized keywords: %s" % (', '.join(repr(s) for s in kw)))
 
-def _iss_parse_datetime(api, a, v):
+def _parse_datetime(api, a, v):
     return dateutil.parser.parse(v)
 
-def _iss_parse_int(api, a, v):
+def _parse_int(api, a, v):
     return int(v)
 
-def _iss_parse_usr(api, a, v):
+def _parse_user(api, a, v):
     name = v.pop('name')
     id = v.pop('id')
     if v:
         raise _unrecognized_kw(v)
     return User(api, name, id)
 
-def _iss_parse_resource(api, a, v):
-    name = v.pop('name')
-    id = v.pop('id')
+def _parse_resource(api, a, v):
+    name = v.pop('name', "")
+    id = v.pop('id', 0)
     value = v.pop('value', "")
     if v:
         raise _unrecognized_kw(v)
     return ResourceWithID(api, name, id, value)
 
-def _iss_parse_project(api, a, v):
+def _parse_project(api, a, v):
     return api.projects()[v['name']]
 
 def _iss_parse_parent(api, a, v):
     if v:
         return int(v['id'])
 
-def _iss_parse_custom_fields(api, a, v):
+def _parse_custom_fields(api, a, v):
     fields = {}
     for d in v:
         name = d.pop('name')
@@ -825,30 +825,30 @@ def _reprify(v, self=None):
 class Issue():
     
     _issue_parse_tbl = [
-        ("author", "author", _iss_parse_usr),
-        ("custom_fields", "custom_fields", _iss_parse_custom_fields),
-        ("fixed_version", "sprint_milestone", _iss_parse_resource),  # oddly named. TODO double check this
+        ("author", "author", _parse_user),
+        ("custom_fields", "custom_fields", _parse_custom_fields),
+        ("fixed_version", "sprint_milestone", _parse_resource),  # oddly named. TODO double check this
         ("category", "category", None),
-        ("status", "status", _iss_parse_resource),
+        ("status", "status", _parse_resource),
         ("company", "company", None),
-        ("created_on", "created_on", _iss_parse_datetime),
+        ("created_on", "created_on", _parse_datetime),
         ("description", "description", None),
         ("subject", "subject", None),
         ("done_ratio", "done_ratio", None),
         ("crm_reply_token", "crm_reply_token", None),
-        ("updated_on", "updated_on", _iss_parse_datetime),
-        ("id", "id", _iss_parse_int),
-        ("project", "project", _iss_parse_project),
+        ("updated_on", "updated_on", _parse_datetime),
+        ("id", "id", _parse_int),
+        ("project", "project", _parse_project),
         ("contact", "contact", None),
-        ("priority", "priority", _iss_parse_resource),
-        ("due_date", "due_date", _iss_parse_datetime),
+        ("priority", "priority", _parse_resource),
+        ("due_date", "due_date", _parse_datetime),
         ("estimated_hours", "estimated_hours", None),
-        ("tracker", "tracker", _iss_parse_resource),
+        ("tracker", "tracker", _parse_resource),
         ("parent", "parent", _iss_parse_parent),
-        ("closed_on", "closed_on", _iss_parse_datetime),
-        ("start_date", "start_date", _iss_parse_datetime),
+        ("closed_on", "closed_on", _parse_datetime),
+        ("start_date", "start_date", _parse_datetime),
         ("tracking_uri", "tracking_uri", None),
-        ("assigned_to", "assigned_to", _iss_parse_usr)
+        ("assigned_to", "assigned_to", _parse_user)
     ]
 
     def __init__(self, api, author=None, custom_fields=None, # pylint: disable=R0913
@@ -864,7 +864,7 @@ class Issue():
         
         self.author = author
         self.custom_fields = custom_fields
-        self.sprint_milestone = sprint_milestone  
+        self.sprint_milestone = sprint_milestone or _parse_resource(api, "", {})
         self.category = category
         self.status = status
         self.company = company
@@ -891,9 +891,9 @@ class Issue():
         self.subtasks = []
 
     def __getstate__(self):
-        d = self.__dict__.copy()
-        del d['_api']
-        return d
+        thedict = self.__dict__.copy()
+        del thedict['_api']
+        return thedict
 
     def __setstate__(self, state):
         self.__dict__.update(state)
