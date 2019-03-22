@@ -21,6 +21,7 @@ import re
 import dateutil.parser
 import lxml
 import json
+import itertools
 
 uj = urllib.parse.urljoin
 _sp_re = re.compile(r"(\d*?) (subproject)?(s{0,1})")
@@ -32,7 +33,7 @@ class IssuetrackerAPI():
     _issues_url = "/issues"
     _proj_url = "/projects"
     
-    def __init__(self, base_url, username, pw, login=True):
+    def __init__(self, base_url, username, pw, login=True, verbose=True):
         r = urllib.parse.urlparse(base_url)
         if not r.scheme and not r.netloc:
             base_url = urllib.parse.urlunparse(("https", r.path, "", r.params, r.query, r.fragment))
@@ -47,12 +48,18 @@ class IssuetrackerAPI():
         self._auth = (None, None)
         self._cache = {}
         self._logged_in = False
+        self._verbose = verbose
         
         self._set_usrpw(username, pw)
         self._autologin = login
         self._cache['known_users'] = Users(self)
+        self._cache['issues'] = {}
         if login:
             self.login()
+
+    def print(self, *args, **kw):
+        if self._verbose:
+            print(*args, **kw)
             
     def _set_usrpw(self, usr, pw):
         self._username = usr
@@ -81,11 +88,14 @@ class IssuetrackerAPI():
         new._sess.cookies = self._sess.cookies.copy()
         return new
 
+    def _add_issue(self, iss):
+        self._cache["issues"][iss.id] = iss
+
     def __getstate__(self):
         return {}
 
     def __getinitargs__(self):
-        return self._base_url, self._username, self._password, self._autologin
+        return self._base_url, self._username, self._password, self._autologin, self._verbose
 
     def projects(self, project_id=None):
         """ Return dict of projects if project_id is None, or project matching 
@@ -175,21 +185,27 @@ class IssuetrackerAPI():
         return r.content
 
     def download_projects(self):
-        url = uj(self._base_url, self._proj_url + ".xml")
-        print("Downloading projects...")
+        url = uj(self._base_url, self._proj_url + ".json")
+        self.print("Downloading projects...")
         r = self._sess.get(url, auth=self._auth)
         r.raise_for_status()
-        xml = lxml.etree.XML(r.content)  #pylint: disable=E1101,I0011
+        js = json.loads(r.content.decode())
+
+        if js["total_count"] > len(js["projects"]):
+            # TODO: iterative download just like issues
+            raise ValueError("Nathan sucks: code can't handle this many projects")
+
         projects = {}
-        for proj in xml.findall("project"):
-            p = Project.from_element(self, proj)
-            projects[p.name] = p
+        for proj in js["projects"]:
+            p = Project.from_json(self, **proj)
+            projects[p.id] = p
         
         # Second pass, process project subtasks
         for p in projects.values():
             if p.parent is not None:
-                parent = projects[p.parent['name']]
+                parent = projects[p.parent]
                 parent.add_subproject(p)
+        projects = {p.identifier: p for p in projects.values()}
         self._cache['projects'] = projects
         return projects
     
@@ -240,7 +256,15 @@ class IssuetrackerAPI():
         url = uj(self._base_url, url)
         r = self._sess.get(url, auth=self._auth)
         r.raise_for_status()
-        return Issue.from_json(self, **json.loads(r.content.decode())['issue'])
+        iss = Issue.from_json(self, **json.loads(r.content.decode())['issue'])
+        self._cache['issues'][iss.id] = iss
+        return iss
+
+    def get_issue_cached(self, iid):
+        iss = self._cache['issues'].get(iid, None)
+        if iss is None:
+            iss = self.download_issue(iid)
+        return iss
 
     def download_users(self, fmt='json', status=None, name=None, group_id=None):
         url = "/users."+fmt
@@ -278,7 +302,7 @@ class IssuetrackerAPI():
         self._cache['known_users'] = users = self._cache.get('known_users') or Users(self)
         users.add_user(u)
 
-    def download_issues(self, project_id=None, created_on=None, modified_on=None, **filters):
+    def download_issues2(self, project_id=None, created_on=None, modified_on=None, **filters):
         if not self._logged_in:
             self.login()
         ops = {}
@@ -299,42 +323,15 @@ class IssuetrackerAPI():
             
         if modified_on:
             if not isinstance(modified_on, str):
-                raise TypeError("Argument created_on must be type " \
+                raise TypeError("Argument modified_on must be type " \
                     "str- try .isoformat() (got type %r)" % modified_on)
             ops['modified_on'] = modified_on
             
-        issues = {i.id: i for i in self._download_issues(ops)}
-        reloop = True
+        return self._download_issues(ops)
 
-        while reloop:
-            reloop = False
-            users = set()
-            for iss in issues.values():
-                if iss.parent is not None:
-                    id_ = iss.parent
-                    if isinstance(id_, Issue):
-                        continue
-                    p = issues.get(id_,None)
-
-                    # manually download the issue if 
-                    # parent wasn't downloaded with 
-                    # the other issues here. 
-
-                    if p is None:
-                        p = self.download_issue(id_)
-                        issues[id_] = p
-                        reloop = True
-                        
-                    iss.parent = p
-                    p.subtasks.append(iss)
-                for u in iss._get_users():
-                    users.add(u)
-                if reloop:
-                    break
-        for u in users:
-            self._add_user(u)
-        return issues           
-            
+    def download_issues(self, project_id=None, created_on=None, modified_on=None, **filters):
+        rv = self.download_issues2(project_id, created_on, modified_on, **filters)
+        return itertools.chain.from_iterable(rv)
 
     def _download_issues(self, ops):
         offset = 0
@@ -342,27 +339,35 @@ class IssuetrackerAPI():
         limit = min(max(limit, 0), 100)
         total_count = 0
                 
-        print("\rDownloading issues...", end="")
+        self.print("\rDownloading issues...", end="")
         while True:
             r = self._download_project_issues_iter(ops, limit, offset)
             d = json.loads(r.content.decode())
             issues = d['issues']
 
             if not issues:
+                self.print("\rQuery returned 0 issues                ")
                 break
 
-            yield from self._parse_issues(issues)
+            yield self._parse_issues(issues)
 
             total_count = int(d.get('total_count', 0))
             offset += len(issues)
-            print("\rDownloading issues: %d/%d      " % (offset, total_count), end="")
+            self.print("\rDownloading issues: %d/%d      " % (offset, total_count), end="")
             if offset >= total_count:
                 break
-        print()
+        self.print()
 
     def _parse_issues(self, issues):
+        rv = []
+        _icache = self._cache['issues']
         for i in issues:
-            yield Issue.from_json(self, **i)
+            iss = Issue.from_json(self, **i)
+            for u in iss.get_users():
+                self._add_user(u)
+            _icache[iss.id] = iss
+            rv.append(iss)
+        return rv
 
     def create_issue(self, project_id, subject, status_id, **kw):
         # these three are required (for us), others optional.
@@ -372,7 +377,7 @@ class IssuetrackerAPI():
         url = uj(self._base_url, self._issues_url + ".json")
         r = self._sess.post(url, json={'issue':kw}, auth=self._auth)
         r.raise_for_status()
-        return Issue.from_json(self, json.loads(r.content.decode())['issue'])
+        return Issue.from_json(self, **json.loads(r.content.decode())['issue'])
 
     def get_versions(self, project_id):
         url = uj(self._base_url, "/projects/%s/versions.json"%project_id)
@@ -418,35 +423,6 @@ def _map_issues(issues):
         raise ValueError("Internal error checking gantt integrity: len(seen) != len(issues).")
     if set_issues - seen:
         raise ValueError("Internal error checking gantt integrity: Not all issues seen.")
-    
-def _parse_custom_fields(e):
-    rv = {}
-    for cf in e.findall("custom_field"):
-        cfd = {}
-        cfd.update(cf.attrib)
-        v = cf.find("value")
-        if v is None or v.text == 'blank':
-            val = None
-        else:
-            val = v.text
-        cfd['value'] = val
-        rv[cfd['name']] = cfd
-    return rv
-
-def _parse_datetime(e):
-    return dateutil.parser.parse(e.text)
-
-def _parse_int(e):
-    return int(e.text)
-
-def _parse_bool(e):
-    t = e.text.lower()
-    if t == 'false':
-        return False
-    return True
-
-def _parse_parent(e):
-    return {k:v for k,v in e.attrib.items()}
 
 
 class Trackers():
@@ -519,6 +495,47 @@ class Tracker():
     def __repr__(self):
         return "<%s(name=%r, id=%s)>" % (self.__class__.__name__, self.name, self.id)
 
+
+def _parse_datetime(api, a, v):
+    return dateutil.parser.parse(v)
+
+def _parse_int(api, a, v):
+    return int(v)
+
+def _parse_user(api, a, v):
+    name = v.pop('name')
+    id = v.pop('id')
+    if v:
+        raise _unrecognized_kw(v)
+    return User(api, name, id)
+
+def _parse_resource(api, a, v):
+    name = v.pop('name', "")
+    id = v.pop('id', 0)
+    value = v.pop('value', "")
+    if v:
+        raise _unrecognized_kw(v)
+    return ResourceWithID(api, name, id, value)
+
+def _parse_parent(api, a, v):
+    if v:
+        return int(v['id'])
+
+def _parse_bool(api, a, v):
+    return bool(_parse_int(api, a, v))
+
+def _parse_custom_fields(api, a, v):
+    fields = {}
+    for d in v:
+        name = d.pop('name')
+        id = d.pop('id')
+        val = d.pop('value', "")
+        r = ResourceWithID(api, name, id, val)
+        for k, v in d.items():
+            setattr(r, k, v)
+        fields[name] = val
+    return fields
+
 class Project():
     def __init__(self, api, id=0, name="", identifier="", description="", parent=None, status=None, 
                  is_public=False, custom_fields=None, created_on=None, updated_on=None):
@@ -547,8 +564,7 @@ class Project():
             self._subprojects.append(sp)
             
     def __repr__(self):
-        return "_Project(%s)" % ', '.join("%s=%r" % \
-            (k[0], _reprify(getattr(self, k[0]), self)) for k in self._proj_parse_table)
+        return "Project(%r)" % self.name
     
     def download_issues(self, utf8=True, columns='all'):
         return self._api.download_project_issues(self.identifier, utf8, columns)
@@ -556,8 +572,7 @@ class Project():
     def download_gantt(self):
         return self._api.download_gantt(self.identifier)
         
-    _proj_parse_table = [
-        # e.tag attr parse function
+    _parse_table = [
         ("id", "id", _parse_int),
         ("name", "name", None),
         ("identifier", "identifier", None),
@@ -569,23 +584,27 @@ class Project():
         ("created_on", "created_on", _parse_datetime),
         ("updated_on", "updated_on", _parse_datetime),
     ]
-        
+
     @classmethod
-    def from_element(cls, api, e):
-        kw = {}
-        for tag, k, func in cls._proj_parse_table:
-            el = e.find(tag)
-            if el is None:
+    def from_json(cls, api, **kw):
+        dct = {}
+        absent = object()
+        for k, attr, func in cls._parse_table:
+            v = kw.pop(k, absent)
+            if v is absent:
                 continue
             if func:
-                v = func(el)
-            else:
-                v = el.text
-            if v is not None:
-                kw[k] = v
-        if not kw and e.tag != 'project':
-            raise ValueError("Failed to parse element: element should be <project> element.")
-        return cls(api, **kw)
+                try:
+                    v = func(api, attr, v)
+                except Exception:
+                    api.print(dct, kw)
+                    raise
+            dct[attr] = v
+        self = cls(api, **dct)
+        if kw:
+            for k, v in kw.items():
+                setattr(self, k, v)
+        return self
 
     def create_issue(self, subject, status_id, **kw):
         self._api.create_issue(self.id, subject, status_id, **kw)
@@ -596,46 +615,8 @@ class Project():
 def _unrecognized_kw(kw):
     return ValueError("Unrecognized keywords: %s" % (', '.join(repr(s) for s in kw)))
 
-def _parse_datetime(api, a, v):
-    return dateutil.parser.parse(v)
-
-def _parse_int(api, a, v):
-    return int(v)
-
-def _parse_user(api, a, v):
-    name = v.pop('name')
-    id = v.pop('id')
-    if v:
-        raise _unrecognized_kw(v)
-    return User(api, name, id)
-
-def _parse_resource(api, a, v):
-    name = v.pop('name', "")
-    id = v.pop('id', 0)
-    value = v.pop('value', "")
-    if v:
-        raise _unrecognized_kw(v)
-    return ResourceWithID(api, name, id, value)
-
 def _parse_project(api, a, v):
-    return api.projects()[v['name']]
-
-def _iss_parse_parent(api, a, v):
-    if v:
-        return int(v['id'])
-
-def _parse_custom_fields(api, a, v):
-    fields = {}
-    for d in v:
-        name = d.pop('name')
-        id = d.pop('id')
-        val = d.pop('value', "")
-        r = ResourceWithID(api, name, id, val)
-        for k, v in d.items():
-            setattr(r, k, v)
-        fields[name] = val
-    return fields
-
+    return v["id"]
 
 class FixedVersion():
     def __init__(self, api, created_on=None, name=None, sharing=None, status=None, updated_on=None, id=None, description=None, project=None):
@@ -844,7 +825,7 @@ class Issue():
         ("due_date", "due_date", _parse_datetime),
         ("estimated_hours", "estimated_hours", None),
         ("tracker", "tracker", _parse_resource),
-        ("parent", "parent", _iss_parse_parent),
+        ("parent", "parent", _parse_parent),
         ("closed_on", "closed_on", _parse_datetime),
         ("start_date", "start_date", _parse_datetime),
         ("tracking_uri", "tracking_uri", None),
@@ -881,7 +862,7 @@ class Issue():
         self.due_date = due_date
         self.estimated_hours = estimated_hours
         self.tracker = tracker
-        self.parent = parent
+        self.parent_id = parent
         self.closed_on = closed_on
         self.start_date = start_date
         self.tracking_uri = tracking_uri
@@ -890,12 +871,26 @@ class Issue():
         
         self.subtasks = []
 
+    @property
+    def parent(self):
+        if self._api is None:
+            raise ValueError("Unable to fetch parent: no local API reference")
+        if self.parent_id is None:
+            return None
+        return self._api.get_issue_cached(self.parent_id)
+
+    def copy(self):
+        new = self.__class__(self._api)
+        new.__dict__.update(self.__dict__)
+        return new
+
     def __getstate__(self):
         thedict = self.__dict__.copy()
         del thedict['_api']
         return thedict
 
     def __setstate__(self, state):
+        state["_api"] = None
         self.__dict__.update(state)
             
     def __eq__(self, other):
@@ -910,7 +905,7 @@ class Issue():
                 return False
         return True
 
-    def _get_users(self):
+    def get_users(self):
         users = []
         for _, attr, _ in self._issue_parse_tbl:
             v = getattr(self, attr)
@@ -919,10 +914,7 @@ class Issue():
         return users
         
     def __hash__(self):
-        s = ":".join(repr(getattr(self, a)) for _, a, _ in \
-            self._issue_parse_tbl)
-        return hash(s)
-                
+        return self.id  
 
     @classmethod
     def from_json(cls, api, **kw):
@@ -936,21 +928,19 @@ class Issue():
                 try:
                     v = func(api, attr, v)
                 except Exception:
-                    print(dct, kw)
+                    api.print(dct, kw)
                     raise
             dct[attr] = v
         self = cls(api, **dct)
         if kw:
             for k, v in kw.items():
                 setattr(self, k, v)
-            #print("Warning: unrecognized keyword: %s=%s"%(k,v))
         return self
     
     def add_subtask(self, issue):
         self.subtasks.append(issue)
 
     def pretty_print(self):
-                
         attrs = [t[1] for t in self._issue_parse_tbl]
         args = ", ".join("%s=%s" % (a, _reprify(getattr(self, a), self)) for a in attrs)
         args = args or '<empty>'
@@ -959,11 +949,8 @@ class Issue():
 
     def download(self):
         return self._api.download_issue_pdf(self.id)
-    
-    __str__ = pretty_print
 
     def __repr__(self):
-        sub = self.subject
-        if len(sub) > 30:
-            sub = sub[:27] + "..."
-        return "%s(%r)"%(self.__class__.__name__, sub)
+        return "%s(%r)"%(self.__class__.__name__, self.subject)
+
+    __str__ = __repr__
