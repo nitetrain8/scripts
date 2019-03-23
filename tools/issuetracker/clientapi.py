@@ -346,7 +346,7 @@ class IssuetrackerAPI():
             issues = d['issues']
 
             if not issues:
-                self.print("\rQuery returned 0 issues                ")
+                self.print("\rQuery returned 0 issues                ", end="")
                 break
 
             yield self._parse_issues(issues)
@@ -819,7 +819,7 @@ class Issue():
         ("crm_reply_token", "crm_reply_token", None),
         ("updated_on", "updated_on", _parse_datetime),
         ("id", "id", _parse_int),
-        ("project", "project", _parse_project),
+        ("project", "project_id", _parse_project),
         ("contact", "contact", None),
         ("priority", "priority", _parse_resource),
         ("due_date", "due_date", _parse_datetime),
@@ -836,7 +836,7 @@ class Issue():
                   sprint_milestone=None, category=None, status=None, 
                   company=None, created_on=None, description=None, 
                   subject=None, done_ratio=None, crm_reply_token=None, 
-                  updated_on=None, id=None, project=None, contact=None, 
+                  updated_on=None, id=None, project_id=None, contact=None, 
                   priority=None, due_date=None, estimated_hours=None, 
                   tracker=None, parent=None, closed_on=None, start_date=None,
                   tracking_uri=None, assigned_to=None):  
@@ -856,7 +856,7 @@ class Issue():
         self.crm_reply_token = crm_reply_token
         self.updated_on = updated_on
         self.id = id
-        self.project = project
+        self.project_id = project_id
         self.contact = contact
         self.priority = priority
         self.due_date = due_date
@@ -871,13 +871,23 @@ class Issue():
         
         self.subtasks = []
 
-    @property
-    def parent(self):
+    def _check_api(self):
         if self._api is None:
             raise ValueError("Unable to fetch parent: no local API reference")
+
+    @property
+    def parent(self):
+        self._check_api()
         if self.parent_id is None:
             return None
         return self._api.get_issue_cached(self.parent_id)
+
+    @property
+    def project(self):
+        self._check_api()
+        if self.project_id is None:
+            return None
+        return self._api.projects(self.project_id)
 
     def copy(self):
         new = self.__class__(self._api)
@@ -940,7 +950,7 @@ class Issue():
     def add_subtask(self, issue):
         self.subtasks.append(issue)
 
-    def pretty_print(self):
+    def ugly_print(self):
         attrs = [t[1] for t in self._issue_parse_tbl]
         args = ", ".join("%s=%s" % (a, _reprify(getattr(self, a), self)) for a in attrs)
         args = args or '<empty>'
