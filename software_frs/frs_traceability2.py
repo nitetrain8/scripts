@@ -102,7 +102,6 @@ def format_row(row):
 
     
 def get_matrix_sheet(xl):
-    matrix = None
     wb = xl.Workbooks.Add()
     return wb.Worksheets(1)
 
@@ -258,7 +257,7 @@ class Root(Node):
             if child is None:
                 child = node.add_child(id_)
             node = child
-        node.set_flags(flags)
+        node.set_flag(flags)
         return node
     
     def lookup(self, key):

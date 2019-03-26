@@ -347,7 +347,7 @@ class IssuetrackerAPI():
 
             if not issues:
                 self.print("\rQuery returned 0 issues                ", end="")
-                break
+                return
 
             yield self._parse_issues(issues)
 
