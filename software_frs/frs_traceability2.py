@@ -241,7 +241,7 @@ class Root(Node):
         # we're adding the root, so add the flags". 
         # This would be much easier if it used a split
         # type / num / tag system the way Reference object
-        # works. 
+        # works. c
         if not child:
             if nums:
                 child = self.add_child(root_key)
