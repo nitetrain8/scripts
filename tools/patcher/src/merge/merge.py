@@ -38,6 +38,8 @@ def main(options):
 
 
 def batch_mode_main1(metafile):
+    # batch mode where each line in the input file 
+    # is a patch file containing ALL information
     with open(metafile, 'r') as f:
         lines = f.read().splitlines()
     rv = 0
@@ -54,6 +56,14 @@ def batch_mode_main1(metafile):
 
 
 def batch_mode_main2(metafile):
+    
+    """ Batch mode where each line in the input file
+    is a comma separated list of input args 
+    aka sys.argv[1:] = line.split(",")
+    note that CSV format is not RFC compliant, commas
+    in filenames will cause problems
+    """
+
     with open(metafile, 'r') as f:
         lines = f.read().splitlines()
     rv = 0
@@ -70,18 +80,18 @@ def batch_mode_main2(metafile):
                 print("Error(%d) running batch mode"%res)
     return rv
 
-def fix(arg,unkn):
-     if unkn:
-         ext1 = os.path.splitext(a.new_defaults)[1]
-         ext2 = os.path.splitext(a.user_file)[1]
-         maybe = arg.user_file + "," + arg.old_defaults
-         if os.path.exists(maybe):
-             d = arg.__dict__.copy()
-             d['new_defaults'] = unkn[0]
-             d['user_file'] = maybe
-             d['old_defaults'] = arg.new_defaults
-             return argparse.Namespace(**d)
-     return arg
+# def fix(arg,unkn):
+#     if unkn:
+#         ext1 = os.path.splitext(arg.new_defaults)[1]
+#         ext2 = os.path.splitext(arg.user_file)[1]
+#         maybe = arg.user_file + "," + arg.old_defaults
+#         if os.path.exists(maybe):
+#             d = arg.__dict__.copy()
+#             d['new_defaults'] = unkn[0]
+#             d['user_file'] = maybe
+#             d['old_defaults'] = arg.new_defaults
+#             return argparse.Namespace(**d)
+#     return arg
 
 def parse_args(args=None):
     parser = argparse.ArgumentParser()
