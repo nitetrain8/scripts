@@ -239,6 +239,24 @@ class IssuetrackerAPI():
         _map_issues(rv)
         
         return rv
+
+    def get(self, path):
+        url = uj(self._base_url, path)
+        r = self._sess.get(url, auth=self._auth)
+        r.raise_for_status()
+        return r
+
+    def post(self, path, data=None, json=None):
+        url = uj(self._base_url, path)
+        r = self._sess.post(url, data=data, json=json, auth=self._auth)
+        r.raise_for_status()
+        return r
+
+    def put(self, path, data=None, json=None):
+        url = uj(self._base_url, path)
+        r = self._sess.put(url, data=data, json=json, auth=self._auth)
+        r.raise_for_status()
+        return r
     
     def _download_project_issues_iter(self, ops, limit, offset):
         ops['limit'] = limit
