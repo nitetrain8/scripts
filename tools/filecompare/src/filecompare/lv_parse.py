@@ -116,8 +116,15 @@ class LVCluster(LVType):
     def __iter__(self):
         return iter(self.val)
 
+    def items(self):
+        for v in self.val:
+            yield v.name, v
+
     def _todict(self):
         return {v.name: v._todict() for v in self.val}
+
+    def todict(self):
+        return self._todict()
 
     def _toxml(self, b):
         b.append("<Cluster>")
