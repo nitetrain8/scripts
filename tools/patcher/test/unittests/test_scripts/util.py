@@ -156,9 +156,11 @@ class TestInfo():
         self.expected = exp
         self._default_output = result
         self.kw = {}
-        self._outf_from_file, self.logfile = self.find_output()
-        self.result = self._outf_from_file or result
         self.name = name
+        self._outf_from_file, self.logfile = self.find_output()
+
+        self.result = self._outf_from_file or result
+        
         self.path = basepath
         self.rv = 0
 
@@ -235,7 +237,8 @@ class TestInfo():
         here we're more interested in renaming after
         the name of the case.
         """
-        self.rv = cmd(self.get_cmd())
+        thecmd = self.get_cmd()
+        self.rv = cmd(thecmd)
         dn = os.path.dirname(self.result)
         ext = os.path.splitext(self.result)[1]
         nr = os.path.join(dn, self.name+ext)
@@ -312,6 +315,7 @@ def load_case_normal(path, typ):
     name = name.replace("\\", ".")
     outfn = name + ".result"
     outfp = os.path.join(TMP, outfn)
+
     return TestInfo(os.path.join(path, patch), 
                     os.path.join(path, cff), 
                     os.path.join(path, off), 

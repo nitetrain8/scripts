@@ -44,7 +44,8 @@ To add Unittests:
             - File beginning with "old_[type]"       -- old default settings file
             - File beginning with "user_[type]"      -- user's settings file
             - File ending with ".patch"              -- patch file
-            
+         
+        Some test types, such as recipes, have additional filename patterns and conventions used to distinguish different types of test or add additional behavior. The best way to understand these additional conventions is to study the source code for the test script corresponding to each type. 
 
     Instructions:
     1. Navigate to unittests/data_files

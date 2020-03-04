@@ -35,7 +35,7 @@
 # or patch file's!
 
 [General]
-Type=
+Type=recipes
 Output=.\recipe_test\{filename}
 Logfile=.\recipe_test\{filename}.merge log.txt
 
@@ -43,14 +43,11 @@ Logfile=.\recipe_test\{filename}.merge log.txt
 # Old Name -> New Name
 
 [Translate]
-DOO2RangeAuto(%).Max=DOO2RangeAutoMax(%)
-# MainGasModeUser=MyNewMainGasThing
 
 # Old variables that are no longer relevant (not renamed!)
 # For documentation purposes only.
 
 [Depreciated]
-
 
 # New variables (NOT renamed!) 
 # For documentation purposes only.

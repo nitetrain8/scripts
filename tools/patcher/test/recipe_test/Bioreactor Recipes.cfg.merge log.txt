@@ -1,29 +1,33 @@
-                                                           Contents                                                          Matches     Restore
-Variable                : Cust File                      | Old File                       | New File                       | USR  OLD  | Action 
-------------------------------------------------------------------------------------------------------------------------------------------------
-IntegrityTest           : ???                            | ???                            | Recipe('IntegrityTest')        | NOTFOUND  |  
-Addition A Slow 1min    :                                |                                |                                | No Change | new 
-Addition B Slow 1min    :                                |                                |                                | No Change | new 
-All Controls Off        :                                |                                |                                | No Change | new 
-1min_on-LoopRecipe      : Recipe('1min_on-LoopRecipe')   | Recipe('1min_on-LoopRecipe')   | Recipe('1min_on-LoopRecipe')   | N    Y    | usr 
-30min_off-LoopRecipe    : Recipe('30min_off-LoopRecipe') | Recipe('30min_off-LoopRecipe') | Recipe('30min_off-LoopRecipe') | N    Y    | usr 
-60min_off-LoopRecipe    : Recipe('60min_off-LoopRecipe') | Recipe('60min_off-LoopRecipe') | Recipe('60min_off-LoopRecipe') | N    Y    | usr 
-120min_off-LoopRecipe   : Recipe('120min_off-LoopRecipe')| Recipe('120min_off-LoopRecipe')| Recipe('120min_off-LoopRecipe')| N    Y    | usr 
-LevelControl-LoopRecipe :                                |                                |                                | custom    | user 
-DA neuron 45min         :                                |                                |                                | custom    | user 
-DA neuron 30min         :                                |                                |                                | custom    | user 
-DA neuron 20min         :                                |                                |                                | custom    | user 
-DA neuron 15min         :                                |                                |                                | custom    | user 
-DA neuron seed          :                                |                                |                                | custom    | user 
-DA neuron harvest       :                                |                                |                                | custom    | user 
-d1 CM TX feed           :                                |                                |                                | custom    | user 
-d1 CM TX feed w limits  :                                |                                |                                | custom    | user 
-CM2 sparged feed        :                                |                                |                                | custom    | user 
-CM seed 80              :                                |                                |                                | custom    | user 
-CM feed 80              :                                |                                |                                | custom    | user 
-sonosep-LoopRecipe      :                                |                                |                                | custom    | user 
-C175 d1 feed            :                                |                                |                                | custom    | user 
-C175 d2 feed            :                                |                                |                                | custom    | user 
-C175 feed               :                                |                                |                                | custom    | user 
-
-Writing output to ".\recipe_test\Bioreactor Recipes.cfg"
+                                                        Contents                                                 Matches     Restore
+Variable                      : Cust File             | Old File                       | New File              | USR  OLD  | Action 
+------------------------------------------------------------------------------------------------------------------------------------
+Filename                      : Bioreactor Recipes.cfg| Bioreactor Recipes.cfg         | Bioreactor Recipes.cfg|           |  
+IntegrityTest                 :                       |                                |                       | No Change | new 
+Addition A Slow 1min          : ???                   | Recipe('Addition A Slow 1min') |                       | ignore    | ignore 
+Addition B Slow 1min          : ???                   | Recipe('Addition B Slow 1min') |                       | ignore    | ignore 
+All Controls Off              :                       |                                |                       | No Change | new 
+1min_on-LoopRecipe            : ???                   | Recipe('1min_on-LoopRecipe')   |                       | ignore    | ignore 
+30min_off-LoopRecipe          : ???                   | Recipe('30min_off-LoopRecipe') |                       | ignore    | ignore 
+60min_off-LoopRecipe          : ???                   | Recipe('60min_off-LoopRecipe') |                       | ignore    | ignore 
+120min_off-LoopRecipe         : ???                   | Recipe('120min_off-LoopRecipe')|                       | ignore    | ignore 
+LevelControl-LoopRecipe       :                       |                                |                       | custom    | user 
+CMTX Inoculation              :                       |                                |                       | custom    | user 
+CMTX-20 minute settling feed  :                       |                                |                       | custom    | user 
+CMTX-15 minute settling feed  :                       |                                |                       | custom    | user 
+CMTX-20 minute DO SP 20       :                       |                                |                       | custom    | user 
+CMTX-15 minute DO SP 20       :                       |                                |                       | custom    | user 
+DA Neuron Inoculation         :                       |                                |                       | custom    | user 
+DA Neuron Harvest             :                       |                                |                       | custom    | user 
+DA-45 minute settling feed    :                       |                                |                       | custom    | user 
+DA-30 minute settling feed    :                       |                                |                       | custom    | user 
+DA-20 minute settling feed    :                       |                                |                       | custom    | user 
+DA-15 minute settling feed    :                       |                                |                       | custom    | user 
+Vessel Default                :                       |                                |                       | custom    | user 
+DMC-Day 0                     :                       |                                |                       | custom    | user 
+DMC-Day 1                     :                       |                                |                       | custom    | user 
+DMC-Day 2                     :                       |                                |                       | custom    | user 
+DMC-15 minute settling feed   :                       |                                |                       | custom    | user 
+DMC IVD and Harvest           :                       |                                |                       | custom    | user 
+HPC Inoculation               :                       |                                |                       | custom    | user 
+HPC-20 minute settling feed   :                       |                                |                       | custom    | user 
+HPC-10 minute settling feed   :                       |                                |                       | custom    | user 

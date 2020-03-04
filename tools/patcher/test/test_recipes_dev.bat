@@ -3,11 +3,11 @@
 for /f %%i in ('cd') do set HERE=%%i
 
 :: directories
-set CLV=D:\Customer_Backups\PBS 3 CDI 4\LabVIEW_Data
-set CRIO=D:\Customer_Backups\PBS 3 CDI 4\Rio_config
+set CLV=D:\files\LabVIEW Data for CDI 4
+set CRIO=D:\files\LabVIEW Data for CDI 4\RIO
 
-set REVB=D:\auto_hd_install\default configs\IM00226 Rev B
-set REVC=D:\auto_hd_install\default configs\IM00226 Rev C
+set REVB=D:\files\auto_hd_install\default configs\IM00226 Rev B
+set REVC=D:\files\auto_hd_install\default configs\IM00226 Rev C
 
 set ODIR=%REVB%\Mag 15
 set NDIR=%REVC%\Mag 15
@@ -20,7 +20,7 @@ set CALMOFF=%CLV%\Alarms Off.alm
 set CLOGON=%CLV%\Logging On.log
 set CLOGOFF=%CLV%\Logging Off.log
 set CEMAIL=%CLV%\Email Alerts Settings.xml
-set CRECIPE=%CLV%\test_for_recipes.cfg
+set CRECIPE=%CLV%\Bioreactor Recipes.cfg
 
 :: old config files
 set OSYSV=%ODIR%\System Variables.sys
@@ -41,6 +41,7 @@ set NLOGON=%NDIR%\Logging On.log
 set NLOGOFF=%NDIR%\Logging Off.log
 set NEMAIL=%NDIR%\Email Alerts Settings.xml
 set NRECIPE=%NDIR%\Bioreactor Recipes.cfg
+rem set NRECIPE=%NDIR%\empty_file.cfg
 
 :: patch files
 set NULLPATCH=test.empty.patch
@@ -64,4 +65,4 @@ set PYCMD=python ..\src\merge\merge.py
 :: email
 ::%PYCMD% "%NULLPATCH%" "%CEMAIL%" "%OEMAIL%" "%NEMAIL%" --type=emailsettings
 
-@%PYCMD% "%NULLPATCH%" "%CRECIPE%" "%ORECIPE%" "%NRECIPE%" --type=recipes --loggersettings="%NLOGOFF%" --verbose
+@%PYCMD% "%NULLPATCH%" "%CRECIPE%" "%ORECIPE%" "%NRECIPE%" --type=recipes --loggersettings="%NLOGOFF%" --verbose %1

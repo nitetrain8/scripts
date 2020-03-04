@@ -1,0 +1,405 @@
+Data Name	Threshold change to record	Record	Group
+AgAtLeast1GoodSensor	0	FALSE	Agitation
+AgAutoMaxStartup(%)	0	FALSE	Agitation
+AgControlAlpha	0	FALSE	Agitation
+AgControlBeta	0	FALSE	Agitation
+AgControlGamma	0	FALSE	Agitation
+AgControlLinearity	0	FALSE	Agitation
+AgGasAutoMaxStartup(LPM)	0	FALSE	Agitation
+AgLookupFactor(LPM/RPM)	0	FALSE	Agitation
+AgLookupModeTimeout (ms)	0	FALSE	Agitation
+AgMainGasActualRequest(LPM)	0	FALSE	Agitation
+AgMainGasControl.DTime(min)	0	FALSE	Agitation
+AgMainGasControl.ITime(min)	0	FALSE	Agitation
+AgMainGasControl.PGain(LPM/RPM)	0	FALSE	Agitation
+AgMainGasRangeAuto(LPM).Max	0	FALSE	Agitation
+AgMainGasRangeAuto(LPM).Min	0	FALSE	Agitation
+AgMainGasRangeManMax(LPM)	0	FALSE	Agitation
+AgMainGasUser(LPM)	0	FALSE	Agitation
+AgMin(RPM)	0	FALSE	Agitation
+AgMinGasSum(V)	0	FALSE	Agitation
+AgMinPower(%)	0	FALSE	Agitation
+AgModeActual	0	FALSE	Agitation
+AgModeUser	0	FALSE	Agitation
+AgMotorPWM.Duty	0	FALSE	Agitation
+AgMotorPWM.OnTime(Cycle)	0	FALSE	Agitation
+AgMotorPWM.Period(Cycle)	0	FALSE	Agitation
+AgMotorPower(V)	0	FALSE	Agitation
+AgPV(RPM)	0	FALSE	Agitation
+AgPowerActualRequest(%)	0	FALSE	Agitation
+AgPowerControl.DTime(min)	0	FALSE	Agitation
+AgPowerControl.ITime(min)	0	FALSE	Agitation
+AgPowerControl.PGain(%/RPM)	0	FALSE	Agitation
+AgPowerRangeAuto(%).Max	0	FALSE	Agitation
+AgPowerRangeAuto(%).Min	0	FALSE	Agitation
+AgPowerRangeManMax(%)	0	FALSE	Agitation
+AgPowerUser(%)	0	FALSE	Agitation
+AgPulseModeTimeout(ms)	0	FALSE	Agitation
+AgPwrLookupFactor(%/RPM)	0	FALSE	Agitation
+AgRPMLoopTime(ticks/Cycle)	0	FALSE	Agitation
+AgSP(RPM)	0	FALSE	Agitation
+AgWheelCount	0	FALSE	Agitation
+AgWheelLastPeriod(iter)	0	FALSE	Agitation
+AgWheelMagnetCount	0	FALSE	Agitation
+AgWheelSamplesToAverage	0	FALSE	Agitation
+AgWheelSense	0	FALSE	Agitation
+AgWheelTimeSinceLastMag(Cycle)	0	FALSE	Agitation
+HarvestDelay(s)	0	FALSE	Agitation
+HarvestMode	0	FALSE	Agitation
+HarvestTimeout	0	FALSE	Agitation
+AlarmBuzzerOnTime(Cycle)	0	FALSE	Alarm
+AlarmBuzzerPeriod(Cycle)	0	FALSE	Alarm
+AlarmBuzzerUser	0	FALSE	Alarm
+AlarmFuseStatus	0	FALSE	Alarm
+AlarmLeak	0	FALSE	Alarm
+AlarmSnoozeTime(ms)	0	FALSE	Alarm
+Alm_CombPlate	0	FALSE	Alarm
+CalDOA.Offset(%)	0	FALSE	Calibration
+CalDOA.Slope	0	FALSE	Calibration
+CalDOB.Offset(%)	0	FALSE	Calibration
+CalDOB.Slope	0	FALSE	Calibration
+CalFilterOvenTemp.Offset(C)	0	FALSE	Calibration
+CalFilterOvenTemp.Slope	0	FALSE	Calibration
+CalLevel.b	0	FALSE	Calibration
+CalLevel.m	0	FALSE	Calibration
+CalLimitsLevel.CalLevelInterceptMax(psi)	0	FALSE	Calibration
+CalLimitsLevel.CalLevelInterceptMin(psi)	0	FALSE	Calibration
+CalLimitsLevel.CalLevelSlopeMax(psi/V)	0	FALSE	Calibration
+CalLimitsLevel.CalLevelSlopeMin(psi/V)	0	FALSE	Calibration
+CalLimitsPressure.CalPressureInterceptMax(psi)	0	FALSE	Calibration
+CalLimitsPressure.CalPressureInterceptMin(psi)	0	FALSE	Calibration
+CalLimitsPressure.CalPressureSlopeMax(psi/V)	0	FALSE	Calibration
+CalLimitsPressure.CalPressureSlopeMin(psi/V)	0	FALSE	Calibration
+CalMFCAir.b(LPM)	0	FALSE	Calibration
+CalMFCAir.m(LPM/V)	0	FALSE	Calibration
+CalMFCCO2.b(LPM)	0	FALSE	Calibration
+CalMFCCO2.m(LPM/V)	0	FALSE	Calibration
+CalMFCN2.b(LPM)	0	FALSE	Calibration
+CalMFCN2.m(LPM/V)	0	FALSE	Calibration
+CalMFCO2.b(LPM)	0	FALSE	Calibration
+CalMFCO2.m(LPM/V)	0	FALSE	Calibration
+CalPressure.Offset(psi)	0	FALSE	Calibration
+CalPressure.Slope	0	FALSE	Calibration
+CalTempA.Offset(C)	0	FALSE	Calibration
+CalTempA.Slope	0	FALSE	Calibration
+CalTempB.Offset(C)	0	FALSE	Calibration
+CalTempB.Slope	0	FALSE	Calibration
+CalpHA.Offset(%)	0	FALSE	Calibration
+CalpHA.Slope	0	FALSE	Calibration
+CalpHA.Temp(C)	0	FALSE	Calibration
+CalpHB.Offset(%)	0	FALSE	Calibration
+CalpHB.Slope	0	FALSE	Calibration
+CalpHB.Temp(C)	0	FALSE	Calibration
+DOA(%)	0	FALSE	DO
+DOAIsPrimaryActual	0	FALSE	DO
+DOARaw(%)	0	FALSE	DO
+DOAisActive	0	FALSE	DO
+DOAisPrimaryUser	0	FALSE	DO
+DOAtLeast1GoodSensor	0	FALSE	DO
+DOB(%)	0	FALSE	DO
+DOBRaw(%)	0	FALSE	DO
+DOBisActive	0	FALSE	DO
+DODeadband(%)	0	FALSE	DO
+DOHardware	0	FALSE	DO
+DOInRange.A	0	FALSE	DO
+DOInRange.B	0	FALSE	DO
+DOMismatchThresh(%)	0	FALSE	DO
+DOModeActual	0	FALSE	DO
+DOModeUser	0	FALSE	DO
+DON2Control.DTime(min)	0	FALSE	DO
+DON2Control.ITime(min)	0	FALSE	DO
+DON2Control.PGain(%/%)	0	FALSE	DO
+DON2ControlAlpha	0	FALSE	DO
+DON2ControlBeta	0	FALSE	DO
+DON2ControlGamma	0	FALSE	DO
+DON2ControlLinearity	0	FALSE	DO
+DON2FlowActualRequest(%)	0	FALSE	DO
+DON2FlowControllerRequest(%)	0	FALSE	DO
+DON2FlowUser(%)	0	FALSE	DO
+DON2RangeAutoMax(%)	0	FALSE	DO
+DON2RangeManMax(%)	0	FALSE	DO
+DOO2ControlAir.DTime(min)	0	FALSE	DO
+DOO2ControlAir.ITime(min)	0	FALSE	DO
+DOO2ControlAir.PGain(mLPM/%)	0	FALSE	DO
+DOO2ControlAlpha	0	FALSE	DO
+DOO2ControlBeta	0	FALSE	DO
+DOO2ControlGamma	0	FALSE	DO
+DOO2ControlLinearity	0	FALSE	DO
+DOO2ControlMag.DTime(min)	0	FALSE	DO
+DOO2ControlMag.ITime(min)	0	FALSE	DO
+DOO2ControlMag.PGain(%/%)	0	FALSE	DO
+DOO2FlowControllerRequest(%)	0	FALSE	DO
+DOO2FlowControllerRequest(mLPM)	0	FALSE	DO
+DOO2FlowControllerRequestLimited(%)	0	FALSE	DO
+DOO2FlowControllerRequestLimited(mLPM)	0	FALSE	DO
+DOO2FlowUser(%)	0	FALSE	DO
+DOO2FlowUser(mLPM)	0	FALSE	DO
+DOO2RangeAutoMax(%)	0	FALSE	DO
+DOO2RangeAutoMax(mLPM)	0	FALSE	DO
+DOO2RangeManMax(%)	0	FALSE	DO
+DOO2RangeManMax(mLPM)	0	FALSE	DO
+DOPV(%)	0	FALSE	DO
+DOSP(%)	0	FALSE	DO
+DOUserConfig	0	FALSE	DO
+DOValidMax(%)	0	FALSE	DO
+DOValidMin(%)	0	FALSE	DO
+DoorLockActual	0	FALSE	Door
+DoorPressureSafe	0	FALSE	Door
+DoorPressureSensor	0	FALSE	Door
+DoorUnlockUser	0	FALSE	Door
+ReusablePressureConnected	0	FALSE	Door
+FilterOvenDutyActual(%)	0	FALSE	Filter Oven
+FilterOvenDutyControl.DTime(min)	0	FALSE	Filter Oven
+FilterOvenDutyControl.Gain(%/C)	0	FALSE	Filter Oven
+FilterOvenDutyControl.ITime(min)	0	FALSE	Filter Oven
+FilterOvenDutyControlAlpha	0	FALSE	Filter Oven
+FilterOvenDutyControlBeta	0	FALSE	Filter Oven
+FilterOvenDutyControlGamma	0	FALSE	Filter Oven
+FilterOvenDutyControlLinearity	0	FALSE	Filter Oven
+FilterOvenDutyRangeAutoMax(%)	0	FALSE	Filter Oven
+FilterOvenDutyRangeManMax(%)	0	FALSE	Filter Oven
+FilterOvenDutyUser(%)	0	FALSE	Filter Oven
+FilterOvenModeActual	0	FALSE	Filter Oven
+FilterOvenModeUser	0	FALSE	Filter Oven
+FilterOvenOnTime(Cycle)	0	FALSE	Filter Oven
+FilterOvenPV(C)	0	FALSE	Filter Oven
+FilterOvenPeriod(Cycle)	0	FALSE	Filter Oven
+FilterOvenRaw(C)	0	FALSE	Filter Oven
+FilterOvenSP(C)	0	FALSE	Filter Oven
+FilterOvenSensorActive	0	FALSE	Filter Oven
+MFCAirFlowFeedback(LPM)	0	FALSE	Gases
+MFCAirMeasRaw(V)	0	FALSE	Gases
+MFCAirMin(LPM)	0	FALSE	Gases
+MFCAirOff(V)	0	FALSE	Gases
+MFCAirOutRaw(V).AO(V)	0	FALSE	Gases
+MFCAirOutRaw(V).On(iter)	0	FALSE	Gases
+MFCAirOutRaw(V).Period(iter)	0	FALSE	Gases
+MFCCO2FlowFeedback(LPM)	0	FALSE	Gases
+MFCCO2MeasRaw(V)	0	FALSE	Gases
+MFCCO2Min(LPM)	0	FALSE	Gases
+MFCCO2Off(V)	0	FALSE	Gases
+MFCCO2OutRaw.AO(V)	0	FALSE	Gases
+MFCCO2OutRaw.On(iter)	0	FALSE	Gases
+MFCCO2OutRaw.Period(iter)	0	FALSE	Gases
+MFCLoopTime(ticks/Cycle)	0	FALSE	Gases
+MFCMaxPeriod(s)	0	FALSE	Gases
+MFCMismatchThresh(V)	0	FALSE	Gases
+MFCN2FlowFeedback(LPM)	0	FALSE	Gases
+MFCN2MeasRaw(V)	0	FALSE	Gases
+MFCN2Min(LPM)	0	FALSE	Gases
+MFCN2Off(V)	0	FALSE	Gases
+MFCN2OutRaw(V).AO(V)	0	FALSE	Gases
+MFCN2OutRaw(V).On(iter)	0	FALSE	Gases
+MFCN2OutRaw(V).Period(iter)	0	FALSE	Gases
+MFCO2FlowFeedback(LPM)	0	FALSE	Gases
+MFCO2MeasRaw(V)	0	FALSE	Gases
+MFCO2Min(LPM)	0	FALSE	Gases
+MFCO2Off(V)	0	FALSE	Gases
+MFCO2OutRaw.AO(V)	0	FALSE	Gases
+MFCO2OutRaw.On(iter)	0	FALSE	Gases
+MFCO2OutRaw.Period(iter)	0	FALSE	Gases
+MFCOnTime(s)	0	FALSE	Gases
+O2 Min Volume (L)	0	FALSE	Gases
+InterlockAgMotor	0	FALSE	Interlocks
+InterlockAll	0	FALSE	Interlocks
+InterlockDoor	0	FALSE	Interlocks
+InterlockDoorPressureMax(psi)	0	FALSE	Interlocks
+InterlockGasFlow	0	FALSE	Interlocks
+InterlockHeater	0	FALSE	Interlocks
+InterlockPressureMax(psi)	0	FALSE	Interlocks
+InterlockPumps	0	FALSE	Interlocks
+InterlockTempMax(C)	0	FALSE	Interlocks
+LEDWhiteLEDOn	0	FALSE	LEDs
+LevelCalCluster.Bottom Gap (cm)	0	FALSE	Level
+LevelCalCluster.Cm/psi	0	FALSE	Level
+LevelCalCluster.Depth	0	FALSE	Level
+LevelCalCluster.LevelEmpty(L)	0	FALSE	Level
+LevelCalCluster.LevelEmpty(V)	0	FALSE	Level
+LevelCalCluster.Radius(cm)	0	FALSE	Level
+LevelColumn(psi)	0	FALSE	Level
+LevelMax(L)	0	FALSE	Level
+LevelMin(L)	0	FALSE	Level
+LevelNet(cm)	0	FALSE	Level
+LevelNoCal(L)	0	FALSE	Level
+LevelPV(L)	0	FALSE	Level
+LevelRaw(V)	0	FALSE	Level
+LevelSensorEnable	0	FALSE	Level
+LevelTotal(cm)	0	FALSE	Level
+Limits.Agitation High (RPM)	0	FALSE	Limits
+Limits.Agitation High High (RPM)	0	FALSE	Limits
+Limits.Agitation Low (RPM)	0	FALSE	Limits
+Limits.Agitation Low Low (RPM)	0	FALSE	Limits
+Limits.DO High (%)	0	FALSE	Limits
+Limits.DO High High (%)	0	FALSE	Limits
+Limits.DO Low (%)	0	FALSE	Limits
+Limits.DO Low Low (%)	0	FALSE	Limits
+Limits.Filter Oven High (C)	0	FALSE	Limits
+Limits.Filter Oven High High (C)	0	FALSE	Limits
+Limits.Filter Oven Low (C)	0	FALSE	Limits
+Limits.Filter Oven Low Low (C)	0	FALSE	Limits
+Limits.Level High (L)	0	FALSE	Limits
+Limits.Level High High (L)	0	FALSE	Limits
+Limits.Level Low (L)	0	FALSE	Limits
+Limits.Level Low Low (L)	0	FALSE	Limits
+Limits.Main Gas High (LPM)	0	FALSE	Limits
+Limits.Main Gas High High (LPM)	0	FALSE	Limits
+Limits.Main Gas Low (LPM)	0	FALSE	Limits
+Limits.Main Gas Low Low (LPM)	0	FALSE	Limits
+Limits.Pressure High (psi)	0	FALSE	Limits
+Limits.Pressure High High (psi)	0	FALSE	Limits
+Limits.Pressure Low (psi)	0	FALSE	Limits
+Limits.Pressure Low Low (psi)	0	FALSE	Limits
+Limits.Temp High (C)	0	FALSE	Limits
+Limits.Temp High High (C)	0	FALSE	Limits
+Limits.Temp Low (C)	0	FALSE	Limits
+Limits.Temp Low Low (C)	0	FALSE	Limits
+Limits.pH High	0	FALSE	Limits
+Limits.pH High High	0	FALSE	Limits
+Limits.pH Low	0	FALSE	Limits
+Limits.pH Low Low	0	FALSE	Limits
+SensorStates.Agitation	0	FALSE	Limits
+SensorStates.DO	0	FALSE	Limits
+SensorStates.Filter Oven	0	FALSE	Limits
+SensorStates.Level	0	FALSE	Limits
+SensorStates.Main Gas	0	FALSE	Limits
+SensorStates.Pressure	0	FALSE	Limits
+SensorStates.Temperature	0	FALSE	Limits
+SensorStates.pH	0	FALSE	Limits
+LoggerLoadedCount	0	FALSE	Logger
+LoggerMaxLogInterval(ms)	0	FALSE	Logger
+MainGasActualRequest(LPM)	0	FALSE	Main Gas
+MainGasFeedback(LPM)	0	FALSE	Main Gas
+MainGasModeActual	0	FALSE	Main Gas
+MainGasModeUser	0	FALSE	Main Gas
+MainGasRangeManMax(LPM)	0	FALSE	Main Gas
+MainGasUser(LPM)	0	FALSE	Main Gas
+PressureDisconnected(V)	0	FALSE	Pressure
+PressurePV(psi)	0	FALSE	Pressure
+PressureRaw(V)	0	FALSE	Pressure
+PressureSensorIsActive	0	FALSE	Pressure
+Reusable Sensor (0 or 1)	0	FALSE	Pressure
+Pumps&ValvesAnalogBaseSpeed(RPM)	0	FALSE	Pumps and Valves
+Pumps&ValvesBaseMaxPeriod(s)	0	FALSE	Pumps and Valves
+Pumps&ValvesBaseOnTime(s)	0	FALSE	Pumps and Valves
+Pumps&ValvesBasePumpSelection	0	FALSE	Pumps and Valves
+Pumps&ValvesFillMotorRaw(V)	0	FALSE	Pumps and Valves
+Pumps&ValvesFillMotorRaw(V) 2	0	FALSE	Pumps and Valves
+Pumps&ValvesFillMotorRaw(V) 3	0	FALSE	Pumps and Valves
+Pumps&ValvesFillSpeed(RPM)	0	FALSE	Pumps and Valves
+Pumps&ValvesFillSpeed(RPM) 2	0	FALSE	Pumps and Valves
+Pumps&ValvesFillSpeed(RPM) 3	0	FALSE	Pumps and Valves
+Pumps&ValvesPump1.Duty	0	FALSE	Pumps and Valves
+Pumps&ValvesPump1.OnTime(Cycle)	0	FALSE	Pumps and Valves
+Pumps&ValvesPump1.Period(Cycle)	0	FALSE	Pumps and Valves
+Pumps&ValvesPump2.Duty	0	FALSE	Pumps and Valves
+Pumps&ValvesPump2.OnTime(Cycle)	0	FALSE	Pumps and Valves
+Pumps&ValvesPump2.Period(Cycle)	0	FALSE	Pumps and Valves
+Pumps&ValvesPumpLowAuxSpeed	0	FALSE	Pumps and Valves
+Pumps&ValvesPumpMedAuxSpeed	0	FALSE	Pumps and Valves
+Pumps&ValvesPumpSmpl	0	FALSE	Pumps and Valves
+Pumps&ValvesPumpSmplReq	0	FALSE	Pumps and Valves
+Pumps&ValvesPumpSmplRevrs	0	FALSE	Pumps and Valves
+Pumps&ValvesPumpSmplRevrsReq	0	FALSE	Pumps and Valves
+Pumps&ValvesPumpUser1	0	FALSE	Pumps and Valves
+Pumps&ValvesPumpUser2	0	FALSE	Pumps and Valves
+Pumps&ValvesReverseCCandCW	0	FALSE	Pumps and Valves
+PromptIssued(tick)	0	FALSE	Recipe
+Recipe Index	0	FALSE	Recipe
+RecipeSkipSequence	0	FALSE	Recipe
+RecipeSkipStep	0	FALSE	Recipe
+BioreactorModel	0	FALSE	System
+SysAvailableMem(KB)	0	FALSE	System
+SysAvailableMemLimit(KB)	0	FALSE	System
+SysLCBMem(KB)	0	FALSE	System
+SysLCBMemLimit(KB)	0	FALSE	System
+SysSessionID	0	FALSE	System
+SysStop	0	FALSE	System
+Sys_FPGAError.NI 9205	0	FALSE	System
+Sys_FPGAError.NI 9219	0	FALSE	System
+Sys_FPGAError.NI 9263	0	FALSE	System
+Sys_FPGAError.NI 9425/Onboard	0	FALSE	System
+Sys_FPGAError.NI 9476	0	FALSE	System
+Sys_PWMLoopTime(ticks/Cycle)	0	FALSE	System
+Sys_StartupCond	0	FALSE	System
+TempA(C)	0	FALSE	Temperature
+TempAIsActive	0	FALSE	Temperature
+TempAIsPrimaryActual	0	FALSE	Temperature
+TempAIsPrimaryUser	0	FALSE	Temperature
+TempARaw(C)	0	FALSE	Temperature
+TempAtLeast1GoodSensor	0	FALSE	Temperature
+TempB(C)	0	FALSE	Temperature
+TempBIsActive	0	FALSE	Temperature
+TempBRaw(C)	0	FALSE	Temperature
+TempHardware	0	FALSE	Temperature
+TempHeatDutyActual(%)	0	FALSE	Temperature
+TempHeatDutyAutoMax(%)	0	FALSE	Temperature
+TempHeatDutyControl.DTime(min)	0	FALSE	Temperature
+TempHeatDutyControl.ITime(min)	0	FALSE	Temperature
+TempHeatDutyControl.PGain(min)	0	FALSE	Temperature
+TempHeatDutyControlAlpha	0	FALSE	Temperature
+TempHeatDutyControlBeta	0	FALSE	Temperature
+TempHeatDutyControlGamma	0	FALSE	Temperature
+TempHeatDutyControlLinearity	0	FALSE	Temperature
+TempHeatDutyUser(%)	0	FALSE	Temperature
+TempHeatManMax(%)	0	FALSE	Temperature
+TempHeatOnTime(Cycle)	0	FALSE	Temperature
+TempHeatPeriod(Cycle)	0	FALSE	Temperature
+TempInRange.A	0	FALSE	Temperature
+TempInRange.B	0	FALSE	Temperature
+TempMismatchThresh(C)	0	FALSE	Temperature
+TempModeActual	0	FALSE	Temperature
+TempModeUser	0	FALSE	Temperature
+TempPV(C)	0	FALSE	Temperature
+TempSP(C)	0	FALSE	Temperature
+TempUserConfig	0	FALSE	Temperature
+TempValidMax(C)	0	FALSE	Temperature
+TempValidMin(C)	0	FALSE	Temperature
+pHA	0	FALSE	pH
+pHAIsActive	0	FALSE	pH
+pHAIsPrimaryActual	0	FALSE	pH
+pHAIsPrimaryUser	0	FALSE	pH
+pHARaw	0	FALSE	pH
+pHAUseTempComp	0	FALSE	pH
+pHActiveMode	0	FALSE	pH
+pHAtLeast1GoodSensor	0	FALSE	pH
+pHB	0	FALSE	pH
+pHBIsActive	0	FALSE	pH
+pHBRaw	0	FALSE	pH
+pHBUseTempComp	0	FALSE	pH
+pHBaseAutoMax	0	FALSE	pH
+pHBaseDutyActual(%)	0	FALSE	pH
+pHBaseDutyControl.DTime(min)	0	FALSE	pH
+pHBaseDutyControl.ITime(min)	0	FALSE	pH
+pHBaseDutyControl.PGain(%)	0	FALSE	pH
+pHBaseDutyControlAlpha	0	FALSE	pH
+pHBaseDutyControlBeta	0	FALSE	pH
+pHBaseDutyControlGamma	0	FALSE	pH
+pHBaseDutyControlLinearity	0	FALSE	pH
+pHBaseDutyManMax(%)	0	FALSE	pH
+pHBaseDutyUser(%)	0	FALSE	pH
+pHCO2ActualRequest(%)	0	FALSE	pH
+pHCO2AutoMax(%)	0	FALSE	pH
+pHCO2Control.DTime(min)	0	FALSE	pH
+pHCO2Control.ITime(min)	0	FALSE	pH
+pHCO2Control.PGain(%)	0	FALSE	pH
+pHCO2ControlAlpha	0	FALSE	pH
+pHCO2ControlBeta	0	FALSE	pH
+pHCO2ControlGamma	0	FALSE	pH
+pHCO2ControlLinearity	0	FALSE	pH
+pHCO2FlowControllerRequest(%)	0	FALSE	pH
+pHCO2ManMax(%)	0	FALSE	pH
+pHCO2User(%)	0	FALSE	pH
+pHDeadband	0	FALSE	pH
+pHHardware	0	FALSE	pH
+pHInRange.A	0	FALSE	pH
+pHInRange.B	0	FALSE	pH
+pHMismatchThresh	0	FALSE	pH
+pHModeActual	0	FALSE	pH
+pHModeUser	0	FALSE	pH
+pHPV	0	FALSE	pH
+pHRateFailDeltaPV	0	FALSE	pH
+pHRateFailDeltaTime(ms)	0	FALSE	pH
+pHSP	0	FALSE	pH
+pHUserConfig	0	FALSE	pH
+pHValidMax	0	FALSE	pH
+pHValidMin	0	FALSE	pH

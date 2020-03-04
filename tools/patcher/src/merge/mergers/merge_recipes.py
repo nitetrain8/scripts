@@ -96,6 +96,13 @@ class Recipe():
             if step.var is not None:
                 yield step
 
+    @classmethod
+    def EmptyRecipe(cls):
+        return cls("", [])
+
+    def empty(self):
+        return len(self.steps) == 0
+
     def __iter__(self):
         return iter(self.steps)
 
@@ -115,7 +122,11 @@ class Recipe():
                 svar = " ".join(var)
                 s = WaitUntilStep(svar.strip('"'), op, val)
             else:
-                _, time, unit = l.split()
+                try:
+                    _, time, unit = l.split()
+                except ValueError:
+                    # malformed line e.g. "Wait 260seconds"
+                    raise SanityError("Malformed wait step: \"%s\""%l) from None
                 s = WaitStep(time, unit)
         elif l.startswith("Set"):
             _, *var, _, val = l.split()
@@ -183,6 +194,17 @@ class RecipeMerger(Merger):
         except StopIteration:
             pass
         return recipes
+
+    def notfound(self, recipe):
+        if self.options.ignore_deleted and recipe not in self.options.never_ignore:
+            if recipe in self.of and not recipe in self.cf:
+                cs = "???"
+                os = self.v2s(recipe, self.getvar(self.of, recipe))
+                ns = ""
+                m  = "ignore"
+                a  = "ignore"
+                self.setvar(self.nf, recipe, Recipe.EmptyRecipe())
+                return cs, os, ns, m, a
 
     def sanitycheck(self):
 
@@ -297,6 +319,8 @@ class RecipeMerger(Merger):
     def output(self, f):
         buf = []
         for name, recipe in f.items():
+            if recipe.empty():
+                continue
             buf.append("Func %s"%name)
             for step in recipe:
                 buf.append(step.tostr())
@@ -308,9 +332,19 @@ class RecipeMerger(Merger):
 def merge_recipes(options):
     p = argparse.ArgumentParser()
     p.add_argument("--loggersettings")
+    p.add_argument("--ignore-deleted", action="store_true")
+    p.add_argument("--never-ignore")
     args, other = p.parse_known_args(options.other)
     options.loggersettings = args.loggersettings
     options.other = other
+    options.ignore_deleted = args.ignore_deleted
+
+    if args.never_ignore:
+        never_ignore = args.never_ignore.split(";")
+        options.never_ignore = set(never_ignore)
+    else:
+        options.never_ignore = set()
+
     return RecipeMerger(options).merge()
 
 
