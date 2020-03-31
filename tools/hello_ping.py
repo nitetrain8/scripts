@@ -81,9 +81,9 @@ def show(*args, __verbose=True, **kw):
         
 def scan_mt(v=2, threads=8, verbose=True, pmin=2, pmax=100):
     global __v
-    nw = wlan.get_current_wifi()
-    if nw != 'pbstech':
-        wlan.ensure_wifi('pbstech')
+    # nw = wlan.get_current_wifi()
+    # if nw != 'pbstech':
+    #     wlan.ensure_wifi('pbstech')
     time.sleep(3)
     
     tl = set()
@@ -104,8 +104,8 @@ def scan_mt(v=2, threads=8, verbose=True, pmin=2, pmax=100):
         else:
             display(oq, verbose)
     display(oq, verbose)
-    if nw != 'pbstech':
-        wlan.ensure_wifi(nw)
+    # if nw != 'pbstech':
+    #     wlan.ensure_wifi(nw)
     show("Finished scanning", __verbose=verbose)
     
     
