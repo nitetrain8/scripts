@@ -480,7 +480,7 @@ def main(domain, user, password, project, from_date=None, to_date=None,
         
     state.update(PGS_LOGGING_IN)
     api = IssuetrackerAPI(domain, user, password)
-    gantt = api.download_issues(project).values()
+    gantt = list(api.download_issues(project))
     gantt = [i for i in gantt if should_include_issue(i, from_date, to_date)]
     set_gantt = set(gantt)
     
