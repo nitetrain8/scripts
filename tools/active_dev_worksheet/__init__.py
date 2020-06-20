@@ -1,323 +1,53 @@
-import requests,urllib,json, logging, dateutil, queue, threading, networkx as nx, asyncio, aiohttp, gc, datetime
-from officelib.xllib import *
-from pywintypes import com_error
-from itertools import zip_longest
+import networkx as nx
+import gc
+import datetime
+import os
 import collections
+
+from pywintypes import com_error # pylint: disable=no-name-in-module
+from itertools import zip_longest
 import time
 
-_urljoin = urllib.parse.urljoin
-_urlencode = urllib.parse.urlencode
-
-
-# In[11]:
-
-
-class ConverterError(Exception):
-    pass
-
-class _RedmineConverter():
-    def __init__(self):
-        self._converters = {}
+from officelib.xllib import *
+from .redmine import api
         
-    def Register(self, kls):
-        self._converters[kls] = dict(kls._converter_table)
-        return kls  # allow function use as decorator
-        
-    def Deserialize(self, jobj, kls):
-        try:
-            tbl = self._converters[kls]
-        except KeyError:
-            raise
-        
-        obj = kls()
-        for key, val in jobj.items():
-            conv = tbl.get(key)
-            if conv:
-                if conv in self._converters:
-                    val = self.Deserialize(val, conv)
-                else:
-                    val = conv(val)
-            else:
-                pass
-                # pass : use val as-is (string)
-            setattr(obj, key, val)
-            
-        for key in tbl.keys():
-            if key not in jobj:
-                setattr(obj, key, None)
-        return obj
-            
-RedmineConverter = _RedmineConverter()     
-
-
-# In[12]:
-
-
-@RedmineConverter.Register
-class Resource():
-    _converter_table = [
-        ("name", str),
-        ("id", int),
-        ("value", str)
-    ]
-    def __str__(self):
-        return f"<{self.__class__.__name__} {self.name}, id={self.id}, v={repr(self.value)}>"
-    __repr__ = __str__
-    
-    
-@RedmineConverter.Register
-class User():
-    _converter_table = [
-        ("name", str),
-        ("id", int)
-    ]
-    def __str__(self):
-        return f"<{self.__class__.__name__} {self.name}, id={self.id}>"
-    __repr__ = __str__
-    
-
-def Datetime(d):
-    return dateutil.parser.parse(d)
-
-
-def CustomFields(cf):
-    fields = {}
-    for f in cf:
-        fields[f['name']] = RedmineConverter.Deserialize(f, Resource)
-    return fields
-
-def Parent(p):
-    return p['id']
-
-@RedmineConverter.Register
-class Issue():
-    
-    _converter_table = [
-        ("author", User),
-        ("custom_fields", CustomFields),
-        ("fixed_version", Resource),
-        ("status", Resource),
-        ("created_on", Datetime),
-        ("updated_on", Datetime),
-        ("id", int),
-        ("project", Resource),
-        ("priority", Resource),
-        ("due_date", Datetime),
-        ("tracker", Resource),
-        ("parent", Parent),
-        ("closed_on", Datetime),
-        ("start_date", Datetime),
-        ("assigned_to", User),
-        ("estimated_hours", float)
-    ]
-    
-    def __init__(self):
-        pass
-
-    def __repr__(self):
-        return f"<{self.__class__.__name__}: '{self.subject}'>"
-
-
-# In[13]:
-
-
-class Client():
-    def __init__(self, url, key):
-        if not url.startswith("http"):
-            url = "https://"+url
-        self._url = url
-        self._key = key
-        self._sess = requests.Session()
-        self._headers = {'X-Redmine-API-Key': self._key}
-        self._Issues = None
-        
-    def _rawget(self, url, headers):
-        r = self._sess.get(url, headers=headers)
-        r.raise_for_status()
-        return r
-    
-    def _prep(self, path, opts):
-        base = _urljoin(self._url, path)
-        qs = _urlencode(opts)
-        url = f"{base}?{qs}"
-        return url, self._headers
-    
-    def get(self, path, opts):
-        url, headers = self._prep(path, opts)
-        return self._rawget(url, headers)
-    
-    async def get_async(self, session, path, opts):
-        url, headers = self._prep(path, opts)
-        async with session.get(url, headers=headers) as r:
-            r.raise_for_status()
-            return await r.json()
-        
-    def superget(self, key, path, opts=None):
-        base = _urljoin(self._url, path)
-        opts = opts or {}
-        pool = RedmineSuperPool(self._headers, key, base, opts)
-        results = pool.wait()
-        count = pool.total_count()
-        assert len({x['id'] for x in results}) == count
-        return results
-            
-    @property
-    def Issues(self):
-        if self._Issues is None:
-            self._Issues = IssuesClient(self)
-        return self._Issues
-    
-    def close(self):
-        self._Issues = None
-        
-     
-def _step_range(start, total_count, step):
-        end = total_count - 1
-        
-        # extra is the amount needed to ensure
-        # the final iteration includes the "end"
-        # value
-        extra = step - (end - start) % step 
-        stop = end + extra
-        return range(start, stop, step)
-
-def _test_step_range():
-    def test_step_range(start=None, limit=100, total_count=1021):
-        if start is None:
-            start = limit
-        for i in _step_range(start, total_count, limit):
-            pass
-        ilast = total_count - 1
-        assert (i + limit > ilast)
-    
-    for start in (0, None):
-        for l in (99, 100, 101):
-            for i in range(900, 1100):
-                test_step_range(start, l, i)
-_test_step_range()
-    
-    
-class RedmineSuperPool:
-    def __init__(self, headers, key, path, opts):
-        self._headers = headers
-        self._path = path
-        self._opts = opts
-        self._key = key
-        
-        self._thread = threading.Thread(None, target=self._run, daemon=True)
-        self._stop = False
-        self._results = []
-        self._total_count = 0
-        self._thread.start()
-        
-    def _run(self):
-        self._stop = False
-        main = self._main()
-        asyncio.run(main)
-        
-    def wait(self):
-        self._thread.join()
-        return self._results
-    
-    def total_count(self):
-        return self._total_count
-        
-    def _urlify(self, path, opts):
-        return f"{path}?{_urlencode(opts)}"
-        
-    async def _main(self):
-        loop = asyncio.get_running_loop()
-        
-        # don't choke the network :)
-        concurrent_connection_limit = 100
-        sem = asyncio.Semaphore(concurrent_connection_limit)
-        
-        async with aiohttp.ClientSession(headers=self._headers) as session:
-            
-            # first call gets total count. It is probably not possible
-            # to avoid this unless the number of issues is known in advance.
-            opts = self._opts
-            opts['limit'] = limit = 100
-            opts['offset'] = offset = 0
-            url = self._urlify(self._path, opts)
-            j = await self._fetch_result(session, url, sem)
-            
-            self._total_count = total_count = j['total_count']
-            
-            tasks = []
-            for offset in _step_range(limit, total_count, limit):
-                opts['offset'] = offset
-                url = self._urlify(self._path, opts)
-                task = loop.create_task(self._fetch_result(session, url, sem))
-                tasks.append(task)
-            await asyncio.gather(*tasks)
-            assert len(self._results) == total_count, (len(self._results), total_count)
-                
-    async def _fetch_result(self, session, url, sem):
-        async with sem:
-            j = await self._fetch(session, url)
-            self._results.extend(j[self._key])
-            return j
-            
-    async def _fetch(self, session, url):
-        ret = await session.get(url)
-        ret.raise_for_status()
-        return await ret.json()
-        
-    
-class IssuesClient():
-    def __init__(self, client):
-        self._client = client
-        
-    def filter(self, /, **opts):
-        raw = self._client.superget("issues", "/issues.json", opts)
-        def parse(x):
-            return RedmineConverter.Deserialize(x, Issue)
-        return [parse(x) for x in raw]
-    
-
-
-# In[14]:
-
 
 def resource_name(r):
     if r is not None:
         return r.name
     return ""
 
-
-class Column2:
-    def __init__(self, top):
-        self._top = top
-        self._first = top.GetOffset(1, 0)
-        
-
 class ColumnConfig2:
+    """ This class is still terrible but not as bad
+    as it used to be. 
+
+    It needs to just be a "Worksheet" wrapper designed
+    to be specific to the Active Dev worksheet with 
+    appropriate helper methods. 
+    """
     def __init__(self, cells, top_left):
         self._top_left = top_left
         self._cells = cells
-        self._lcol = []
         self._dcol = {}
         
     def add(self, name):
-        offset = len(self._lcol)
-        top = self._top_left.GetOffset(0, offset)
-        col = Column2(top)
-        self._lcol.append(col)
+        offset = len(self._dcol)
+        if name in self._dcol:
+            raise ValueError(f"Duplicate column: {name}")
         self._dcol[name] = offset
         
     def rowify_data(self, data):
         # turns "header": <data>
         # key-value pairs into a row as a list
         # of values in the correct order
-        row = [None] * len(self._lcol)
+        row = [None] * len(self._dcol)
         for k, v in data.items():
             row[self._dcol[k]] = v
         return row
     
     def full_range(self, rows):
         tl = self._top_left
-        br = tl.GetOffset(rows, len(self._lcol) - 1)
+        br = tl.GetOffset(rows, len(self._dcol) - 1)
         return self._cells.Range(tl, br)
     
     def data_range(self, rows):
@@ -325,7 +55,7 @@ class ColumnConfig2:
         param rows: # of data rows
         """
         tl = self._top_left.GetOffset(1, 0) # top left data cell
-        br = tl.GetOffset(rows - 1, len(self._lcol) - 1)
+        br = tl.GetOffset(rows - 1, len(self._dcol) - 1)
         return self._cells.Range(tl, br)
         
     def col_data_range(self, name, rows):
@@ -357,8 +87,10 @@ def _mygrouper(iterable, n):
     """ yields chunks of up to n from iterable """
     it = iter(iterable)
     while True:
+        # sloppy but easier than figuring out
+        # the slicing math
         y = []
-        for i in range(n):
+        for _ in range(n):
             try:
                 o = next(it)
             except StopIteration:
@@ -566,24 +298,6 @@ class PlanInitVisitor():
         for chunk in _mygrouper(ranges, 29):
             u = U(u, *chunk)
         return u
-    
-#     def _unionify2(self, ranges):
-#         """ This should be the optimized version
-#         of the above, but it is untested.
-        
-#         I believe in theory this method starts being
-#         faster around a list size 29*29 or 30*29, so in 
-#         practice it probably does not matter. 
-#         """
-#         ranges = list(ranges)
-        
-#         U = self.ws.Application.Union
-#         def Union(chunk): return U(*chunk)
- 
-#         chunks = ranges
-#         while len(chunks) > 30:
-#             chunks = list(map(Union, _mygroup(chunks, 30)))
-#         return Union(chunks)
             
     def finish(self):
         
@@ -655,7 +369,7 @@ class PlanInitVisitor():
         
         # allowed statuses
         statuses = {self.columns.data_from1(row, "Status") for row in self._data}
-        statuses.remove("Closed")
+        statuses.discard("Closed")
         statuses = list(statuses)
         
         r.AutoFilter(Field=field, Criteria1=statuses, Operator=xlc.xlFilterValues)
@@ -719,6 +433,24 @@ class PlanInitVisitor():
         # grow to max column width, then autofit back to min for single row
         col.ColumnWidth = 255
         col.AutoFit()
+
+#     def _unionify2(self, ranges):
+#         """ This should be the optimized version
+#         of the unionify method, but it is untested.
+        
+#         I believe in theory this method starts being
+#         faster around a list size of 29*29 or 30*29, so in 
+#         practice it probably does not matter. 
+#         """
+#         ranges = list(ranges)
+        
+#         U = self.ws.Application.Union
+#         def Union(chunk): return U(*chunk)
+ 
+#         chunks = ranges
+#         while len(chunks) > 30:
+#             chunks = list(map(Union, _mygroup(chunks, 30)))
+#         return Union(chunks)
         
 def _dfs_visit(g, parent, visit, depth):
     for node in sorted(g.successors(parent)):
@@ -732,9 +464,6 @@ def dfs_visit(g, visit):
         _dfs_visit(g, r, visit, 1)
 
 
-# In[15]:
-
-
 def Save(wb, *a,**k):
     wb.Application.DisplayAlerts = False
     try:
@@ -742,11 +471,7 @@ def Save(wb, *a,**k):
     finally:
         wb.Application.DisplayAlerts = True
     
-def sharepoint_path():
-    return "https://pbsbiotech.sharepoint.com/sites/SoftwareEngineeringLV1/Shared Documents/Project Management/Software Active Development.xlsx"
-    
-def save_to_sharepoint(wb):
-    fp = sharepoint_path()
+def save_to_sharepoint(wb, fp):
     Save(wb, fp, CreateBackup=False, AddToMru=True)
     
 def checkout(wb):
@@ -776,13 +501,8 @@ def publish(wb):
     checkout(wb)
     wb.CheckInWithVersion(True, "", True, xlc.xlCheckInMajorVersion)
 
-
-# In[16]:
-
-
-def make_graph():
-    key = "7676add9cac6631410403671cdd7850311987898"
-    client = Client("issue.pbsbiotech.com",key)
+def make_graph(key):
+    client = api.Client("issue.pbsbiotech.com",key)
     ad_issues = client.Issues.filter(status_id="*")
     ad_map = {i.id:i for i in ad_issues}
 
@@ -801,38 +521,31 @@ def make_graph():
     # simple DFS impl for (parent, node) pair callbacks
     def _dfs_visit2(g, parent, visit, depth):
         for node in sorted(g.successors(parent)):
-            visit(g, parent, node)
+            visit(parent, node)
             _dfs_visit2(g, node, visit, depth + 1)
         
     def dfs_visit2(g, node, visit):
-        visit(g, None, node)
+        visit(None, node)
         _dfs_visit2(g, node, visit, 1)
-    
-    def visit(g, parent, node):
-        g.add_node(node)
-        if parent is not None:
-            g.add_edge(parent, node)
     
     # second graph - only what we care about
     # this routine loads all Active Development issues as well
     # as any children, regardless of milestone
     
     fv_active = 96  # sprint/milestone ID for software Active Development
+    
     g2 = nx.DiGraph()
+    def visit(parent, node):
+        g2.add_node(node)
+        if parent is not None:
+            g2.add_edge(parent, node)
+    
     for i in ad_issues:
         if i.fixed_version is None or i.fixed_version.id != fv_active:
             continue
         dfs_visit2(g, i.id, visit)
 
-#     def show_tree(node, depth):
-#         print(" "*depth + str(node))           
-    # dfs_visit(g, show_tree)
-    
     return g2, ad_map
-
-
-# In[17]:
-
 
 def _check_constants():
     try:
@@ -892,72 +605,8 @@ def background_excel():
         
         # try again, bail if fail
         if not _check_constants():
-            raise RunTimeError("Failed to load win32com.client.constants dictionary")
+            raise RuntimeError("Failed to load win32com.client.constants dictionary") 
         
         print("Workaround successful. Resuming activity...")
         
     return xl
-
-
-# In[19]:
-
-
-# issue fetch routine now uses superget(), which essentially eliminates the network bottleneck
-
-# note: superget is slower than the old method if the filter_with_children method
-# doesn't find many children, but significantly faster otherwise and is by far
-# the most scalable and flexible method since it fetches the entire issue list.
-
-# visitor design now defers pasting data until the full table is ready, and AGGRESSIVELY
-# combines data ranges while formatting to minimize COM calls for maximum execution speed. 
-
-# Note that for both Redmine and COM, the execution bottleneck is server<->client interop
-# latency. Some procedures are done in a slightly inefficient way because client-side
-# execution and filtering is effectively instant while interop sees a roughly fixed per-call
-# delay. 
-
-start = time.time()
-print("Downloading issues and making graph...")
-g, ad_map = make_graph()
-
-template_path = os.path.expanduser("~\\documents\\pbs\\wip procedures-reports\\project task template2.xlsx")
-
-print("Opening background Excel task...")
-
-xl = background_excel()
-with HiddenXl(xl):
-    wb = xl.Workbooks.Open(template_path)
-    ws = wb.Worksheets("Outline")
-
-    print("Creating worksheet...")
-    visitor = PlanInitVisitor(ws, g, ad_map)
-    with screen_lock(xl):
-        visitor.visit_all()
-        visitor.finish()
-
-    print("Saving to sharepoint...")
-    #save_to_sw_eng(wb)
-    try:
-        save_to_sharepoint(wb)
-    except com_error:
-        print("Save failed :(")
-    else:
-        print("Success! Wrapping up...")
-    
-# increments major version
-#if 0: publish(wb)
-
-
-xl.ActiveWindow.WindowState = xlc.xlNormal
-
-# release & clean up COM object references
-del visitor, xl, wb, ws
-gc.collect()
-gc.collect()  # just in case :)
-
-
-# In[ ]:
-
-
-
-
