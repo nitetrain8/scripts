@@ -11,6 +11,12 @@ from .converter import RedmineConverter
 _urljoin = urllib.parse.urljoin
 _urlencode = urllib.parse.urlencode
 
+def resource_attrib(obj, attr):
+    if obj is None:
+        return None
+    return getattr(obj, attr)  
+
+
 # pylint: disable=maybe-no-member
 @RedmineConverter.Register
 class Resource():
@@ -26,7 +32,7 @@ class Resource():
     
 # pylint: disable=maybe-no-member
 @RedmineConverter.Register
-class User():
+class SimpleResource():
     _converter_table = [
         ("name", str),
         ("id", int)
@@ -34,6 +40,12 @@ class User():
     def __str__(self):
         return f"<{self.__class__.__name__} {self.name}, id={self.id}>"
     __repr__ = __str__
+
+
+@RedmineConverter.Register
+class User(SimpleResource):
+    pass
+
     
 def Datetime(d):
     return dateutil.parser.parse(d).astimezone(pytz.timezone("US/Pacific"))
@@ -45,8 +57,10 @@ def CustomFields(cf):
         fields[f['name']] = RedmineConverter.Deserialize(f, Resource)
     return fields
 
+
 def Parent(p):
     return p['id']
+
 
 @RedmineConverter.Register
 class Issue():
@@ -77,6 +91,42 @@ class Issue():
         return f"<{self.__class__.__name__}: '{self.subject}'>"
 
 
+@RedmineConverter.Register
+class Project():
+    _converter_table = [
+        ("id", int),
+        ("name", str),
+        ("identifier", str),
+        ("description", str),
+        ("status", int),
+        ("is_public", bool),
+        ("custom_fields", CustomFields),
+        ("created_on", Datetime),
+        ("updated_on", Datetime)
+    ]
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__}: '{self.name} ({self.identifier})'>"
+
+
+@RedmineConverter.Register
+class Version():
+    _converter_table = [
+        ("id", int),
+        ("name", str),
+        ("project", SimpleResource),
+        ("description", str),
+        ("status", str),
+        ("due_date", Datetime),
+        ("sharing", str),
+        ("created_on", Datetime),
+        ("updated_on", Datetime)
+    ]
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__}: '{self.name}'>"
+
+
 class Client():
     def __init__(self, url, key):
         if not url.startswith("http"):
@@ -86,6 +136,7 @@ class Client():
         self._sess = requests.Session()
         self._headers = {'X-Redmine-API-Key': self._key}
         self._Issues = None
+        self._Projects = None
         
     def _rawget(self, url, headers):
         r = self._sess.get(url, headers=headers)
@@ -122,9 +173,17 @@ class Client():
         if self._Issues is None:
             self._Issues = IssuesClient(self)
         return self._Issues
+
+    @property
+    def Projects(self):
+        if self._Projects is None:
+            self._Projects = ProjectsClient(self)
+        return self._Projects
     
     def close(self):
         self._Issues = None
+
+
 
 def _step_range(start, total_count, step):
         end = total_count - 1
@@ -155,7 +214,35 @@ _test_step_range()
     
     
 class RedmineSuperPool:
+    """
+    Spawns a thread with a new asyncio event loop.
+
+    Gathers paginated results from redmine based on the standard
+    pagination scheme:
+    {
+        'offset': <offset>,
+        'limit': <limit>,
+        'total_count': <total>,
+        '<key>': {
+            ...
+        }
+    }
+
+    The first call is used to determine the number of pages.
+    All remaining pages are then downloaded in parallel using
+    asyncio tasks, and appended to a list of results.
+
+    The results list is returned using RedmineSuperPool.wait().
+    """
     def __init__(self, headers, key, path, opts):
+        """Create a new SuperPool and start running the request.
+
+        Args:
+            headers (dict): request headers. Must include authentication.
+            key (string): Object key for the requested resource. 
+            path (string): Request URL, not including query string.
+            opts (dict): Common query string parameters.
+        """        
         self._headers = headers
         self._path = path
         self._opts = opts
@@ -172,9 +259,16 @@ class RedmineSuperPool:
         main = self._main()
         asyncio.run(main)
         
-    def wait(self):
-        self._thread.join()
-        return self._results
+    def wait(self, timeout=None):
+        """Wait for the pool to finish running and return
+        the results list.
+
+        Returns:
+            List[object]: List of results.
+        """
+        self._thread.join(timeout)
+        if not self._thread.is_alive():
+            return self._results
     
     def total_count(self):
         return self._total_count
@@ -231,4 +325,16 @@ class IssuesClient():
         def parse(x):
             return RedmineConverter.Deserialize(x, Issue)
         return [parse(x) for x in raw]
+    
+
+class ProjectsClient():
+    def __init__(self, client):
+        self._client = client
+
+    def filter_versions(self, project, /, **opts):
+        raw = self._client.superget("versions", f"/projects/{project}/versions.json", opts)
+        def parse(x):
+            return RedmineConverter.Deserialize(x, Version)
+        return [parse(x) for x in raw]
+
     

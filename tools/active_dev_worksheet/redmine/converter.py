@@ -27,7 +27,7 @@ class _RedmineConverter():
         obj = kls()
         for key, val in jobj.items():
             conv = tbl.get(key)
-            if conv:
+            if conv and val is not None:
                 if conv in self._converters:
                     val = self.Deserialize(val, conv)
                 else:
